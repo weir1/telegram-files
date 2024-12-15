@@ -1,0 +1,158 @@
+### Get health
+GET http://{{server}}/health
+
+### Basic GET request test
+GET http://{{server}}
+Cookie: {{tf}}
+
+> {%
+  client.test("Request executed successfully", function () {
+    client.assert(response.status === 200, "Response status is not 200");
+    client.assert(response.body === "Hello World!", "Response body is not 'Hello World!'");
+  });
+  const cookie = response.headers.valueOf("set-cookie")
+  if (cookie) {
+    client.global.set("tf", cookie.split(";")[0])
+    console.log("tf: " + cookie)
+  }
+%}
+
+### Basic websocket test
+WEBSOCKET ws://{{server}}/ws
+
+===
+Hello!
+=== wait-for-server
+
+### Create settings test
+POST http://{{server}}/settings/create
+Content-Type: application/json
+Cookie: {{tf}}
+
+{
+  "test1": "test1",
+  "test2": "test2",
+  "test3": "test3"
+}
+
+### Get settings
+GET http://{{server}}/settings?keys=test1,test2,test3
+Cookie: {{tf}}
+
+### Get telegrams
+GET http://{{server}}/telegrams
+Cookie: {{tf}}
+
+### Change telegrams
+POST http://{{server}}/telegrams/change?telegramId={{telegramId}}
+Content-Type: application/json
+Cookie: {{tf}}
+
+### Telegram Create test
+POST http://{{server}}/telegram/create
+Cookie: {{tf}}
+
+### Get chats
+GET http://{{server}}/telegram/{{telegramId}}/chats
+Cookie: {{tf}}
+
+### Get chat files
+GET http://{{server}}/telegram/{{telegramId}}/chat/{{chatId}}/files?fromMessageId=0&type=media&status=all
+Cookie: {{tf}}
+
+### Get chat files count
+GET http://{{server}}/telegram/{{telegramId}}/chat/{{chatId}}/files/count
+Cookie: {{tf}}
+
+### Load photo preview
+GET http://{{server}}//file/preview?chatId={{chatId}}&messageId={{messageId}}
+Cookie: {{tf}}
+
+### Get download statistics
+GET http://{{server}}/telegram/{{telegramId}}/download-statistics
+Cookie: {{tf}}
+
+### Telegram GetMe
+POST http://{{server}}/telegram/api/GetMe
+Content-Type: application/json
+Cookie: {{tf}}
+
+{}
+
+### Telegram SetAuthenticationPhoneNumber
+POST http://{{server}}/telegram/api/SetAuthenticationPhoneNumber
+Content-Type: application/json
+Cookie: {{tf}}
+
+{
+  "phoneNumber": "{{telegram_phone}}",
+  "settings": null
+}
+
+### Telegram CheckAuthenticationCode
+POST http://{{server}}/telegram/api/CheckAuthenticationCode
+Content-Type: application/json
+Cookie: {{tf}}
+
+{
+  "code": "52932"
+}
+
+### Telegram GetChats
+POST http://{{server}}/telegram/api/GetChats
+Content-Type: application/json
+Cookie: {{tf}}
+
+{
+  "chatList": {
+    "@type": -400991316
+  },
+  "limit": 10
+}
+
+### Telegram GetChat
+POST http://{{server}}/telegram/api/GetChat
+Content-Type: application/json
+Cookie: {{tf}}
+
+{
+  "chatId": {{chatId}}
+}
+
+### Telegram LoadChats
+POST http://{{server}}/telegram/api/LoadChats
+Content-Type: application/json
+Cookie: {{tf}}
+
+{
+  "chatList": {
+    "@type": -400991316
+  },
+  "limit": 10
+}
+
+### Telegram SearchChatsOnServer
+POST http://{{server}}/telegram/api/SearchChatsOnServer
+Content-Type: application/json
+Cookie: {{tf}}
+
+{
+  "query": "拾趣",
+  "limit": 10
+}
+
+### Telegram SearchChatMessages
+POST http://{{server}}/telegram/api/SearchChatMessages
+Content-Type: application/json
+Cookie: {{tf}}
+
+{
+  "chatId": 1,
+  "query": "",
+  "fromMessageId": 0,
+  "offset": 0,
+  "limit": 10,
+  "filter": {
+    "@type": 1352130963
+  }
+}

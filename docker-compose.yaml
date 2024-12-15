@@ -1,0 +1,16 @@
+services:
+  telegram-files:
+    container_name: telegram-files
+    image: telegram-files:latest
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+    environment:
+      APP_ENV: ${APP_ENV:-prod}
+      APP_ROOT: ${APP_ROOT:-/app/data}
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
+    ports:
+      - "6543:80"
+    volumes:
+      - ./telegram-files:/app/data

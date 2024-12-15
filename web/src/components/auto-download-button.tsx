@@ -1,0 +1,60 @@
+"use client";
+import React from "react";
+import { ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+interface AutoDownloadButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  autoEnabled?: boolean;
+}
+
+const AutoDownloadButton = React.forwardRef<
+  HTMLButtonElement,
+  AutoDownloadButtonProps
+>(({ autoEnabled = false, className, ...props }, ref) => {
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            ref={ref}
+            className={cn(
+              "group relative w-32 cursor-pointer overflow-hidden rounded border bg-background p-1 text-center font-semibold",
+              className,
+            )}
+            {...props}
+          >
+            <span className="inline-block translate-x-1 transition-all duration-300 group-hover:translate-x-12 group-hover:opacity-0">
+              {autoEnabled ? "Running" : "Stopped"}
+            </span>
+            <div className="absolute top-0 z-10 flex h-full w-full translate-x-12 items-center justify-center gap-2 text-primary-foreground opacity-0 transition-all duration-300 group-hover:-translate-x-1 group-hover:opacity-100">
+              <span>{autoEnabled ? "Disable" : "Enable"}</span>
+              <ArrowRight />
+            </div>
+            <div
+              className={cn(
+                "absolute left-[10%] top-[40%] h-2 w-2 scale-[1] rounded-lg bg-primary transition-all duration-300 group-hover:left-[0%] group-hover:top-[0%] group-hover:h-full group-hover:w-full group-hover:scale-[1.8] group-hover:animate-none group-hover:bg-primary",
+                autoEnabled ? "animate-breathing bg-green-500" : "bg-red-500",
+              )}
+            ></div>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent>
+          {autoEnabled
+            ? "Auto download is enabled, you can disable it by clicking the button"
+            : "Auto download is disabled, you can enable it by clicking the button"}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+});
+
+AutoDownloadButton.displayName = "AutoDownloadButton";
+
+export { AutoDownloadButton };
