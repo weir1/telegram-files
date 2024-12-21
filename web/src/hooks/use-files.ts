@@ -83,7 +83,6 @@ export function useFiles(accountId: string, chatId: string) {
       page.files.forEach((file) => {
         files.push({
           ...file,
-          hasSensitiveContent: true,
           downloadStatus:
             latestFilesStatus[file.id]?.downloadStatus ?? file.downloadStatus,
           localPath: latestFilesStatus[file.id]?.localPath ?? file.localPath,
