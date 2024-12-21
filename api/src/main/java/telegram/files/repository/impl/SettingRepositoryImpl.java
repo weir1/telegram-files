@@ -93,7 +93,7 @@ public class SettingRepositoryImpl implements SettingRepository {
                     if (rs.size() == 1) {
                         return (T) key.converter.apply(rs.iterator().next());
                     }
-                    return null;
+                    return key.defaultValue == null ? null : (T) key.defaultValue;
                 })
                 .onSuccess(r -> log.debug("Successfully fetched setting record for key: " + key))
                 .onFailure(

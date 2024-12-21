@@ -145,10 +145,9 @@ public class HttpVerticle extends AbstractVerticle {
                         return;
                     }
                     Throwable throwable = ctx.failure();
-                    log.error("route: %s statusCode: %d Error: %s".formatted(
+                    log.error("route: %s statusCode: %d".formatted(
                             ctx.currentRoute().getName(),
-                            statusCode,
-                            throwable == null ? "" : throwable.getMessage()));
+                            statusCode), throwable);
                     HttpServerResponse response = ctx.response();
                     response.setStatusCode(statusCode)
                             .putHeader("Content-Type", "application/json")

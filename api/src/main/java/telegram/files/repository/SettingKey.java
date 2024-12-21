@@ -6,10 +6,10 @@ import io.vertx.core.json.JsonObject;
 import java.util.function.Function;
 
 public enum SettingKey {
-    uniqueOnly(Convert::toBool),
-    needToLoadImages(Convert::toBool),
+    uniqueOnly(Convert::toBool, false),
+    needToLoadImages(Convert::toBool, false),
     imageLoadSize,
-    showSensitiveContent(Convert::toBool),
+    showSensitiveContent(Convert::toBool, false),
     autoDownload(value -> new JsonObject(value).mapTo(SettingAutoRecords.class)),
     /**
      * Auto download limit for each telegram account
@@ -19,11 +19,18 @@ public enum SettingKey {
 
     public final Function<String, ?> converter;
 
+    public final Object defaultValue;
+
     SettingKey() {
-        this.converter = Function.identity();
+        this(Function.identity(), null);
     }
 
     SettingKey(Function<String, ?> converter) {
+        this(converter, null);
+    }
+
+    SettingKey(Function<String, ?> converter, Object defaultValue) {
         this.converter = converter;
+        this.defaultValue = defaultValue;
     }
 }
