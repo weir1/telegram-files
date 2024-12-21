@@ -4,7 +4,7 @@ lib_path="/app/tdlib"
 if [ ! -d "$lib_path" ]; then
   echo "Downloading TDLib..."
   mkdir -p $lib_path
-  wget -q -O libs.zip https://github.com/p-vorobyev/spring-boot-starter-telegram/releases/download/1.15.0/libs.zip
+  wget --no-check-certificate -q -O libs.zip https://github.com/p-vorobyev/spring-boot-starter-telegram/releases/download/1.15.0/libs.zip
   unzip -q libs.zip -d $lib_path
   rm libs.zip
 fi
