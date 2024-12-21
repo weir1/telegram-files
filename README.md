@@ -24,6 +24,7 @@
 - [📌 Project Roadmap](#-project-roadmap)
 - [🔰 Contributing](#-contributing)
 - [🎗 License](#-license)
+- [🆗 FAQs](#-faqs)
 
 ---
 
@@ -107,6 +108,7 @@ docker-compose up -d
 ```
 
 > **Important Note:** You should NOT expose the service to the public internet. Because the service is not secure.
+
 ---
 
 ## 📌 Project Roadmap
@@ -163,3 +165,18 @@ This project is protected under the MIT License. For more details,
 refer to the [LICENSE](LICENSE) file.
 
 ---
+
+## 🆗 FAQs
+
+**Q.** Can't start the api server, error：`java.lang.UnsatisfiedLinkError: no tdjni in java.library.path`
+
+**A.** Maybe download tdlib failed, you can see the [entrypoint.sh](entrypoint.sh) file, then download tdlib manually.
+
+**Q.** Web's spoiler is static, how to solve it?
+
+**A.** 1. Because `CSS Houdini Paint API` is not supported by all browsers. 2. It is only supported on https.
+<details closed>
+<summary>Use in http environment, you can use the following method to solve it</summary>
+
+Open the `chrome://flags` page, search for `Insecure origins treated as secure`, and add the address of the web page to the list.
+</details>
