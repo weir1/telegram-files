@@ -2,13 +2,12 @@ package telegram.files;
 
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 
 public class Start {
     private static final Log log = LogFactory.get();
 
-    public static final String VERSION = "0.0.0";
+    public static final String VERSION = "0.1.0";
 
     public static void main(String[] args) {
         Vertx vertx = Vertx.vertx();
