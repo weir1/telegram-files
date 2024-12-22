@@ -298,7 +298,7 @@ public class HttpVerticle extends AbstractVerticle {
             return;
         }
         TelegramVerticle telegramVerticle = telegramVerticleOptional.get();
-        telegramVerticle.stop();
+        telegramVerticle.delete();
         telegramVerticles.remove(telegramVerticle);
         sessionTelegramVerticles.entrySet().removeIf(e -> e.getValue().equals(telegramVerticle));
         ctx.end();

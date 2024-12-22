@@ -1,14 +1,19 @@
 package telegram.files.repository.impl;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.collection.IterUtil;
+import cn.hutool.core.convert.Convert;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonObject;
 import io.vertx.jdbcclient.JDBCPool;
 import io.vertx.sqlclient.templates.SqlTemplate;
+import org.jooq.lambda.tuple.Tuple;
+import org.jooq.lambda.tuple.Tuple3;
 import telegram.files.repository.FileRecord;
 import telegram.files.repository.FileRepository;
 
@@ -82,6 +87,60 @@ public class FileRepositoryImpl implements FileRepository {
                     }
                     return map;
                 });
+    }
+
+    @Override
+    public Future<Tuple3<List<FileRecord>, Long, Long>> getFiles(long chatId, MultiMap filter) {
+        String status = filter.get("status");
+        String search = filter.get("search");
+        Long fromMessageId = Convert.toLong(filter.get("fromMessageId"), 0L);
+        String type = filter.get("type");
+
+        String whereClause = "chat_id = #{chatId}";
+        Map<String, Object> params = MapUtil.of("chatId", chatId);
+        if (StrUtil.isNotBlank(status)) {
+            whereClause += " AND download_status = #{status}";
+            params.put("status", status);
+        }
+        if (StrUtil.isNotBlank(search)) {
+            whereClause += " AND (file_name LIKE #{search} OR caption LIKE #{search})";
+            params.put("search", "%%" + search + "%%");
+        }
+        if (fromMessageId > 0) {
+            whereClause += " AND message_id > #{fromMessageId}";
+            params.put("fromMessageId", fromMessageId);
+        }
+        if (StrUtil.isNotBlank(type)) {
+            if (Objects.equals(type, "media")) {
+                whereClause += " AND type IN ('photo', 'video')";
+            } else {
+                whereClause += " AND type = #{type}";
+                params.put("type", type);
+            }
+        }
+        return Future.all(
+                SqlTemplate
+                        .forQuery(pool, """
+                                SELECT * FROM file_record WHERE %s ORDER BY date DESC
+                                """.formatted(whereClause))
+                        .mapTo(FileRecord.ROW_MAPPER)
+                        .execute(params)
+                        .onFailure(err -> log.error("Failed to get file record: %s".formatted(err.getMessage())))
+                        .map(IterUtil::toList)
+                ,
+                SqlTemplate
+                        .forQuery(pool, """
+                                SELECT COUNT(*) FROM file_record WHERE %s
+                                """.formatted(whereClause))
+                        .mapTo(rs -> rs.getLong(0))
+                        .execute(params)
+                        .onFailure(err -> log.error("Failed to get file record count: %s".formatted(err.getMessage())))
+                        .map(rs -> rs.size() > 0 ? rs.iterator().next() : 0L)
+        ).map(r -> {
+            List<FileRecord> fileRecords = r.resultAt(0);
+            long nextFromMessageId = CollUtil.isEmpty(fileRecords) ? 0 : fileRecords.getLast().messageId();
+            return Tuple.tuple(fileRecords, nextFromMessageId, r.resultAt(1));
+        });
     }
 
     @Override

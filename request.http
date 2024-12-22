@@ -60,6 +60,10 @@ Cookie: {{tf}}
 GET http://{{server}}/telegram/{{telegramId}}/chat/{{chatId}}/files?fromMessageId=0&type=media&status=all
 Cookie: {{tf}}
 
+### Get download completed chat files
+GET http://{{server}}/telegram/{{telegramId}}/chat/{{chatId}}/files?fromMessageId=0&type=media&status=completed
+Cookie: {{tf}}
+
 ### Get chat files count
 GET http://{{server}}/telegram/{{telegramId}}/chat/{{chatId}}/files/count
 Cookie: {{tf}}

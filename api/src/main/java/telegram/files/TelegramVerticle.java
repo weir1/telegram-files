@@ -52,6 +52,8 @@ public class TelegramVerticle extends AbstractVerticle {
 
     private String rootId;
 
+    private boolean needDelete = false;
+
     public TelegramRecord telegramRecord;
 
     static {
@@ -95,14 +97,13 @@ public class TelegramVerticle extends AbstractVerticle {
         client = Client.create(telegramUpdateHandler, this::handleException, this::handleException);
     }
 
-    @Override
-    public void stop() {
-        if (!this.authorized || this.telegramRecord == null) {
-            File root = FileUtil.file(this.rootPath);
-            if (root.exists()) {
-                FileUtil.del(root);
-            }
-        }
+    public void delete() {
+        this.execute(new TdApi.Close())
+                .onSuccess(r -> {
+                    log.info("[%s] Telegram account closed".formatted(this.getRootId()));
+                    this.needDelete = true;
+                })
+                .onFailure(e -> log.error("[%s] Failed to close telegram account: %s".formatted(this.getRootId(), e.getMessage())));
     }
 
     public boolean check() {
@@ -192,19 +193,30 @@ public class TelegramVerticle extends AbstractVerticle {
     }
 
     public Future<JsonObject> getChatFiles(long chatId, MultiMap filter) {
-        TdApi.SearchChatMessages searchChatMessages = new TdApi.SearchChatMessages();
-        searchChatMessages.chatId = chatId;
-        searchChatMessages.query = filter.get("search");
-        searchChatMessages.fromMessageId = Convert.toLong(filter.get("fromMessageId"), 0L);
-        searchChatMessages.offset = Convert.toInt(filter.get("offset"), 0);
-        searchChatMessages.limit = Convert.toInt(filter.get("limit"), 20);
-        searchChatMessages.filter = TdApiHelp.getSearchMessagesFilter(filter.get("type"));
+        String status = filter.get("status");
+        if (Arrays.asList("downloading", "paused", "completed", "error").contains(status)) {
+            return DataVerticle.fileRepository.getFiles(chatId, filter)
+                    .map(tuple -> new JsonObject()
+                            .put("files", tuple.v1)
+                            .put("nextFromMessageId", tuple.v2)
+                            .put("count", tuple.v3)
+                            .put("size", tuple.v1.size())
+                    );
+        } else {
+            TdApi.SearchChatMessages searchChatMessages = new TdApi.SearchChatMessages();
+            searchChatMessages.chatId = chatId;
+            searchChatMessages.query = filter.get("search");
+            searchChatMessages.fromMessageId = Convert.toLong(filter.get("fromMessageId"), 0L);
+            searchChatMessages.offset = Convert.toInt(filter.get("offset"), 0);
+            searchChatMessages.limit = Convert.toInt(filter.get("limit"), 20);
+            searchChatMessages.filter = TdApiHelp.getSearchMessagesFilter(filter.get("type"));
 
-        return this.execute(searchChatMessages)
-                .compose(foundChatMessages ->
-                        DataVerticle.fileRepository.getFilesByUniqueId(TdApiHelp.getFileUniqueIds(Arrays.asList(foundChatMessages.messages)))
-                                .map(fileRecords -> Tuple.tuple(foundChatMessages, fileRecords)))
-                .compose(this::convertFiles);
+            return this.execute(searchChatMessages)
+                    .compose(foundChatMessages ->
+                            DataVerticle.fileRepository.getFilesByUniqueId(TdApiHelp.getFileUniqueIds(Arrays.asList(foundChatMessages.messages)))
+                                    .map(fileRecords -> Tuple.tuple(foundChatMessages, fileRecords)))
+                    .compose(r -> this.convertFiles(r, filter));
+        }
     }
 
     public Future<JsonObject> getChatFilesCount(long chatId) {
@@ -394,10 +406,10 @@ public class TelegramVerticle extends AbstractVerticle {
     public <R extends TdApi.Object> Future<R> execute(TdApi.Function<R> method) {
         log.trace("[%s] Execute method: %s".formatted(getRootId(), TypeUtil.getTypeArgument(method.getClass())));
         return Future.future(promise -> {
-            if (!authorized) {
-                promise.fail("Telegram account not found or not authorized");
-                return;
-            }
+            // if (!authorized) {
+            //     promise.fail("Telegram account not found or not authorized");
+            //     return;
+            // }
             client.send(method, object -> {
                 if (object.getConstructor() == TdApi.Error.CONSTRUCTOR) {
                     promise.fail("Execute method failed. " + object);
@@ -512,6 +524,13 @@ public class TelegramVerticle extends AbstractVerticle {
             case TdApi.AuthorizationStateClosing.CONSTRUCTOR:
                 break;
             case TdApi.AuthorizationStateClosed.CONSTRUCTOR:
+                if (needDelete) {
+                    File root = FileUtil.file(this.rootPath);
+                    if (root.exists()) {
+                        FileUtil.del(root);
+                    }
+                    log.info("[%s] Telegram account deleted".formatted(this.getRootId()));
+                }
                 break;
             default:
                 log.warn("[%s] Unsupported authorization state received:%s".formatted(this.getRootId(), authorizationState));
@@ -586,9 +605,10 @@ public class TelegramVerticle extends AbstractVerticle {
                 ));
     }
 
-    private Future<JsonObject> convertFiles(Tuple2<TdApi.FoundChatMessages, Map<String, FileRecord>> tuple) {
+    private Future<JsonObject> convertFiles(Tuple2<TdApi.FoundChatMessages, Map<String, FileRecord>> tuple, MultiMap filter) {
         TdApi.FoundChatMessages foundChatMessages = tuple.v1;
         Map<String, FileRecord> fileRecords = tuple.v2;
+        boolean searchIdle = Objects.equals(filter.get("status"), FileRecord.DownloadStatus.idle.name());
 
         return DataVerticle.settingRepository.<Boolean>getByKey(SettingKey.uniqueOnly)
                 .map(uniqueOnly -> {
@@ -613,6 +633,10 @@ public class TelegramVerticle extends AbstractVerticle {
                                 } else {
                                     fileRecord = fileRecord.withSourceField(source.id(), source.downloadedSize());
                                 }
+                                if (searchIdle && !Objects.equals(fileRecord.downloadStatus(), FileRecord.DownloadStatus.idle.name())) {
+                                    return null;
+                                }
+
                                 //TODO Processing of the same file under different accounts
 
                                 JsonObject fileObject = JsonObject.mapFrom(fileRecord);
