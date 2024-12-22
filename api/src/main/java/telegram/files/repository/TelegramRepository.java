@@ -12,6 +12,8 @@ public interface TelegramRepository {
 
     Future<TelegramRecord> create(TelegramRecord telegramRecord);
 
+    Future<TelegramRecord> update(TelegramRecord telegramRecord);
+
     Future<TelegramRecord> getById(long id);
 
     Future<List<TelegramRecord>> getAll();

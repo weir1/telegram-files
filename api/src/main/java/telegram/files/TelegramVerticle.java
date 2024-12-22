@@ -12,10 +12,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.TypeUtil;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
+import io.vertx.core.*;
 import io.vertx.core.impl.NoStackTraceException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
@@ -24,10 +21,7 @@ import org.drinkless.tdlib.Client;
 import org.drinkless.tdlib.TdApi;
 import org.jooq.lambda.tuple.Tuple;
 import org.jooq.lambda.tuple.Tuple2;
-import telegram.files.repository.FileRecord;
-import telegram.files.repository.SettingAutoRecords;
-import telegram.files.repository.SettingKey;
-import telegram.files.repository.TelegramRecord;
+import telegram.files.repository.*;
 
 import java.io.File;
 import java.io.IOError;
@@ -49,6 +43,8 @@ public class TelegramVerticle extends AbstractVerticle {
     public TdApi.AuthorizationState lastAuthorizationState;
 
     public String rootPath;
+
+    private String proxyName;
 
     private String rootId;
 
@@ -74,6 +70,7 @@ public class TelegramVerticle extends AbstractVerticle {
     public TelegramVerticle(TelegramRecord telegramRecord) {
         this.telegramRecord = telegramRecord;
         this.rootPath = telegramRecord.rootPath();
+        this.proxyName = telegramRecord.proxy();
     }
 
     public String getRootId() {
@@ -87,14 +84,21 @@ public class TelegramVerticle extends AbstractVerticle {
         return telegramRecord == null ? this.getRootId() : telegramRecord.id();
     }
 
+    public void setProxy(String proxyName) {
+        this.proxyName = proxyName;
+    }
+
     @Override
-    public void start() {
+    public void start(Promise<Void> startPromise) {
         TelegramUpdateHandler telegramUpdateHandler = new TelegramUpdateHandler();
         telegramUpdateHandler.setOnAuthorizationStateUpdated(this::onAuthorizationStateUpdated);
         telegramUpdateHandler.setOnFileUpdated(this::onFileUpdated);
         telegramUpdateHandler.setOnFileDownloadsUpdated(this::onFileDownloadsUpdated);
         telegramUpdateHandler.setOnMessageReceived(this::onMessageReceived);
         client = Client.create(telegramUpdateHandler, this::handleException, this::handleException);
+        this.enableProxy(this.proxyName)
+                .onSuccess(r -> startPromise.complete())
+                .onFailure(startPromise::fail);
     }
 
     public void delete() {
@@ -129,7 +133,8 @@ public class TelegramVerticle extends AbstractVerticle {
                         .put("status", "inactive")
                         .put("rootPath", this.rootPath)
                         .put("isPremium", false)
-                        .put("lastAuthorizationState", lastAuthorizationState);
+                        .put("lastAuthorizationState", lastAuthorizationState)
+                        .put("proxy", this.proxyName);
                 if (this.telegramRecord != null) {
                     jsonObject.put("id", Convert.toStr(this.telegramRecord.id()))
                             .put("name", this.telegramRecord.firstName());
@@ -146,7 +151,8 @@ public class TelegramVerticle extends AbstractVerticle {
                                 .put("avatar", Base64.encode((byte[]) BeanUtil.getProperty(user, "profilePhoto.minithumbnail.data")))
                                 .put("status", "active")
                                 .put("rootPath", this.rootPath)
-                                .put("isPremium", user.isPremium);
+                                .put("isPremium", user.isPremium)
+                                .put("proxy", this.proxyName);
                         promise.complete(result);
                     })
                     .onFailure(e -> {
@@ -158,6 +164,9 @@ public class TelegramVerticle extends AbstractVerticle {
 
     public Future<JsonArray> getChats(Long activatedChatId, String query) {
         Consumer<TdApi.Chats> insertActivatedChatId = chats -> {
+            if (chats == null || ArrayUtil.isEmpty(chats.chatIds)) {
+                return;
+            }
             long[] chatIds = chats.chatIds;
             if (activatedChatId != null && !ArrayUtil.contains(chatIds, activatedChatId)) {
                 chatIds = (long[]) ArrayUtil.insert(chatIds, 0, activatedChatId);
@@ -293,7 +302,9 @@ public class TelegramVerticle extends AbstractVerticle {
                             if (fileRecord != null) {
                                 promise.complete();
                             } else {
-                                DataVerticle.fileRepository.create(TdApiHelp.getFileHandler(message).get().convertFileRecord(telegramRecord.id()))
+                                DataVerticle.fileRepository.create(TdApiHelp.getFileHandler(message)
+                                                .orElseThrow()
+                                                .convertFileRecord(telegramRecord.id()))
                                         .onSuccess(r -> promise.complete())
                                         .onFailure(promise::fail);
                             }
@@ -402,6 +413,87 @@ public class TelegramVerticle extends AbstractVerticle {
         return DataVerticle.fileRepository.getDownloadStatistics(this.telegramRecord.id());
     }
 
+    public Future<TdApi.Proxy> enableProxy(String proxyName) {
+        if (StrUtil.isBlank(proxyName)) return Future.succeededFuture();
+        return DataVerticle.settingRepository.<SettingProxyRecords>getByKey(SettingKey.proxys)
+                .map(settingProxyRecords -> Optional.ofNullable(settingProxyRecords)
+                        .flatMap(r -> r.getProxy(proxyName))
+                        .orElseThrow(() -> new NoStackTraceException("Proxy %s not found".formatted(proxyName)))
+                )
+                .compose(proxy -> this.getTdProxy(proxy)
+                        .map(r -> Tuple.tuple(proxy, r))
+                )
+                .compose(tuple -> {
+                    SettingProxyRecords.Item proxy = tuple.v1;
+                    TdApi.Proxy tdProxy = tuple.v2;
+                    boolean edit = false;
+                    if (tdProxy != null) {
+                        if (tdProxy.isEnabled) {
+                            return Future.succeededFuture(tdProxy);
+                        }
+                        edit = true;
+                    }
+
+                    TdApi.ProxyType proxyType;
+                    if (Objects.equals(proxy.type, "http")) {
+                        proxyType = new TdApi.ProxyTypeHttp(proxy.username, proxy.password, false);
+                    } else if (Objects.equals(proxy.type, "socks5")) {
+                        proxyType = new TdApi.ProxyTypeSocks5(proxy.username, proxy.password);
+                    } else {
+                        return Future.failedFuture("Unsupported proxy type: %s".formatted(proxy.type));
+                    }
+                    return edit ? this.execute(new TdApi.EditProxy(tdProxy.id, proxy.server, proxy.port, true, proxyType))
+                            : this.execute(new TdApi.AddProxy(proxy.server, proxy.port, true, proxyType));
+                })
+                .compose(r -> DataVerticle.telegramRepository.update(this.telegramRecord.withProxy(proxyName)).map(r))
+                .compose(r -> {
+                    this.proxyName = proxyName;
+                    return Future.succeededFuture(r);
+                });
+    }
+
+    public Future<TdApi.Proxy> toggleProxy(JsonObject jsonObject) {
+        String toggleProxyName = jsonObject.getString("proxyName");
+        if (Objects.equals(toggleProxyName, this.proxyName)) {
+            return Future.succeededFuture();
+        }
+
+        if (StrUtil.isBlank(toggleProxyName) && StrUtil.isNotBlank(this.proxyName)) {
+            // disable proxy
+            return this.execute(new TdApi.DisableProxy())
+                    .compose(r -> DataVerticle.telegramRepository.update(this.telegramRecord.withProxy(null)))
+                    .andThen(r -> {
+                        this.proxyName = null;
+                        this.telegramRecord = r.result();
+                    })
+                    .mapEmpty();
+        } else {
+            return this.enableProxy(toggleProxyName);
+        }
+    }
+
+    public Future<TdApi.Proxy> getTdProxy(SettingProxyRecords.Item proxy) {
+        return this.execute(new TdApi.GetProxies())
+                .map(proxies -> Stream.of(proxies.proxies)
+                        .filter(proxy::equalsTdProxy)
+                        .findFirst()
+                        .orElse(null));
+    }
+
+    public Future<TdApi.Proxy> getTdProxy() {
+        return this.execute(new TdApi.GetProxies())
+                .map(proxies -> Stream.of(proxies.proxies)
+                        .filter(p -> p.isEnabled)
+                        .findFirst()
+                        .orElse(null));
+    }
+
+    public Future<Double> ping() {
+        return this.getTdProxy()
+                .compose(proxy -> this.execute(new TdApi.PingProxy(proxy == null ? 0 : proxy.id)))
+                .map(r -> r.seconds);
+    }
+
     @SuppressWarnings("unchecked")
     public <R extends TdApi.Object> Future<R> execute(TdApi.Function<R> method) {
         log.trace("[%s] Execute method: %s".formatted(getRootId(), TypeUtil.getTypeArgument(method.getClass())));
@@ -506,7 +598,7 @@ public class TelegramVerticle extends AbstractVerticle {
                 if (telegramRecord == null) {
                     this.execute(new TdApi.GetMe())
                             .compose(user ->
-                                    DataVerticle.telegramRepository.create(new TelegramRecord(user.id, user.firstName, this.rootPath))
+                                    DataVerticle.telegramRepository.create(new TelegramRecord(user.id, user.firstName, this.rootPath, this.proxyName))
                             )
                             .compose(record -> {
                                 telegramRecord = record;

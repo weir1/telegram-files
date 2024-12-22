@@ -52,6 +52,10 @@ Cookie: {{tf}}
 POST http://{{server}}/telegram/create
 Cookie: {{tf}}
 
+### Ping
+GET http://{{server}}/telegram/{{telegramId}}/ping
+Cookie: {{tf}}
+
 ### Get chats
 GET http://{{server}}/telegram/{{telegramId}}/chats
 Cookie: {{tf}}

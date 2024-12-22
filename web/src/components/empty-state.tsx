@@ -6,6 +6,7 @@ import { AccountDialog } from "@/components/account-dialog";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { BorderBeam } from "@/components/ui/border-beam";
+import ProxysDialog from "@/components/proxys-dialog";
 
 interface EmptyStateProps {
   hasAccounts: boolean;
@@ -55,15 +56,19 @@ export function EmptyState({
             </p>
           </>
         )}
-        <AccountDialog isAdd={true}>
-          <div className="relative rounded-md">
-            <BorderBeam size={60} duration={12} delay={9} />
-            <Button variant="outline">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Add Account
-            </Button>
-          </div>
-        </AccountDialog>
+        <div className="flex items-center justify-center space-x-4">
+          <AccountDialog isAdd={true}>
+            <div className="relative rounded-md">
+              <BorderBeam size={60} duration={12} delay={9} />
+              <Button variant="outline">
+                <UserPlus className="mr-2 h-4 w-4" />
+                Add Account
+              </Button>
+            </div>
+          </AccountDialog>
+
+          <ProxysDialog />
+        </div>
       </div>
 
       {hasAccounts && accounts.length > 0 && onSelectAccount && (

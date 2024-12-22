@@ -47,13 +47,26 @@ public class TelegramRepositoryImpl implements TelegramRepository {
     @Override
     public Future<TelegramRecord> create(TelegramRecord telegramRecord) {
         return SqlTemplate
-                .forUpdate(pool, "INSERT INTO telegram_record(id, first_name, root_path) VALUES (#{id}, #{first_name}, #{root_path})")
+                .forUpdate(pool, "INSERT INTO telegram_record(id, first_name, root_path, proxy) VALUES (#{id}, #{first_name}, #{root_path}, #{proxy})")
                 .mapFrom(TelegramRecord.PARAM_MAPPER)
                 .execute(telegramRecord)
                 .map(r -> telegramRecord)
                 .onSuccess(r -> log.debug("Successfully created telegram record: %s".formatted(telegramRecord.id())))
                 .onFailure(
                         err -> log.error("Failed to create telegram record: %s".formatted(err.getMessage()))
+                );
+    }
+
+    @Override
+    public Future<TelegramRecord> update(TelegramRecord telegramRecord) {
+        return SqlTemplate
+                .forUpdate(pool, "UPDATE telegram_record SET first_name = #{first_name}, root_path = #{root_path}, proxy = #{proxy} WHERE id = #{id}")
+                .mapFrom(TelegramRecord.PARAM_MAPPER)
+                .execute(telegramRecord)
+                .map(r -> telegramRecord)
+                .onSuccess(r -> log.debug("Successfully updated telegram record: %s".formatted(telegramRecord.id())))
+                .onFailure(
+                        err -> log.error("Failed to update telegram record: %s".formatted(err.getMessage()))
                 );
     }
 

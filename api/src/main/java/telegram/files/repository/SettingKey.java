@@ -15,6 +15,7 @@ public enum SettingKey {
      * Auto download limit for each telegram account
      */
     autoDownloadLimit(Convert::toInt),
+    proxys(value -> new JsonObject(value).mapTo(SettingProxyRecords.class)),
     ;
 
     public final Function<String, ?> converter;

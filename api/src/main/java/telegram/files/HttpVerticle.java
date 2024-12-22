@@ -127,6 +127,8 @@ public class HttpVerticle extends AbstractVerticle {
         router.get("/telegram/:telegramId/chat/:chatId/files/count").handler(this::handleTelegramFilesCount);
         router.get("/telegram/:telegramId/download-statistics").handler(this::handleTelegramDownloadStatistics);
         router.post("/telegrams/change").handler(this::handleTelegramChange);
+        router.post("/telegram/:telegramId/toggle-proxy").handler(this::handleTelegramToggleProxy);
+        router.get("/telegram/:telegramId/ping").handler(this::handleTelegramPing);
 
         router.get("/file/preview").handler(this::handleFilePreview);
         router.post("/file/start-download").handler(this::handleFileStartDownload);
@@ -273,9 +275,12 @@ public class HttpVerticle extends AbstractVerticle {
             );
             return;
         }
+        JsonObject jsonObject = ctx.body().asJsonObject();
+        String proxyName = jsonObject.getString("proxyName");
 
         TelegramVerticle newTelegramVerticle = new TelegramVerticle(DataVerticle.telegramRepository.getRootPath());
         newTelegramVerticle.bindHttpSession(sessionId);
+        newTelegramVerticle.setProxy(proxyName);
         sessionTelegramVerticles.put(sessionId, newTelegramVerticle);
         telegramVerticles.add(newTelegramVerticle);
         vertx.deployVerticle(newTelegramVerticle)
@@ -399,6 +404,29 @@ public class HttpVerticle extends AbstractVerticle {
                     sessionTelegramVerticles.put(sessionId, telegramVerticle);
                     ctx.end();
                 }, () -> ctx.fail(404));
+    }
+
+    private void handleTelegramToggleProxy(RoutingContext ctx) {
+        String telegramId = ctx.request().getParam("telegramId");
+        getTelegramVerticle(telegramId)
+                .ifPresentOrElse(telegramVerticle ->
+                        telegramVerticle.toggleProxy(ctx.body().asJsonObject())
+                                .onSuccess(r -> ctx.json(JsonObject.of("proxy", r)))
+                                .onFailure(ctx::fail), () -> ctx.fail(404));
+    }
+
+    private void handleTelegramPing(RoutingContext ctx) {
+        String telegramId = ctx.pathParam("telegramId");
+        if (StrUtil.isBlank(telegramId)) {
+            ctx.fail(400);
+            return;
+        }
+        getTelegramVerticle(telegramId)
+                .ifPresentOrElse(telegramVerticle ->
+                        telegramVerticle.ping()
+                                .onSuccess(r -> ctx.json(JsonObject.of("ping", r)))
+                                .onFailure(ctx::fail), () -> ctx.fail(404)
+                );
     }
 
     private void handleTelegramApi(RoutingContext ctx) {

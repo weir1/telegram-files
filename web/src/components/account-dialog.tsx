@@ -20,13 +20,14 @@ import {
 } from "@/lib/websocket-types";
 import { useToast } from "@/hooks/use-toast";
 import useSWRMutation from "swr/mutation";
-import { POST, telegramApi, type TelegramApiArg } from "@/lib/api";
+import { request, telegramApi, type TelegramApiArg } from "@/lib/api";
 import { useTelegramAccount } from "@/hooks/use-telegram-account";
 import { cn } from "@/lib/utils";
 import { type TelegramApiResult } from "@/lib/types";
 import { useSWRConfig } from "swr";
 import { useDebounce } from "use-debounce";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "./ui/input-otp";
+import ProxysDialog from "@/components/proxys-dialog";
 
 export function AccountDialog({
   children,
@@ -37,12 +38,24 @@ export function AccountDialog({
 }) {
   const { toast } = useToast();
   const { mutate } = useSWRConfig();
+  const [proxyName, setProxyName] = useState<string | undefined>();
   const {
     data: createData,
     trigger: triggerCreate,
     isMutating: isCreateMutating,
     error: createError,
-  } = useSWRMutation<{ id: string }, Error>("/telegram/create", POST);
+  } = useSWRMutation<{ id: string }, Error>(
+    "/telegram/create",
+    async (key: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return await request(key, {
+        method: "POST",
+        body: JSON.stringify({
+          proxyName: proxyName,
+        }),
+      });
+    },
+  );
   const { trigger: triggerMethod, isMutating: isMethodMutating } =
     useSWRMutation<TelegramApiResult, Error, string, TelegramApiArg>(
       "/telegram/api",
@@ -137,7 +150,6 @@ export function AccountDialog({
     if (isMethodMutating) return true;
     const lastCode = methodCodes[methodCodes.length - 1];
     if (!lastCode) return false;
-    console.log(lastCode, methodCompleteCodes);
     return !methodCompleteCodes.includes(lastCode);
   }, [isMethodMutating, methodCodes, methodCompleteCodes]);
 
@@ -173,7 +185,7 @@ export function AccountDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
         aria-describedby={undefined}
-        className="h-full w-full md:h-auto md:min-h-40 md:min-w-[550px]"
+        className="relative h-full w-full pb-10 md:h-auto md:min-h-40 md:min-w-[550px]"
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -184,7 +196,7 @@ export function AccountDialog({
           </DialogTitle>
         </DialogHeader>
         {!debounceIsCreateMutating && !initSuccessfully && (
-          <div className="flex items-center justify-center space-x-2">
+          <div className="flex flex-col items-center justify-center space-y-4">
             <Button
               className={cn(
                 "w-full",
@@ -291,6 +303,13 @@ export function AccountDialog({
             )}
           </form>
         )}
+        <ProxysDialog
+          telegramId={createData?.id}
+          proxyName={proxyName}
+          onProxyNameChange={setProxyName}
+          enableSelect={true}
+          className="absolute bottom-1 right-1"
+        />
       </DialogContent>
     </Dialog>
   );

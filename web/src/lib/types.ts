@@ -7,6 +7,7 @@ export type TelegramAccount = {
   avatar?: string;
   status: "active" | "inactive";
   lastAuthorizationState?: TelegramObject;
+  proxy?: string;
 };
 
 export type TelegramChat = {
@@ -85,8 +86,20 @@ export const SettingKeys = [
   "imageLoadSize",
   "showSensitiveContent",
   "autoDownloadLimit",
+  "proxys",
 ] as const;
 
 export type SettingKey = (typeof SettingKeys)[number];
 
 export type Settings = Record<SettingKey, string>;
+
+export type Proxy = {
+  id?: string;
+  name: string;
+  server: string;
+  port: number;
+  username: string;
+  password: string;
+  type: "http" | "socks5";
+  isEnabled?: boolean;
+}

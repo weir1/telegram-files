@@ -9,7 +9,7 @@ interface SettingsContextType {
   isLoading: boolean;
   settings?: Settings;
   setSetting: (key: SettingKey, value: string) => Promise<void>;
-  updateSettings: (updates?: Settings) => Promise<void>;
+  updateSettings: (updates?: Partial<Settings>) => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(
@@ -41,13 +41,15 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({
   );
 
   // 更新配置项方法
-  const updateSettings = async (updates?: Settings) => {
+  const updateSettings = async (updates?: Partial<Settings>) => {
     await request("/settings/create", {
       body: updates ? JSON.stringify(updates) : JSON.stringify(settings),
       method: "POST",
     });
     // 更新缓存
     if (updates) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       await mutate((current) => ({ ...current, ...updates }), false);
     }
     toast({ title: "Success", description: "Settings updated" });
