@@ -204,15 +204,15 @@ public class FileRepositoryImpl implements FileRepository {
     public Future<JsonObject> getDownloadStatistics(long telegramId) {
         return SqlTemplate
                 .forQuery(pool, """
-                        SELECT COUNT(*)                                                    AS total,
-                               COUNT(CASE WHEN download_status = 'downloading' THEN 1 END) AS downloading,
-                               COUNT(CASE WHEN download_status = 'paused' THEN 1 END)      AS paused,
-                               COUNT(CASE WHEN download_status = 'completed' THEN 1 END)   AS completed,
-                               COUNT(CASE WHEN download_status = 'error' THEN 1 END)       AS error,
-                               COUNT(CASE WHEN type = 'photo' THEN 1 END)                  AS photo,
-                               COUNT(CASE WHEN type = 'video' THEN 1 END)                  AS video,
-                               COUNT(CASE WHEN type = 'audio' THEN 1 END)                  AS audio,
-                               COUNT(CASE WHEN type = 'file' THEN 1 END)                   AS file
+                        SELECT COUNT(*)                                                                     AS total,
+                               COUNT(CASE WHEN download_status = 'downloading' THEN 1 END)                  AS downloading,
+                               COUNT(CASE WHEN download_status = 'paused' THEN 1 END)                       AS paused,
+                               COUNT(CASE WHEN download_status = 'completed' THEN 1 END)                    AS completed,
+                               COUNT(CASE WHEN download_status = 'error' THEN 1 END)                        AS error,
+                               COUNT(CASE WHEN download_status = 'completed' and type = 'photo' THEN 1 END) AS photo,
+                               COUNT(CASE WHEN download_status = 'completed' and type = 'video' THEN 1 END) AS video,
+                               COUNT(CASE WHEN download_status = 'completed' and type = 'audio' THEN 1 END) AS audio,
+                               COUNT(CASE WHEN download_status = 'completed' and type = 'file' THEN 1 END)  AS file
                         FROM file_record
                         WHERE telegram_id = #{telegramId}
                         """)
