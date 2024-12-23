@@ -6,9 +6,10 @@ import io.vertx.core.json.JsonObject;
 import java.util.function.Function;
 
 public enum SettingKey {
-    uniqueOnly(Convert::toBool, false),
+    uniqueOnly(Convert::toBool, true),
     needToLoadImages(Convert::toBool, false),
     imageLoadSize,
+    alwaysHide(Convert::toBool, false),
     showSensitiveContent(Convert::toBool, false),
     autoDownload(value -> new JsonObject(value).mapTo(SettingAutoRecords.class)),
     /**

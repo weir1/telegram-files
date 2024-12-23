@@ -16,7 +16,10 @@ export default function SpoiledWrapper({
     [settings?.showSensitiveContent],
   );
 
-  if (hasSensitiveContent && !showSensitiveContent) {
+  if (
+    settings?.alwaysHide === "true" ||
+    (hasSensitiveContent && !showSensitiveContent)
+  ) {
     return (
       <Spoiler hidden={hidden} className="pointer-events-none">
         {children}

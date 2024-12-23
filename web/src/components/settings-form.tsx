@@ -100,21 +100,38 @@ export default function SettingsForm() {
         </div>
         <div className="flex w-full flex-col space-y-4 rounded-md border p-4 shadow">
           <div className="flex items-center space-x-2">
-            <Label htmlFor="show-sensitive-content">
-              Show Sensitive Content
-            </Label>
+            <Label htmlFor="always-hide">Always Hide</Label>
             <Checkbox
-              id="show-sensitive-content"
-              checked={settings?.showSensitiveContent === "true"}
+              id="always-hide"
+              checked={settings?.alwaysHide === "true"}
               onCheckedChange={(checked) =>
-                void setSetting("showSensitiveContent", String(checked))
+                void setSetting("alwaysHide", String(checked))
               }
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            Show sensitive content in the table, Will use a spoiler to hide
-            sensitive content if disabled.
+            Always hide content and extra info in the table.
           </p>
+          {settings?.alwaysHide === "false" && (
+            <>
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="show-sensitive-content">
+                  Show Sensitive Content
+                </Label>
+                <Checkbox
+                  id="show-sensitive-content"
+                  checked={settings?.showSensitiveContent === "true"}
+                  onCheckedChange={(checked) =>
+                    void setSetting("showSensitiveContent", String(checked))
+                  }
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Show sensitive content in the table, Will use a spoiler to hide
+                sensitive content if disabled.
+              </p>
+            </>
+          )}
         </div>
         <div className="flex w-full flex-col space-y-4 rounded-md border p-4 shadow">
           <Label>Auto Download Settings</Label>

@@ -84,6 +84,7 @@ export const SettingKeys = [
   "uniqueOnly",
   "needToLoadImages",
   "imageLoadSize",
+  "alwaysHide",
   "showSensitiveContent",
   "autoDownloadLimit",
   "proxys",
