@@ -36,9 +36,9 @@ export default function SettingsForm() {
   return (
     <form
       onSubmit={handleSave}
-      className="flex h-full flex-col"
+      className="flex h-full flex-col overflow-hidden"
     >
-      <div className="flex flex-1 flex-col space-y-4 overflow-y-scroll">
+      <div className="flex flex-col space-y-4 overflow-y-scroll">
         <p className="rounded-md bg-gray-50 p-2 text-sm text-muted-foreground shadow">
           <Bell className="mr-2 inline-block h-4 w-4" />
           These settings will be applied to all accounts.
@@ -134,7 +134,7 @@ export default function SettingsForm() {
           </div>
         </div>
       </div>
-      <div className="mt-2 flex justify-end">
+      <div className="mt-2 flex flex-1 justify-end">
         <Button type="submit">Submit</Button>
       </div>
     </form>

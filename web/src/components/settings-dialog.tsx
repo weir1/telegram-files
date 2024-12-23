@@ -47,10 +47,8 @@ export const SettingsDialog: React.FC = () => {
             <TabsTrigger value="statistics">Statistics</TabsTrigger>
             <TabsTrigger value="proxys">Proxys</TabsTrigger>
           </TabsList>
-          <TabsContent value="general" className="h-full">
-            <div className="flex flex-col overflow-hidden">
-              <SettingsForm />
-            </div>
+          <TabsContent value="general" className="overflow-hidden">
+            <SettingsForm />
           </TabsContent>
           <TabsContent value="statistics" className="h-full">
             <div className="flex flex-col overflow-y-scroll">

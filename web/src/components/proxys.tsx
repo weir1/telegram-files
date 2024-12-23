@@ -159,7 +159,7 @@ export default function Proxys({
           <Plus className="mr-2 h-5 w-5" /> Add Proxy
         </Button>
       </div>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 2xl:grid-cols-4">
         {proxys.map((proxy) => (
           <Card
             key={proxy.name}
@@ -212,13 +212,14 @@ export default function Proxys({
         ))}
       </div>
       {enableSelect && (
-        <Button
-          className="absolute bottom-4 right-4"
-          disabled={isToggleProxyMutating}
-          onClick={() => handleProxySubmit()}
-        >
-          Submit
-        </Button>
+        <div className="absolute bottom-0 right-0 flex items-center space-x-4">
+          <Button
+            disabled={isToggleProxyMutating}
+            onClick={() => handleProxySubmit()}
+          >
+            Submit
+          </Button>
+        </div>
       )}
       <Dialog open={isDialogOpen} onOpenChange={handleCloseDialog}>
         <DialogContent>
