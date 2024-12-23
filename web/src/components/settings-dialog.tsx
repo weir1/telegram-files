@@ -13,6 +13,7 @@ import FileStatistics from "@/components/file-statistics";
 import { useTelegramAccount } from "@/hooks/use-telegram-account";
 import Proxys from "@/components/proxys";
 import SettingsForm from "@/components/settings-form";
+import About from "@/components/about";
 
 export const SettingsDialog: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -46,11 +47,12 @@ export const SettingsDialog: React.FC = () => {
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="statistics">Statistics</TabsTrigger>
             <TabsTrigger value="proxys">Proxys</TabsTrigger>
+            <TabsTrigger value="about">About</TabsTrigger>
           </TabsList>
           <TabsContent value="general" className="overflow-hidden">
             <SettingsForm />
           </TabsContent>
-          <TabsContent value="statistics" className="h-full">
+          <TabsContent value="statistics" className="h-full overflow-hidden">
             <div className="flex flex-col overflow-y-scroll">
               {accountId ? (
                 <FileStatistics telegramId={accountId} />
@@ -63,7 +65,7 @@ export const SettingsDialog: React.FC = () => {
               )}
             </div>
           </TabsContent>
-          <TabsContent value="proxys" className="h-full">
+          <TabsContent value="proxys" className="h-full overflow-hidden">
             <div className="flex h-full flex-col overflow-y-scroll">
               <Proxys
                 telegramId={accountId}
@@ -71,6 +73,9 @@ export const SettingsDialog: React.FC = () => {
                 enableSelect={true}
               />
             </div>
+          </TabsContent>
+          <TabsContent value="about" className="h-full overflow-hidden">
+            <About />
           </TabsContent>
         </Tabs>
       </DialogContent>

@@ -111,8 +111,9 @@ public class HttpVerticle extends AbstractVerticle {
         HealthChecks hc = HealthChecks.create(vertx);
         hc.register("http-server", Promise::complete);
 
-        router.get("/health").handler(HealthCheckHandler.createWithHealthChecks(hc));
         router.get("/").handler(ctx -> ctx.response().end("Hello World!"));
+        router.get("/health").handler(HealthCheckHandler.createWithHealthChecks(hc));
+        router.get("/version").handler(ctx -> ctx.json(new JsonObject().put("version", Start.VERSION)));
         router.route("/ws").handler(this::handleWebSocket);
 
         router.get("/settings").handler(this::handleSettings);
