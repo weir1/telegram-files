@@ -55,7 +55,7 @@ def git_commit_and_tag(version, message):
     """执行 Git 提交并创建标签"""
     try:
         # 添加修改到 Git 暂存区
-        subprocess.run(["git", "add", VERSION_FILE, BUILD_GRADLE_FILE, PACKAGE_JSON_FILE], check=True)
+        subprocess.run(["git", "add", VERSION_FILE, BUILD_GRADLE_FILE, JAVA_VERSION_FILE, PACKAGE_JSON_FILE], check=True)
         # 提交修改
         subprocess.run(["git", "commit", "-m", message], check=True)
         # 创建标签
