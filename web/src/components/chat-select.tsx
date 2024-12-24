@@ -58,7 +58,7 @@ export default function ChatSelect({ disabled }: { disabled: boolean }) {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[300px] p-0">
-        <Command>
+        <Command shouldFilter={false}>
           <CommandInput
             placeholder="Search chat..."
             className="h-9"
@@ -73,7 +73,7 @@ export default function ChatSelect({ disabled }: { disabled: boolean }) {
                 </div>
               </CommandLoading>
             )}
-            <CommandEmpty>{!isLoading && "No chat found."}</CommandEmpty>
+            <CommandEmpty>{!isLoading && chats.length === 0 && "No chat found."}</CommandEmpty>
             <CommandGroup>
               {chats.map((chat) => (
                 <CommandItem
