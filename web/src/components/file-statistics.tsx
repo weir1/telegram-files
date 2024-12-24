@@ -2,16 +2,20 @@ import React from "react";
 import useSWR from "swr";
 import {
   AlertTriangle,
-  CheckCircle, CloudDownload,
+  CheckCircle,
+  CloudDownload,
   Download,
   File,
   FileText,
   Image,
   Music,
-  PauseCircle,
+  Network,
+  PauseCircle, Upload,
   Video,
 } from "lucide-react";
-import { request } from "@/lib/api"; // Define a fetcher function to handle the API request
+import { request } from "@/lib/api";
+import prettyBytes from "pretty-bytes";
+import { formatDistanceToNow } from "date-fns"; // Define a fetcher function to handle the API request
 
 // Interface defining the structure of the data returned from the API
 interface StatisticsData {
@@ -24,6 +28,11 @@ interface StatisticsData {
   video: number;
   audio: number;
   file: number;
+  networkStatistics: {
+    sinceDate: number;
+    sentBytes: number;
+    receivedBytes: number;
+  };
 }
 
 // Props interface for the component, expecting a telegramId as input
@@ -100,8 +109,10 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
     <div className="space-y-6 rounded-lg bg-gray-50 p-6">
       <div className="flex-1 rounded-lg bg-white p-4 shadow-md">
         <div className="flex items-center space-x-3 border-gray-200">
-          <CloudDownload className="h-6 w-6 text-blue-600" />
-          <h2 className="text-xl font-bold text-gray-800">Download Statistics</h2>
+          <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700">
+            <CloudDownload className="h-5 w-5 text-blue-600" />
+            <span>Download Statistics</span>
+          </h3>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-5">
           <div className="rounded-lg bg-gray-50 p-4 shadow-sm">
@@ -109,7 +120,7 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
               <FileText className="h-5 w-5 text-gray-600" />
               <span className="text-sm text-gray-600">Total Files</span>
             </div>
-            <div className="mt-2 text-lg text-center font-semibold text-gray-800">
+            <div className="mt-2 text-center text-lg font-semibold text-gray-800">
               {total}
             </div>
           </div>
@@ -118,7 +129,7 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
               <Download className="h-5 w-5 text-blue-600" />
               <span className="text-sm text-gray-600">Downloading</span>
             </div>
-            <div className="mt-2 text-lg text-center font-semibold text-gray-800">
+            <div className="mt-2 text-center text-lg font-semibold text-gray-800">
               {downloading}
             </div>
           </div>
@@ -127,7 +138,7 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
               <PauseCircle className="h-5 w-5 text-yellow-500" />
               <span className="text-sm text-gray-600">Paused</span>
             </div>
-            <div className="mt-2 text-lg text-center font-semibold text-gray-800">
+            <div className="mt-2 text-center text-lg font-semibold text-gray-800">
               {paused}
             </div>
           </div>
@@ -136,7 +147,7 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
               <CheckCircle className="h-5 w-5 text-green-600" />
               <span className="text-sm text-gray-600">Completed</span>
             </div>
-            <div className="mt-2 text-lg text-center font-semibold text-gray-800">
+            <div className="mt-2 text-center text-lg font-semibold text-gray-800">
               {completed}
             </div>
           </div>
@@ -145,34 +156,65 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
               <AlertTriangle className="h-5 w-5 text-red-600" />
               <span className="text-sm text-gray-600">Error</span>
             </div>
-            <div className="mt-2 text-lg text-center font-semibold text-gray-800">
+            <div className="mt-2 text-center text-lg font-semibold text-gray-800">
               {errorCount}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 rounded-lg bg-white p-4 shadow-md">
-        <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700">
-          <CheckCircle className="h-5 w-5 text-green-600" />
-          <span>Completed by Type</span>
-        </h3>
-        <ul className="mt-4 grid grid-cols-2 gap-4">
-          {completedTypes.map((type) => (
-            <li
-              key={type.label}
-              className="rounded-lg bg-gray-50 p-3 shadow-sm"
-            >
-              <div className="flex items-center space-x-2">
-                {type.icon}
-                <span className="text-sm text-gray-600">{type.label}</span>
-              </div>
-              <div className="mt-2 text-lg font-semibold text-gray-800">
-                {type.value}
-              </div>
-            </li>
-          ))}
-        </ul>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="flex-1 rounded-lg bg-white p-4 shadow-md md:col-span-2">
+          <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700">
+            <CheckCircle className="h-5 w-5 text-green-600" />
+            <span>Completed by Type</span>
+          </h3>
+          <ul className="mt-4 grid grid-cols-2 gap-4">
+            {completedTypes.map((type) => (
+              <li
+                key={type.label}
+                className="rounded-lg bg-gray-50 p-3 shadow-sm"
+              >
+                <div className="flex items-center space-x-2">
+                  {type.icon}
+                  <span className="text-sm text-gray-600">{type.label}</span>
+                </div>
+                <div className="mt-2 text-lg font-semibold text-gray-800">
+                  {type.value}
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="flex-1 rounded-lg bg-white p-4 shadow-md">
+          <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700">
+            <Network className="h-5 w-5 text-gray-500" />
+            <span>Network Statistics</span>
+          </h3>
+          <div className="mt-4 h-full">
+            <div className="flex justify-center items-center space-x-2 rounded-lg bg-gray-50 p-4 shadow-sm">
+              <Upload className="h-5 w-5 text-yellow-500" />
+              <span className="text-lg font-semibold text-gray-800">
+                {prettyBytes(data.networkStatistics.sentBytes)}
+              </span>
+            </div>
+            <div className="mt-4 flex justify-center items-center space-x-2 rounded-lg bg-gray-50 p-4 shadow-sm">
+              <Download className="h-5 w-5 text-blue-600" />
+              <span className="text-lg font-semibold text-gray-800">
+                {prettyBytes(data.networkStatistics.receivedBytes)}
+              </span>
+            </div>
+            <p className="mt-2 text-right text-sm text-gray-400">
+              Since: {formatDistanceToNow(
+                new Date(data.networkStatistics.sinceDate * 1000),
+                {
+                  addSuffix: true,
+                },
+              )}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

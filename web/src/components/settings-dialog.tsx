@@ -53,7 +53,7 @@ export const SettingsDialog: React.FC = () => {
             <SettingsForm />
           </TabsContent>
           <TabsContent value="statistics" className="h-full overflow-hidden">
-            <div className="flex flex-col overflow-y-scroll">
+            <div className="h-full flex flex-col overflow-y-scroll">
               {accountId ? (
                 <FileStatistics telegramId={accountId} />
               ) : (

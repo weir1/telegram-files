@@ -410,7 +410,27 @@ public class TelegramVerticle extends AbstractVerticle {
     }
 
     public Future<JsonObject> getDownloadStatistics() {
-        return DataVerticle.fileRepository.getDownloadStatistics(this.telegramRecord.id());
+        return Future.all(DataVerticle.fileRepository.getDownloadStatistics(this.telegramRecord.id()),
+                this.execute(new TdApi.GetNetworkStatistics())
+        ).map(r -> {
+            JsonObject jsonObject = r.resultAt(0);
+            TdApi.NetworkStatistics networkStatistics = r.resultAt(1);
+            Tuple2<Long, Long> bytes = Arrays.stream(networkStatistics.entries)
+                    .filter(e -> e instanceof TdApi.NetworkStatisticsEntryFile)
+                    .map(e -> {
+                        TdApi.NetworkStatisticsEntryFile entry = (TdApi.NetworkStatisticsEntryFile) e;
+                        return Tuple.tuple(entry.sentBytes, entry.receivedBytes);
+                    })
+                    .reduce((a, b) -> Tuple.tuple(a.v1 + b.v1, a.v2 + b.v2))
+                    .orElse(Tuple.tuple(0L, 0L));
+
+            jsonObject.put("networkStatistics", JsonObject.of()
+                    .put("sinceDate", networkStatistics.sinceDate)
+                    .put("sentBytes", bytes.v1)
+                    .put("receivedBytes", bytes.v2)
+            );
+            return jsonObject;
+        });
     }
 
     public Future<TdApi.Proxy> enableProxy(String proxyName) {
