@@ -48,7 +48,7 @@ export default function FileTypeFilter({
       value={type}
       onValueChange={(value) => onTypeChange(value as FileType)}
     >
-      <SelectTrigger className="w-[150px]">
+      <SelectTrigger className="w-full md:w-[150px]">
         <SelectValue placeholder="File type" />
       </SelectTrigger>
       <SelectContent>

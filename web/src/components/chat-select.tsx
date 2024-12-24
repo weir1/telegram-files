@@ -37,7 +37,7 @@ export default function ChatSelect({ disabled }: { disabled: boolean }) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-[250px] justify-between"
+          className="w-full md:w-[250px] justify-between"
         >
           {selectedChat ? (
             <div className="flex items-center gap-2">

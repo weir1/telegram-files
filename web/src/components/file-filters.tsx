@@ -39,14 +39,14 @@ export function FileFilters({
 }: FileFiltersProps) {
   return (
     <div className="mb-6 flex flex-col justify-between md:flex-row">
-      <div className="flex flex-col gap-4 md:flex-row">
+      <div className="grid grid-cols-2 gap-4 md:flex-row md:flex">
         <Input
           placeholder="Search files..."
           value={filters.search}
           onChange={(e) =>
             onFiltersChange({ ...filters, search: e.target.value })
           }
-          className="md:w-[300px]"
+          className="col-span-2 md:w-[300px]"
         />
 
         <FileTypeFilter
@@ -65,7 +65,7 @@ export function FileFilters({
             })
           }
         >
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-full md:w-[150px]">
             <SelectValue placeholder="Download status" />
           </SelectTrigger>
           <SelectContent>
@@ -78,7 +78,7 @@ export function FileFilters({
         </Select>
       </div>
 
-      <div className="flex gap-4">
+      <div className="hidden gap-4 md:flex">
         <TableColumnFilter
           columns={columns}
           onColumnConfigChange={onColumnConfigChange}

@@ -49,6 +49,7 @@ import prettyBytes from "pretty-bytes";
 import FileProgress from "@/components/file-progress";
 import FileNotFount from "@/components/file-not-found";
 import FileExtra from "@/components/file-extra";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 interface FileListProps {
   accountId: string;
@@ -100,7 +101,7 @@ const PhotoColumnImage = memo(function PhotoColumnImage({
 });
 
 export function FileList({ accountId, chatId }: FileListProps) {
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
   const observerTarget = useRef(null);
   const [columns, setColumns] = useState<Column[]>(COLUMNS);
@@ -109,16 +110,6 @@ export function FileList({ accountId, chatId }: FileListProps) {
 
   const { filters, handleFilterChange, isLoading, files, handleLoadMore } =
     useFiles(accountId, chatId);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -162,6 +153,16 @@ export function FileList({ accountId, chatId }: FileListProps) {
   if (isMobile) {
     return (
       <div className="space-y-4">
+        <FileFilters
+          telegramId={accountId}
+          chatId={chatId}
+          filters={filters}
+          onFiltersChange={handleFilterChange}
+          columns={columns}
+          onColumnConfigChange={setColumns}
+          rowHeight={rowHeight}
+          setRowHeight={setRowHeight}
+        />
         <div className="grid grid-cols-1 gap-4">
           {files.map((file, index) => (
             <FileCard

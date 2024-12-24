@@ -30,23 +30,28 @@ import ChatSelect from "@/components/chat-select";
 import Link from "next/link";
 import TelegramIcon from "@/components/telegram-icon";
 import AutoDownloadDialog from "@/components/auto-download-dialog";
+import useIsMobile from "@/hooks/use-is-mobile";
+import { useState } from "react";
+import {Button} from "@/components/ui/button";
 
 export function Header() {
   const { isLoading, getAccounts, accountId, account, handleAccountChange } =
     useTelegramAccount();
   const { connectionStatus, accountDownloadSpeed } = useWebsocket();
   const accounts = getAccounts("active");
+  const isMobile = useIsMobile();
+  const [showMore, setShowMore] = useState(false);
 
   return (
     <Card className="mb-6">
       <CardContent className="p-4">
-        <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-          <div className="flex flex-1 flex-col gap-4 md:flex-row md:items-center">
+        <div className="relative flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+          <div className="w-full flex flex-1 flex-col gap-4 md:flex-row md:items-center">
             <Link href={"/"} className="hidden md:inline-flex">
               <TelegramIcon className="h-6 w-6" />
             </Link>
 
-            <div className="flex items-center gap-2">
+            <div className="w-full md:w-auto">
               <Select value={accountId} onValueChange={handleAccountChange}>
                 <SelectTrigger className="w-full md:w-[200px]">
                   <SelectValue placeholder="Select account ...">
@@ -99,9 +104,14 @@ export function Header() {
               </Select>
             </div>
 
-            <ChatSelect disabled={!accountId} />
+            {(!isMobile || showMore) && (
+              <>
+                <ChatSelect disabled={!accountId} />
 
-            <AutoDownloadDialog />
+                <AutoDownloadDialog />
+              </>
+            )}
+
           </div>
 
           <div className="flex items-center gap-4">
@@ -147,6 +157,15 @@ export function Header() {
 
             <SettingsDialog />
           </div>
+
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => setShowMore(!showMore)}
+            className="absolute bottom-0 right-0 md:hidden"
+          >
+            <Ellipsis className="h-4 w-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>

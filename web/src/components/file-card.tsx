@@ -56,7 +56,7 @@ export function FileCard({ file }: FileCardProps) {
           <div className="flex-1">
             <h3 className="mb-1 font-medium">{file.name}</h3>
             <div className="mb-2 text-sm text-muted-foreground">
-              {prettyBytes(file.size)} • {file.type}
+              {prettyBytes(file.size)} • {file.type} • {file.downloadStatus}
             </div>
             <div className="mb-2 w-full overflow-hidden">
               <FileProgress file={file} />
