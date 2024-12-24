@@ -174,7 +174,7 @@ public class AutoDownloadVerticle extends AbstractVerticle {
 
     private boolean isExceedLimit(long telegramId) {
         List<TdApi.Message> waitingMessages = this.waitingDownloadMessages.get(telegramId);
-        return getSurplusSize(telegramId) == 0 || (waitingMessages != null && waitingMessages.size() > limit);
+        return getSurplusSize(telegramId) <= 0 || (waitingMessages != null && waitingMessages.size() > limit);
     }
 
     private int getSurplusSize(long telegramId) {
@@ -214,7 +214,7 @@ public class AutoDownloadVerticle extends AbstractVerticle {
         log.debug("Download start! TelegramId: %d size: %d".formatted(telegramId, messages.size()));
         TelegramVerticle telegramVerticle = this.getTelegramVerticle(telegramId);
         int surplusSize = getSurplusSize(telegramId);
-        if (surplusSize == 0) {
+        if (surplusSize <= 0) {
             return;
         }
 
