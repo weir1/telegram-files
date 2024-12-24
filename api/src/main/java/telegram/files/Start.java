@@ -7,7 +7,7 @@ import io.vertx.core.Vertx;
 public class Start {
     private static final Log log = LogFactory.get();
 
-    public static final String VERSION = "0.1.2";
+    public static final String VERSION = "0.1.3";
 
     public static void main(String[] args) {
         Vertx vertx = Vertx.vertx();
