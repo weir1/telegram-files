@@ -10,12 +10,16 @@ import {
   Image,
   Music,
   Network,
-  PauseCircle, Upload,
+  PauseCircle,
+  Upload,
   Video,
 } from "lucide-react";
-import { request } from "@/lib/api";
+import { request, telegramApi, type TelegramApiArg } from "@/lib/api";
 import prettyBytes from "pretty-bytes";
-import { formatDistanceToNow } from "date-fns"; // Define a fetcher function to handle the API request
+import { formatDistanceToNow } from "date-fns";
+import { Button } from "@/components/ui/button";
+import useSWRMutation from "swr/mutation";
+import type { TelegramApiResult } from "@/lib/types"; // Define a fetcher function to handle the API request
 
 // Interface defining the structure of the data returned from the API
 interface StatisticsData {
@@ -42,10 +46,21 @@ interface FileStatisticsProps {
 
 const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
   // Use SWR for data fetching and caching
-  const { data, error } = useSWR<StatisticsData, Error>(
+  const { data, error, mutate } = useSWR<StatisticsData, Error>(
     `/telegram/${telegramId}/download-statistics`,
     request,
   );
+
+  const { trigger: triggerReset, isMutating: isResetMutating } = useSWRMutation<
+    TelegramApiResult,
+    Error,
+    string,
+    TelegramApiArg
+  >("/telegram/api", telegramApi, {
+    onSuccess: () => {
+      void mutate();
+    },
+  });
 
   // Render an error message if the API call fails
   if (error) {
@@ -193,26 +208,42 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
             <span>Network Statistics</span>
           </h3>
           <div className="mt-4 h-full">
-            <div className="flex justify-center items-center space-x-2 rounded-lg bg-gray-50 p-4 shadow-sm">
+            <div className="flex items-center justify-center space-x-2 rounded-lg bg-gray-50 p-4 shadow-sm">
               <Upload className="h-5 w-5 text-yellow-500" />
               <span className="text-lg font-semibold text-gray-800">
                 {prettyBytes(data.networkStatistics.sentBytes)}
               </span>
             </div>
-            <div className="mt-4 flex justify-center items-center space-x-2 rounded-lg bg-gray-50 p-4 shadow-sm">
+            <div className="mt-4 flex items-center justify-center space-x-2 rounded-lg bg-gray-50 p-4 shadow-sm">
               <Download className="h-5 w-5 text-blue-600" />
               <span className="text-lg font-semibold text-gray-800">
                 {prettyBytes(data.networkStatistics.receivedBytes)}
               </span>
             </div>
-            <p className="mt-2 text-right text-sm text-gray-400">
-              Since: {formatDistanceToNow(
-                new Date(data.networkStatistics.sinceDate * 1000),
-                {
-                  addSuffix: true,
-                },
-              )}
-            </p>
+            <div className="mt-4 flex items-center justify-between">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isResetMutating}
+                onClick={() => {
+                  void triggerReset({
+                    data: {},
+                    method: "ResetNetworkStatistics",
+                  });
+                }}
+              >
+                {isResetMutating ? "Resetting..." : "Reset"}
+              </Button>
+              <p className="text-right text-sm text-gray-400">
+                Since:{" "}
+                {formatDistanceToNow(
+                  new Date(data.networkStatistics.sinceDate * 1000),
+                  {
+                    addSuffix: true,
+                  },
+                )}
+              </p>
+            </div>
           </div>
         </div>
       </div>
