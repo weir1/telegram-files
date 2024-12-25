@@ -39,7 +39,7 @@ export function FileCard({ file }: FileCardProps) {
                   alt={file.name ?? "File thumbnail"}
                   width={32}
                   height={32}
-                  className="h-16 w-16 rounded object-cover"
+                  className="h-16 w-16 rounded object-cover inline-block"
                 />
               </SpoiledWrapper>
             ) : (
