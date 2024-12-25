@@ -28,7 +28,7 @@ export default function FileControl({ file }: { file: TelegramFile }) {
                 {starting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <ArrowDown className="h-4 w-4 stroke-1" />
+                  <ArrowDown className="h-4 w-4" />
                 )}
               </Button>
             </TooltipTrigger>

@@ -21,7 +21,11 @@ export default function FileProgress({ file }: { file: TelegramFile }) {
     return file.downloadStatus === "completed" ? 100 : 0;
   }, [file.downloadStatus, file.downloadedSize, file.size, downloadProgress]);
 
-  if (file.downloadStatus === "idle" || file.downloadStatus === "completed" || file.size === 0) {
+  if (
+    file.downloadStatus === "idle" ||
+    file.downloadStatus === "completed" ||
+    file.size === 0
+  ) {
     return null;
   }
 
@@ -35,7 +39,7 @@ export default function FileProgress({ file }: { file: TelegramFile }) {
           </span>
         </div>
       )}
-      <div className="flex min-w-32 items-center gap-1 bg-gray-100 px-1">
+      <div className="hidden min-w-32 items-center gap-1 bg-gray-100 px-1 md:flex">
         <Zap className="h-3 w-3" />
         <span className="text-nowrap text-xs">
           {file.downloadStatus === "downloading"
