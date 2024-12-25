@@ -56,7 +56,7 @@ public class TelegramVerticle extends AbstractVerticle {
         Client.setLogMessageHandler(0, new LogMessageHandler());
 
         try {
-            Client.execute(new TdApi.SetLogVerbosityLevel(0));
+            Client.execute(new TdApi.SetLogVerbosityLevel(Config.TELEGRAM_LOG_LEVEL));
             Client.execute(new TdApi.SetLogStream(new TdApi.LogStreamFile("tdlib.log", 1 << 27, false)));
         } catch (Client.ExecutionException error) {
             throw new IOError(new IOException("Write access to the current directory is required"));
@@ -600,7 +600,7 @@ public class TelegramVerticle extends AbstractVerticle {
                 request.systemLanguageCode = "en";
                 request.deviceModel = "Telegram Files";
                 request.applicationVersion = Start.VERSION;
-                log.debug("[%s] Send SetTdlibParameters: %s".formatted(getRootId(), request));
+                log.trace("[%s] Send SetTdlibParameters: %s".formatted(getRootId(), request));
 
                 client.send(request, this::handleAuthorizationResult);
                 break;
@@ -650,7 +650,7 @@ public class TelegramVerticle extends AbstractVerticle {
     }
 
     private void onFileUpdated(TdApi.UpdateFile updateFile) {
-        log.debug("[%s] Receive file update: %s".formatted(getRootId(), updateFile));
+        log.trace("[%s] Receive file update: %s".formatted(getRootId(), updateFile));
         TdApi.File file = updateFile.file;
         if (file != null) {
             String localPath = null;
@@ -675,12 +675,12 @@ public class TelegramVerticle extends AbstractVerticle {
     }
 
     private void onFileDownloadsUpdated(TdApi.UpdateFileDownloads updateFileDownloads) {
-        log.debug("[%s] Receive file downloads update: %s".formatted(getRootId(), updateFileDownloads));
+        log.trace("[%s] Receive file downloads update: %s".formatted(getRootId(), updateFileDownloads));
         sendHttpEvent(EventPayload.build(EventPayload.TYPE_FILE_DOWNLOAD, updateFileDownloads));
     }
 
     private void onMessageReceived(TdApi.Message message) {
-        log.debug("[%s] Receive message: %s".formatted(getRootId(), message));
+        log.trace("[%s] Receive message: %s".formatted(getRootId(), message));
         vertx.eventBus().publish(EventEnum.MESSAGE_RECEIVED.address(), JsonObject.of()
                 .put("telegramId", telegramRecord.id())
                 .put("chatId", message.chatId)

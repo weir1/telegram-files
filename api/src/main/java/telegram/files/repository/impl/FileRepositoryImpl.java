@@ -42,7 +42,7 @@ public class FileRepositoryImpl implements FileRepository {
                         .execute()
                         .onComplete(r -> conn.close())
                         .onFailure(err -> log.error("Failed to create table file_record: %s".formatted(err.getMessage())))
-                        .onSuccess(ps -> log.debug("Successfully created table: file_record"))
+                        .onSuccess(ps -> log.trace("Successfully created table: file_record"))
                 )
                 .mapEmpty();
     }
@@ -61,7 +61,7 @@ public class FileRepositoryImpl implements FileRepository {
                 .mapFrom(FileRecord.PARAM_MAPPER)
                 .execute(fileRecord)
                 .map(r -> fileRecord)
-                .onSuccess(r -> log.debug("Successfully created file record: %s".formatted(fileRecord.id()))
+                .onSuccess(r -> log.trace("Successfully created file record: %s".formatted(fileRecord.id()))
                 )
                 .onFailure(
                         err -> log.error("Failed to create file record: %s".formatted(err.getMessage()))
@@ -232,6 +232,18 @@ public class FileRepositoryImpl implements FileRepository {
                 .execute(Map.of("telegramId", telegramId))
                 .map(rs -> rs.size() > 0 ? rs.iterator().next() : JsonObject.of())
                 .onFailure(err -> log.error("Failed to get download statistics: %s".formatted(err.getMessage())));
+    }
+
+    @Override
+    public Future<Integer> countByStatus(long telegramId, FileRecord.DownloadStatus downloadStatus) {
+        return SqlTemplate
+                .forQuery(pool, """
+                        SELECT COUNT(*) FROM file_record WHERE telegram_id = #{telegramId} AND download_status = #{downloadStatus}
+                        """)
+                .mapTo(rs -> rs.getInteger(0))
+                .execute(Map.of("telegramId", telegramId, "downloadStatus", downloadStatus.name()))
+                .map(rs -> rs.size() > 0 ? rs.iterator().next() : 0)
+                .onFailure(err -> log.error("Failed to count file record: %s".formatted(err.getMessage())));
     }
 
     @Override

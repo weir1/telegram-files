@@ -40,7 +40,7 @@ public class DataVerticleTest {
     @Test
     @DisplayName("Test Create telegram record")
     void createTelegramRecordTest(Vertx vertx, VertxTestContext testContext) {
-        TelegramRecord telegramRecord = new TelegramRecord(1, "test", "test");
+        TelegramRecord telegramRecord = new TelegramRecord(1, "test", "test", null);
         DataVerticle.telegramRepository.create(telegramRecord)
                 .compose(r -> DataVerticle.telegramRepository.getById(r.id()))
                 .onComplete(testContext.succeeding(r -> testContext.verify(() -> {
@@ -52,8 +52,8 @@ public class DataVerticleTest {
     @Test
     @DisplayName("Test Get all telegram record")
     void getAllTelegramRecordTest(Vertx vertx, VertxTestContext testContext) {
-        TelegramRecord telegramRecord = new TelegramRecord(1, "test", "test");
-        TelegramRecord telegramRecord2 = new TelegramRecord(2, "test2", "test2");
+        TelegramRecord telegramRecord = new TelegramRecord(1, "test", "test", null);
+        TelegramRecord telegramRecord2 = new TelegramRecord(2, "test2", "test2", null);
         DataVerticle.telegramRepository.create(telegramRecord)
                 .compose(r -> DataVerticle.telegramRepository.create(telegramRecord2))
                 .compose(r -> DataVerticle.telegramRepository.getAll())

@@ -196,7 +196,9 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     public Future<Void> initAutoDownloadVerticle() {
-        return vertx.deployVerticle(new AutoDownloadVerticle(), new DeploymentOptions().setThreadingModel(ThreadingModel.WORKER))
+        return vertx.deployVerticle(new AutoDownloadVerticle(), new DeploymentOptions()
+                        .setThreadingModel(ThreadingModel.VIRTUAL_THREAD)
+                )
                 .mapEmpty();
     }
 

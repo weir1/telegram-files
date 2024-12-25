@@ -35,7 +35,7 @@ public class SettingRepositoryImpl implements SettingRepository {
                         .execute()
                         .onComplete(r -> conn.close())
                         .onFailure(err -> log.error("Failed to create table setting_record: %s".formatted(err.getMessage())))
-                        .onSuccess(ps -> log.debug("Successfully created table: setting_record"))
+                        .onSuccess(ps -> log.trace("Successfully created table: setting_record"))
                 )
                 .mapEmpty();
     }
@@ -50,7 +50,7 @@ public class SettingRepositoryImpl implements SettingRepository {
                 .mapFrom(SettingRecord.PARAM_MAPPER)
                 .execute(new SettingRecord(key, value))
                 .map(r -> new SettingRecord(key, value))
-                .onSuccess(r -> log.debug("Successfully created or updated setting record: %s".formatted(key)))
+                .onSuccess(r -> log.trace("Successfully created or updated setting record: %s".formatted(key)))
                 .onFailure(
                         err -> log.error("Failed to create or update setting record: %s".formatted(err.getMessage()))
                 );
@@ -74,7 +74,7 @@ public class SettingRepositoryImpl implements SettingRepository {
                 .mapTo(SettingRecord.ROW_MAPPER)
                 .execute(Collections.emptyMap())
                 .map(IterUtil::toList)
-                .onSuccess(r -> log.debug("Successfully fetched setting record for keys: " + keyStr))
+                .onSuccess(r -> log.trace("Successfully fetched setting record for keys: " + keyStr))
                 .onFailure(
                         err -> log.error("Failed to fetch setting record: %s".formatted(err.getMessage()))
                 );
@@ -95,7 +95,7 @@ public class SettingRepositoryImpl implements SettingRepository {
                     }
                     return key.defaultValue == null ? null : (T) key.defaultValue;
                 })
-                .onSuccess(r -> log.debug("Successfully fetched setting record for key: " + key))
+                .onSuccess(r -> log.trace("Successfully fetched setting record for key: " + key))
                 .onFailure(
                         err -> log.error("Failed to fetch setting record: %s".formatted(err.getMessage()))
                 );

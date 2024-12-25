@@ -8,6 +8,7 @@ import {
   File,
   FileText,
   Image,
+  LoaderPinwheel,
   Music,
   Network,
   PauseCircle,
@@ -76,7 +77,10 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
   if (!data) {
     return (
       <div className="flex items-center space-x-2 rounded-lg bg-white p-4 text-gray-600 shadow-md">
-        <Download className="h-5 w-5 animate-spin" />
+        <LoaderPinwheel
+          className="h-5 w-5 animate-spin"
+          style={{ strokeWidth: "0.8px" }}
+        />
         <span>Loading...</span>
       </div>
     );
@@ -121,7 +125,7 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
   ];
 
   return (
-    <div className="space-y-6 rounded-lg bg-gray-50 p-6">
+    <div className="space-y-6 rounded-lg bg-gray-50 p-2 md:p-6">
       <div className="flex-1 rounded-lg bg-white p-4 shadow-md">
         <div className="flex items-center space-x-3 border-gray-200">
           <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700">

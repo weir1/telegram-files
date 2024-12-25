@@ -25,6 +25,8 @@ public interface FileRepository {
 
     Future<JsonObject> getDownloadStatistics(long telegramId);
 
+    Future<Integer> countByStatus(long telegramId, FileRecord.DownloadStatus downloadStatus);
+
     Future<JsonObject> updateStatus(int fileId,
                                     String uniqueId,
                                     String localPath,

@@ -11,6 +11,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import org.drinkless.tdlib.TdApi;
+import telegram.files.repository.FileRecord;
 import telegram.files.repository.SettingAutoRecords;
 import telegram.files.repository.SettingKey;
 
@@ -27,7 +28,7 @@ public class AutoDownloadVerticle extends AbstractVerticle {
 
     private static final int HISTORY_SCAN_INTERVAL = 2 * 60 * 1000;
 
-    private static final int MAX_HISTORY_SCAN_TIME = 20 * 1000;
+    private static final int MAX_HISTORY_SCAN_TIME = 10 * 1000;
 
     private static final int MAX_WAITING_LENGTH = 30;
 
@@ -107,7 +108,7 @@ public class AutoDownloadVerticle extends AbstractVerticle {
             this.limit = Convert.toInt(message.body());
         });
         vertx.eventBus().consumer(EventEnum.MESSAGE_RECEIVED.address(), message -> {
-            log.debug("Auto download message received: %s".formatted(message.body()));
+            log.trace("Auto download message received: %s".formatted(message.body()));
             this.onNewMessage((JsonObject) message.body());
         });
         return Future.succeededFuture();
@@ -128,7 +129,9 @@ public class AutoDownloadVerticle extends AbstractVerticle {
     }
 
     private void addHistoryMessage(SettingAutoRecords.Item auto, long currentTimeMillis) {
+        log.debug("Start scan history! TelegramId: %d ChatId: %d FileType: %s".formatted(auto.telegramId, auto.chatId, auto.nextFileType));
         if (System.currentTimeMillis() - currentTimeMillis > MAX_HISTORY_SCAN_TIME || isExceedLimit(auto.telegramId)) {
+            log.debug("Scan history end! TelegramId: %d ChatId: %d".formatted(auto.telegramId, auto.chatId));
             return;
         }
         if (StrUtil.isBlank(auto.nextFileType)) {
@@ -140,36 +143,39 @@ public class AutoDownloadVerticle extends AbstractVerticle {
         searchChatMessages.fromMessageId = auto.nextFromMessageId;
         searchChatMessages.limit = Math.min(MAX_WAITING_LENGTH, 100);
         searchChatMessages.filter = TdApiHelp.getSearchMessagesFilter(auto.nextFileType);
-        telegramVerticle.execute(searchChatMessages)
-                .onSuccess(foundChatMessages -> {
-                    if (foundChatMessages.messages.length == 0) {
-                        int nextTypeIndex = FILE_TYPE_ORDER.indexOf(auto.nextFileType) + 1;
-                        if (nextTypeIndex < FILE_TYPE_ORDER.size()) {
-                            String originalType = auto.nextFileType;
-                            auto.nextFileType = FILE_TYPE_ORDER.get(nextTypeIndex);
-                            auto.nextFromMessageId = 0;
-                            log.debug("%s No more %s files found! Switch to %s".formatted(auto.uniqueKey(), originalType, auto.nextFileType));
+        TdApi.FoundChatMessages foundChatMessages = Future.await(telegramVerticle.execute(searchChatMessages)
+                .onFailure(r -> log.error("Search chat messages failed! TelegramId: %d ChatId: %d".formatted(auto.telegramId, auto.chatId), r))
+        );
+        if (foundChatMessages == null) {
+            return;
+        }
+        if (foundChatMessages.messages.length == 0) {
+            int nextTypeIndex = FILE_TYPE_ORDER.indexOf(auto.nextFileType) + 1;
+            if (nextTypeIndex < FILE_TYPE_ORDER.size()) {
+                String originalType = auto.nextFileType;
+                auto.nextFileType = FILE_TYPE_ORDER.get(nextTypeIndex);
+                auto.nextFromMessageId = 0;
+                log.debug("%s No more %s files found! Switch to %s".formatted(auto.uniqueKey(), originalType, auto.nextFileType));
+                addHistoryMessage(auto, currentTimeMillis);
+            } else {
+                log.debug("%s No more history files found! TelegramId: %d ChatId: %d".formatted(auto.uniqueKey(), auto.telegramId, auto.chatId));
+            }
+        } else {
+            DataVerticle.fileRepository.getFilesByUniqueId(TdApiHelp.getFileUniqueIds(Arrays.asList(foundChatMessages.messages)))
+                    .onSuccess(existFiles -> {
+                        List<TdApi.Message> messages = Stream.of(foundChatMessages.messages)
+                                .filter(message -> !existFiles.containsKey(TdApiHelp.getFileUniqueId(message)))
+                                .toList();
+                        if (CollUtil.isEmpty(messages)) {
+                            auto.nextFromMessageId = foundChatMessages.nextFromMessageId;
                             addHistoryMessage(auto, currentTimeMillis);
+                        } else if (addWaitingDownloadMessages(auto.telegramId, messages, false)) {
+                            auto.nextFromMessageId = foundChatMessages.nextFromMessageId;
                         } else {
-                            log.debug("%s No more history files found! TelegramId: %d ChatId: %d".formatted(auto.uniqueKey(), auto.telegramId, auto.chatId));
+                            addHistoryMessage(auto, currentTimeMillis);
                         }
-                    } else {
-                        DataVerticle.fileRepository.getFilesByUniqueId(TdApiHelp.getFileUniqueIds(Arrays.asList(foundChatMessages.messages)))
-                                .onSuccess(existFiles -> {
-                                    List<TdApi.Message> messages = Stream.of(foundChatMessages.messages)
-                                            .filter(message -> !existFiles.containsKey(TdApiHelp.getFileUniqueId(message)))
-                                            .toList();
-                                    if (CollUtil.isEmpty(messages)) {
-                                        auto.nextFromMessageId = foundChatMessages.nextFromMessageId;
-                                        addHistoryMessage(auto, currentTimeMillis);
-                                    } else if (addWaitingDownloadMessages(auto.telegramId, messages, false)) {
-                                        auto.nextFromMessageId = foundChatMessages.nextFromMessageId;
-                                    } else {
-                                        addHistoryMessage(auto, currentTimeMillis);
-                                    }
-                                });
-                    }
-                });
+                    });
+        }
     }
 
     private boolean isExceedLimit(long telegramId) {
@@ -178,11 +184,8 @@ public class AutoDownloadVerticle extends AbstractVerticle {
     }
 
     private int getSurplusSize(long telegramId) {
-        TelegramVerticle telegramVerticle = this.getTelegramVerticle(telegramId);
-        Integer downloading = telegramVerticle.getDownloadStatistics()
-                .map(statistics -> statistics.getInteger("downloading"))
-                .result();
-        return downloading == null ? limit : Math.min(0, limit - downloading);
+        Integer downloading = Future.await(DataVerticle.fileRepository.countByStatus(telegramId, FileRecord.DownloadStatus.downloading));
+        return downloading == null ? limit : Math.max(0, limit - downloading);
     }
 
     private boolean addWaitingDownloadMessages(long telegramId, List<TdApi.Message> messages, boolean force) {

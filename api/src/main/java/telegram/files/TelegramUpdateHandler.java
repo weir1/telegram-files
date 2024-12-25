@@ -30,7 +30,7 @@ public class TelegramUpdateHandler implements Client.ResultHandler {
                 if (onFileUpdated != null)
                     onFileUpdated.accept((TdApi.UpdateFile) object);
             case TdApi.UpdateFileDownload.CONSTRUCTOR:
-                log.debug("File download update: %s".formatted(object));
+                log.trace("File download update: %s".formatted(object));
                 break;
             case TdApi.UpdateFileDownloads.CONSTRUCTOR:
                 if (onFileDownloadsUpdated != null)

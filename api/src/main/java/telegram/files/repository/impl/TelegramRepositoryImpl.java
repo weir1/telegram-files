@@ -34,7 +34,7 @@ public class TelegramRepositoryImpl implements TelegramRepository {
                         .execute()
                         .onComplete(r -> conn.close())
                         .onFailure(err -> log.error("Failed to create table telegram_record: %s".formatted(err.getMessage())))
-                        .onSuccess(ps -> log.debug("Successfully created table: telegram_record"))
+                        .onSuccess(ps -> log.trace("Successfully created table: telegram_record"))
                 )
                 .mapEmpty();
     }
@@ -51,7 +51,7 @@ public class TelegramRepositoryImpl implements TelegramRepository {
                 .mapFrom(TelegramRecord.PARAM_MAPPER)
                 .execute(telegramRecord)
                 .map(r -> telegramRecord)
-                .onSuccess(r -> log.debug("Successfully created telegram record: %s".formatted(telegramRecord.id())))
+                .onSuccess(r -> log.trace("Successfully created telegram record: %s".formatted(telegramRecord.id())))
                 .onFailure(
                         err -> log.error("Failed to create telegram record: %s".formatted(err.getMessage()))
                 );
