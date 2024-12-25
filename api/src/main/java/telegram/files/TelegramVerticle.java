@@ -52,6 +52,8 @@ public class TelegramVerticle extends AbstractVerticle {
 
     public TelegramRecord telegramRecord;
 
+    private final AvgSpeed avgSpeed = new AvgSpeed();
+
     static {
         Client.setLogMessageHandler(0, new LogMessageHandler());
 
@@ -429,6 +431,8 @@ public class TelegramVerticle extends AbstractVerticle {
                     .put("sentBytes", bytes.v1)
                     .put("receivedBytes", bytes.v2)
             );
+
+            jsonObject.put("speedStats", avgSpeed.getSpeedStats());
             return jsonObject;
         });
     }
@@ -676,6 +680,7 @@ public class TelegramVerticle extends AbstractVerticle {
 
     private void onFileDownloadsUpdated(TdApi.UpdateFileDownloads updateFileDownloads) {
         log.trace("[%s] Receive file downloads update: %s".formatted(getRootId(), updateFileDownloads));
+        avgSpeed.update(updateFileDownloads.totalSize, updateFileDownloads.downloadedSize, System.currentTimeMillis());
         sendHttpEvent(EventPayload.build(EventPayload.TYPE_FILE_DOWNLOAD, updateFileDownloads));
     }
 

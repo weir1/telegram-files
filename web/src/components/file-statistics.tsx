@@ -2,12 +2,16 @@ import React from "react";
 import useSWR from "swr";
 import {
   AlertTriangle,
+  ArrowDown,
+  ArrowUp,
   CheckCircle,
+  Clock,
   CloudDownload,
   Download,
   File,
   FileText,
   Image,
+  LineChart,
   LoaderPinwheel,
   Music,
   Network,
@@ -16,11 +20,11 @@ import {
   Video,
 } from "lucide-react";
 import { request, telegramApi, type TelegramApiArg } from "@/lib/api";
-import prettyBytes from "pretty-bytes";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import useSWRMutation from "swr/mutation";
 import type { TelegramApiResult } from "@/lib/types"; // Define a fetcher function to handle the API request
+import prettyBytes from "pretty-bytes";
 
 // Interface defining the structure of the data returned from the API
 interface StatisticsData {
@@ -37,6 +41,13 @@ interface StatisticsData {
     sinceDate: number;
     sentBytes: number;
     receivedBytes: number;
+  };
+  speedStats: {
+    interval: number;
+    avgSpeed: number;
+    maxSpeed: number;
+    medianSpeed: number;
+    minSpeed: number;
   };
 }
 
@@ -124,6 +135,37 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
     },
   ];
 
+  const avgStatFields = [
+    {
+      label: "Avg",
+      value: prettyBytes(data.speedStats.avgSpeed, { bits: true }) + "/s",
+      icon: PauseCircle,
+      color: "text-blue-500",
+      bgColor: "bg-blue-100",
+    },
+    {
+      label: "Max",
+      value: prettyBytes(data.speedStats.maxSpeed, { bits: true }) + "/s",
+      icon: ArrowUp,
+      color: "text-green-500",
+      bgColor: "bg-green-100",
+    },
+    {
+      label: "Median",
+      value: prettyBytes(data.speedStats.medianSpeed, { bits: true }) + "/s",
+      icon: LineChart,
+      color: "text-purple-500",
+      bgColor: "bg-purple-100",
+    },
+    {
+      label: "Min",
+      value: prettyBytes(data.speedStats.minSpeed, { bits: true }) + "/s",
+      icon: ArrowDown,
+      color: "text-red-500",
+      bgColor: "bg-red-100",
+    },
+  ];
+
   return (
     <div className="space-y-6 rounded-lg bg-gray-50 p-2 md:p-6">
       <div className="flex-1 rounded-lg bg-white p-4 shadow-md">
@@ -179,6 +221,34 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
               {errorCount}
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="flex-1 rounded-lg bg-white p-4 shadow-md">
+        <div className="flex items-center space-x-3 border-gray-200">
+          <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700">
+            <Clock className="h-5 w-5 text-yellow-500" />
+            <span>Speed Statistics</span>
+            <span className="text-sm text-gray-500 font-medium">({data.speedStats.interval / 60} minute interval)</span>
+          </h3>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+          {avgStatFields.map((stat, index) => (
+            <div
+              key={index}
+              className="flex flex-col space-y-3 rounded-xl border border-gray-100 p-4 transition-colors hover:border-gray-200"
+            >
+              <div className="flex items-center space-x-2">
+                <div className={`rounded-lg p-2 ${stat.bgColor}`}>
+                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                </div>
+                <span className="text-sm font-medium text-gray-500">
+                  {stat.label}
+                </span>
+              </div>
+              <div className="text-lg font-semibold">{stat.value}</div>
+            </div>
+          ))}
         </div>
       </div>
 
