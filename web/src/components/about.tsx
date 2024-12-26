@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/card";
 import { request } from "@/lib/api";
 import Link from "next/link";
+import Lottie from "lottie-react";
+import TGDuck16HeyOut from "@/components/animations/tg-duck16_hey_out.json";
 
 interface VersionData {
   version: string;
@@ -44,7 +46,7 @@ export default function About() {
     githubData && githubData.tag_name !== currentVersion;
 
   return (
-    <div className="flex h-full items-center justify-center">
+    <div className="flex justify-center md:items-center md:h-full">
       <Card className="w-full bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-[#7900ff] via-[#548cff] to-[#93ffd8] md:w-1/2">
         <CardHeader>
           <CardTitle className="text-white">About This Project</CardTitle>
@@ -52,7 +54,8 @@ export default function About() {
             A simple telegram file downloader.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative">
+          <Lottie className="absolute bottom-3 right-3 w-28 h-28" animationData={TGDuck16HeyOut} loop={true} />
           <div className="space-y-4">
             <div className="flex flex-col items-center justify-center">
               <p className="text-sm font-medium text-white">Author</p>
