@@ -7,6 +7,7 @@ import {
 import useSWRInfinite from "swr/infinite";
 import { useWebsocket } from "@/hooks/use-websocket";
 import { WebSocketMessageType } from "@/lib/websocket-types";
+import useLocalStorage from "@/hooks/use-local-storage";
 
 const DEFAULT_FILTERS: FileFilter = {
   search: "",
@@ -31,7 +32,10 @@ export function useFiles(accountId: string, chatId: string) {
       }
     >
   >({});
-  const [filters, setFilters] = useState<FileFilter>(DEFAULT_FILTERS);
+  const [filters, setFilters, clearFilters] = useLocalStorage<FileFilter>(
+    "telegramFileListFilter",
+    DEFAULT_FILTERS,
+  );
   const getKey = (page: number, previousPageData: FileResponse) => {
     if (page === 0) {
       return `/telegram/${accountId}/chat/${chatId}/files?search=${filters.search}&type=${filters.type}&status=${filters.status}`;

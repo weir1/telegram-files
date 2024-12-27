@@ -31,7 +31,7 @@ import { useFiles } from "@/hooks/use-files";
 import { FileFilters } from "@/components/file-filters";
 import {
   getRowHeightTailwindClass,
-  type RowHeight,
+  useRowHeightLocalStorage,
 } from "@/components/table-row-height-switch";
 import { type Column } from "@/components/table-column-filter";
 import { cn } from "@/lib/utils";
@@ -106,9 +106,10 @@ export function FileList({ accountId, chatId }: FileListProps) {
   const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
   const observerTarget = useRef(null);
   const [columns, setColumns] = useState<Column[]>(COLUMNS);
-  // const [rowHeight, setRowHeight] = useRowHeightLocalStorage("fileList", "m");
-  const [rowHeight, setRowHeight] = useState<RowHeight>("m");
-
+  const [rowHeight, setRowHeight] = useRowHeightLocalStorage(
+    "telegramFileList",
+    "m",
+  );
   const { filters, handleFilterChange, isLoading, files, handleLoadMore } =
     useFiles(accountId, chatId);
 
