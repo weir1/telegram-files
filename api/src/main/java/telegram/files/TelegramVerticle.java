@@ -680,7 +680,7 @@ public class TelegramVerticle extends AbstractVerticle {
 
     private void onFileDownloadsUpdated(TdApi.UpdateFileDownloads updateFileDownloads) {
         log.trace("[%s] Receive file downloads update: %s".formatted(getRootId(), updateFileDownloads));
-        avgSpeed.update(updateFileDownloads.totalSize, updateFileDownloads.downloadedSize, System.currentTimeMillis());
+        avgSpeed.update(updateFileDownloads.downloadedSize, System.currentTimeMillis());
         sendHttpEvent(EventPayload.build(EventPayload.TYPE_FILE_DOWNLOAD, updateFileDownloads));
     }
 

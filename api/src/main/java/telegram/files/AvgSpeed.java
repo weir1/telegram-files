@@ -20,7 +20,7 @@ public class AvgSpeed {
     /**
      * @param speed Speed since last point
      */
-    record SpeedPoint(long totalSize, long downloadedSize, long speed) {
+    record SpeedPoint(long downloadedSize, long speed) {
     }
 
     public AvgSpeed() {
@@ -42,7 +42,10 @@ public class AvgSpeed {
     /**
      * Update download progress
      */
-    public void update(long totalSize, long downloadedSize, long timestamp) {
+    public void update(long downloadedSize, long timestamp) {
+        if (downloadedSize <= 0) {
+            return;
+        }
         // Calculate speed since last point
         long speed = calculateSpeed(downloadedSize, timestamp);
 
@@ -58,11 +61,11 @@ public class AvgSpeed {
         }
 
         // Add new speed point
-        speedPoints.put(timestamp, new SpeedPoint(totalSize, downloadedSize, speed));
+        speedPoints.put(timestamp, new SpeedPoint(downloadedSize, speed));
 
         // Remove old points outside the interval
         long cutoffTime = timestamp - interval * 1000L; // Convert interval to milliseconds
-        speedPoints.headMap(cutoffTime).clear();
+        speedPoints.headMap(cutoffTime);
     }
 
     private long calculateSpeed(long downloadedSize, long timestamp) {

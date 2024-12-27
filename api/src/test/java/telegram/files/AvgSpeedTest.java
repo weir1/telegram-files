@@ -30,11 +30,11 @@ class AvgSpeedTest {
     void testConstantSpeed() {
         // Simulate constant download speed of 100 bytes per second
         long baseTime = System.currentTimeMillis();
-        long totalSize = 1000;
 
-        avgSpeed.update(totalSize, 0L, baseTime);
-        avgSpeed.update(totalSize, 1000L, baseTime + 10000); // 100 bytes/sec for 10 seconds
-        avgSpeed.update(totalSize, 2000L, baseTime + 20000); // 100 bytes/sec for another 10 seconds
+
+        avgSpeed.update(0L, baseTime);
+        avgSpeed.update(1000L, baseTime + 10000); // 100 bytes/sec for 10 seconds
+        avgSpeed.update(2000L, baseTime + 20000); // 100 bytes/sec for another 10 seconds
 
         AvgSpeed.SpeedStats stats = avgSpeed.getSpeedStats();
         assertEquals(100, stats.avgSpeed(), 1.0, "Average speed should be 100 bytes/sec");
@@ -43,17 +43,17 @@ class AvgSpeedTest {
     @Test
     void testSpeedWithPause() {
         long baseTime = System.currentTimeMillis();
-        long totalSize = 1000;
+
 
         // Download at 100 bytes/sec
-        avgSpeed.update(totalSize, 0L, baseTime);
-        avgSpeed.update(totalSize, 1000L, baseTime + 10000); // 100 bytes/sec
+        avgSpeed.update(0L, baseTime);
+        avgSpeed.update(1000L, baseTime + 10000); // 100 bytes/sec
 
         // Pause for 10 seconds
-        avgSpeed.update(totalSize, 1000L, baseTime + 20000);
+        avgSpeed.update(1000L, baseTime + 20000);
 
         // Resume at 100 bytes/sec
-        avgSpeed.update(totalSize, 2000L, baseTime + 30000);
+        avgSpeed.update(2000L, baseTime + 30000);
 
         // Average speed should be: 2000 bytes / 30 seconds = 66.67 bytes/sec
         assertEquals(67, avgSpeed.getSpeed(), 1.0,
@@ -63,15 +63,15 @@ class AvgSpeedTest {
     @Test
     void testDownloadRestart() {
         long baseTime = System.currentTimeMillis();
-        long totalSize = 1000;
+
 
         // Initial download
-        avgSpeed.update(totalSize, 0L, baseTime);
-        avgSpeed.update(totalSize, 1000L, baseTime + 10000); // 100 bytes/sec
+        avgSpeed.update(0L, baseTime);
+        avgSpeed.update(1000L, baseTime + 10000); // 100 bytes/sec
 
         // Restart download
-        avgSpeed.update(totalSize, 0L, baseTime + 15000);
-        avgSpeed.update(totalSize, 500L, baseTime + 20000); // 100 bytes/sec after restart
+        avgSpeed.update(0L, baseTime + 15000);
+        avgSpeed.update(500L, baseTime + 20000); // 100 bytes/sec after restart
 
         AvgSpeed.SpeedStats stats = avgSpeed.getSpeedStats();
         assertTrue(stats.maxSpeed() >= 100,
@@ -81,12 +81,12 @@ class AvgSpeedTest {
     @Test
     void testSpeedFluctuation() {
         long baseTime = System.currentTimeMillis();
-        long totalSize = 1000;
 
-        avgSpeed.update(totalSize, 0L, baseTime);
-        avgSpeed.update(totalSize, 500L, baseTime + 5000);    // 100 bytes/sec
-        avgSpeed.update(totalSize, 2500L, baseTime + 10000);  // 400 bytes/sec
-        avgSpeed.update(totalSize, 3000L, baseTime + 15000);  // 100 bytes/sec
+
+        avgSpeed.update(0L, baseTime);
+        avgSpeed.update(500L, baseTime + 5000);    // 100 bytes/sec
+        avgSpeed.update(2500L, baseTime + 10000);  // 400 bytes/sec
+        avgSpeed.update(3000L, baseTime + 15000);  // 100 bytes/sec
 
         AvgSpeed.SpeedStats stats = avgSpeed.getSpeedStats();
         assertTrue(stats.maxSpeed() >= 300,
@@ -98,13 +98,13 @@ class AvgSpeedTest {
     @Test
     void testDataSmoothing() {
         long baseTime = System.currentTimeMillis();
-        long totalSize = 1000;
 
-        avgSpeed.update(totalSize, 0L, baseTime);
-        avgSpeed.update(totalSize, 1000L, baseTime + 10000);   // 100 bytes/sec
-        avgSpeed.update(totalSize, 2000L, baseTime + 20000);   // 100 bytes/sec
-        avgSpeed.update(totalSize, 7000L, baseTime + 30000);   // 500 bytes/sec (spike)
-        avgSpeed.update(totalSize, 8000L, baseTime + 40000);   // 100 bytes/sec
+
+        avgSpeed.update(0L, baseTime);
+        avgSpeed.update(1000L, baseTime + 10000);   // 100 bytes/sec
+        avgSpeed.update(2000L, baseTime + 20000);   // 100 bytes/sec
+        avgSpeed.update(7000L, baseTime + 30000);   // 500 bytes/sec (spike)
+        avgSpeed.update(8000L, baseTime + 40000);   // 100 bytes/sec
 
         AvgSpeed.SpeedStats stats = avgSpeed.getSpeedStats();
         assertTrue(stats.avgSpeed() < 300,
@@ -114,15 +114,15 @@ class AvgSpeedTest {
     @Test
     void testOldDataRemoval() {
         long baseTime = System.currentTimeMillis();
-        long totalSize = 1000;
+
 
         // Add initial points
-        avgSpeed.update(totalSize, 0L, baseTime);
-        avgSpeed.update(totalSize, 1000L, baseTime + 10000); // 100 bytes/sec
+        avgSpeed.update(0L, baseTime);
+        avgSpeed.update(1000L, baseTime + 10000); // 100 bytes/sec
 
         // Add point beyond interval
         // Note: Need to move forward by interval milliseconds plus a buffer
-        avgSpeed.update(totalSize, 2000L, baseTime + (TEST_INTERVAL * 1000L) + 20000);
+        avgSpeed.update(2000L, baseTime + (TEST_INTERVAL * 1000L) + 20000);
 
         long speed = avgSpeed.getSpeed();
         assertTrue(speed < 50,
@@ -132,13 +132,13 @@ class AvgSpeedTest {
     @Test
     void testMedianCalculation() {
         long baseTime = System.currentTimeMillis();
-        long totalSize = 1000;
+
 
         // Create a sequence of very distinct speeds for clear median
-        avgSpeed.update(totalSize, 0L, baseTime);
-        avgSpeed.update(totalSize, 1000L, baseTime + 5000);   // 200 bytes/sec
-        avgSpeed.update(totalSize, 1500L, baseTime + 10000);  // 100 bytes/sec
-        avgSpeed.update(totalSize, 3500L, baseTime + 15000);  // 400 bytes/sec
+        avgSpeed.update(0L, baseTime);
+        avgSpeed.update(1000L, baseTime + 5000);   // 200 bytes/sec
+        avgSpeed.update(1500L, baseTime + 10000);  // 100 bytes/sec
+        avgSpeed.update(3500L, baseTime + 15000);  // 400 bytes/sec
 
         long medianSpeed = avgSpeed.getMedianSpeed();
         assertTrue(medianSpeed >= 100 && medianSpeed <= 400,
@@ -150,14 +150,14 @@ class AvgSpeedTest {
         long baseTime = System.currentTimeMillis();
 
         // Test with zero time difference
-        avgSpeed.update(1000L, 0L, baseTime);
-        avgSpeed.update(1000L, 100L, baseTime);
+        avgSpeed.update(0L, baseTime);
+        avgSpeed.update(100L, baseTime);
         assertEquals(0, avgSpeed.getSpeed(),
                 "Speed should be 0 when time difference is 0");
 
         // Test with large downloads
-        avgSpeed.update(1000000L, 0L, baseTime + 1000);
-        avgSpeed.update(1000000L, 500000L, baseTime + 6000); // 100,000 bytes/sec
+        avgSpeed.update(0L, baseTime + 1000);
+        avgSpeed.update(500000L, baseTime + 6000); // 100,000 bytes/sec
         assertTrue(avgSpeed.getSpeed() > 0,
                 "Speed should be calculated correctly with large numbers");
     }
