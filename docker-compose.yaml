@@ -4,11 +4,11 @@ services:
     image: ghcr.io/jarvis2f/telegram-files:latest
     restart: always
     healthcheck:
-      test: [ "CMD", "wget", "--spider", "--quiet", "--timeout=3", "--tries=1", "http://localhost:8080/health" ]
+      test: [ "CMD", "curl", "-f", "http://127.0.0.1/api/health" ]
       interval: 30s
       retries: 3
       timeout: 10s
-      start_period: 5s
+      start_period: 30s
     environment:
       APP_ENV: ${APP_ENV:-prod}
       APP_ROOT: ${APP_ROOT:-/app/data}

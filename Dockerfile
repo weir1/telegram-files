@@ -61,7 +61,7 @@ FROM node:21-slim AS final
 WORKDIR /app
 
 RUN npm install pm2 -g \
-    && apt-get update && apt-get install -y --no-install-recommends nginx wget unzip \
+    && apt-get update && apt-get install -y --no-install-recommends nginx wget curl unzip \
     && if [ "$(uname -m)" = "x86_64" ]; then \
         wget http://nz2.archive.ubuntu.com/ubuntu/pool/main/o/openssl/libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb && \
         dpkg -i libssl1.1_1.1.1f-1ubuntu2.23_amd64.deb && \
