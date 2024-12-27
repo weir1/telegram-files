@@ -18,9 +18,9 @@
 - [📍 Overview](#-overview)
 - [🧩 Screenshots](#-screenshots)
 - [🚀 Getting Started](#-getting-started)
+- [⌨️ Development](#️-development)
     - [☑️ Prerequisites](#-prerequisites)
     - [⚙️ Installation](#-installation)
-    - [🤖 Usage](#🤖-usage)
 - [📌 Project Roadmap](#-project-roadmap)
 - [🔰 Contributing](#-contributing)
 - [🎗 License](#-license)
@@ -34,16 +34,58 @@
 * Support multiple telegram accounts for downloading files.
 * Support suspending and resuming downloads.
 * Multiple accounts with same files will be downloaded only once.
+* Responsive design supports mobile access.
 
 ---
 
 ## 🧩 Screenshots
 
-<p align="center">
-    <img src="./misc/screenshot.png" align="center" width="80%">
-</p>
+<div align="center">
+    <img src="./misc/screenshot.png" align="center" width="40%">
+    <img src="./misc/screenshot-2.png" align="center" width="40%">
+</div>
+
+<details closed>
+<summary>More Screenshots</summary>
+<div align="center">
+    <img src="./misc/screenshot-3.png" align="center" style="width: 300px; height: 500px;">
+    <img src="./misc/screenshot-4.png" align="center" style="width: 300px; height: 500px;">
+</div>
+</details>
 
 ## 🚀 Getting Started
+
+Before getting started with telegram-files, you should apply a telegram api id and hash. You can apply for it on the [Telegram API](https://my.telegram.org/apps) page.
+
+**Using `docker`**
+&nbsp; [<img align="center" src="https://img.shields.io/badge/Docker-2CA5E0.svg?style={badge_style}&logo=docker&logoColor=white" />](https://www.docker.com/)
+
+```shell
+docker run -d \
+  --name telegram-files \
+  --restart always \
+  -e APP_ENV=${APP_ENV:-prod} \
+  -e APP_ROOT=${APP_ROOT:-/app/data} \
+  -e TELEGRAM_API_ID=${TELEGRAM_API_ID} \
+  -e TELEGRAM_API_HASH=${TELEGRAM_API_HASH} \
+  -p 6543:80 \
+  -v ./data:/app/data \
+  ghcr.io/jarvis2f/telegram-files:latest
+```
+
+**Using `docker-compose`**
+
+Copy [docker-compose.yaml](docker-compose.yaml) to your project directory and run the following command:
+
+```sh
+docker-compose up -d
+```
+
+> **Important Note:** You should NOT expose the service to the public internet. Because the service is not secure.
+
+---
+
+## ⌨️ Development
 
 ### ☑️ Prerequisites
 
@@ -96,27 +138,12 @@ gradle build
 docker build -t jarvis2f/telegram-files .
 ```
 
-### 🤖 Usage
-
-**Using `docker`**
-&nbsp; [<img align="center" src="https://img.shields.io/badge/Docker-2CA5E0.svg?style={badge_style}&logo=docker&logoColor=white" />](https://www.docker.com/)
-
-Copy [docker-compose.yaml](docker-compose.yaml) to your project directory and run the following command:
-
-```sh
-docker-compose up -d
-```
-
-> **Important Note:** You should NOT expose the service to the public internet. Because the service is not secure.
-
----
-
 ## 📌 Project Roadmap
 
-- [ ] **`Task 1`**: Improve Telegram’s login functionality.
-- [ ] **`Task 2`**: Support auto transfer files to other destinations.
-- [ ] **`Task 3`**: Automatically download files based on set rules.
-- [ ] **`Task 4`**: Download statistics and reports.
+- ✅ **`Task 1`**: Automatically download files based on set rules.
+- ✅ **`Task 2`**: Download statistics and reports.
+- ☑️ **`Task 3`**: Improve Telegram’s login functionality.
+- ☑️ **`Task 4`**: Support auto transfer files to other destinations.
 
 ---
 
@@ -178,5 +205,6 @@ refer to the [LICENSE](LICENSE) file.
 <details closed>
 <summary>Use in http environment, you can use the following method to solve it</summary>
 
-Open the `chrome://flags` page, search for `Insecure origins treated as secure`, and add the address of the web page to the list.
+Open the `chrome://flags` page, search for `Insecure origins treated as secure`, and add the address of the web page to
+the list.
 </details>
