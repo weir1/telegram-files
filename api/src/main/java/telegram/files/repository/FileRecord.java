@@ -90,9 +90,6 @@ public record FileRecord(int id, //file id will change
             ));
 
     public FileRecord withSourceField(int id, long downloadedSize) {
-        if (this.downloadedSize == downloadedSize) {
-            return this;
-        }
         return new FileRecord(id, uniqueId, telegramId, chatId, messageId, date, hasSensitiveContent, size, downloadedSize, type, mimeType, fileName, thumbnail, caption, localPath, downloadStatus);
     }
 }

@@ -34,4 +34,6 @@ public interface FileRepository {
 
     Future<Void> updateFileId(int fileId, String uniqueId);
 
+    Future<Void> deleteByUniqueId(String uniqueId);
+
 }

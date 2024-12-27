@@ -311,4 +311,19 @@ public class FileRepositoryImpl implements FileRepository {
                             .mapEmpty();
                 });
     }
+
+    @Override
+    public Future<Void> deleteByUniqueId(String uniqueId) {
+        if (StrUtil.isBlank(uniqueId)) {
+            return Future.succeededFuture();
+        }
+        return SqlTemplate
+                .forUpdate(pool, """
+                        DELETE FROM file_record WHERE unique_id = #{uniqueId}
+                        """)
+                .execute(Map.of("uniqueId", uniqueId))
+                .onFailure(err -> log.error("Failed to delete file record: %s".formatted(err.getMessage()))
+                )
+                .mapEmpty();
+    }
 }

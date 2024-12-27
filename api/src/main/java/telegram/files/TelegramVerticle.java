@@ -353,12 +353,15 @@ public class TelegramVerticle extends AbstractVerticle {
     public Future<Void> cancelDownload(Integer fileId) {
         return this.execute(new TdApi.GetFile(fileId))
                 .compose(file -> {
-                    if (file.local == null || !file.local.isDownloadingActive) {
+                    if (file.local == null) {
                         return Future.failedFuture("File not started downloading");
                     }
 
-                    return this.execute(new TdApi.CancelDownloadFile(fileId, false));
+                    return this.execute(new TdApi.CancelDownloadFile(fileId, false))
+                            .map(file);
                 })
+                .compose(file -> this.execute(new TdApi.DeleteFile(fileId)).map(file))
+                .compose(file -> DataVerticle.fileRepository.deleteByUniqueId(file.remote.uniqueId))
                 .onSuccess(r ->
                         sendHttpEvent(EventPayload.build(EventPayload.TYPE_FILE_STATUS, new JsonObject()
                                 .put("fileId", fileId)
