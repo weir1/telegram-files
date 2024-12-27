@@ -50,6 +50,7 @@ import FileProgress from "@/components/file-progress";
 import FileNotFount from "@/components/file-not-found";
 import FileExtra from "@/components/file-extra";
 import useIsMobile from "@/hooks/use-is-mobile";
+import FileStatus from "@/components/file-status";
 
 interface FileListProps {
   accountId: string;
@@ -265,9 +266,7 @@ export function FileList({ accountId, chatId }: FileListProps) {
       </div>
     ),
     size: (file: TelegramFile) => <span>{prettyBytes(file.size)}</span>,
-    status: (file: TelegramFile) => (
-      <span className="capitalize">{file.downloadStatus}</span>
-    ),
+    status: (file: TelegramFile) => <FileStatus status={file.downloadStatus} />,
     extra: (file: TelegramFile) => (
       <FileExtra file={file} rowHeight={rowHeight} />
     ),
@@ -371,7 +370,7 @@ export function FileList({ accountId, chatId }: FileListProps) {
                       colSpan={columns.length + 1}
                       className="h-px p-0"
                     >
-                      <FileProgress file={file} />
+                      <FileProgress file={file} showSize={true} />
                     </TableCell>
                   </TableRow>
                 </React.Fragment>

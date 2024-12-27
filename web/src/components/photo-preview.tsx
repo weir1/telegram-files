@@ -3,12 +3,13 @@ import Image from "next/image";
 import useSWR from "swr";
 import { CloudAlert, Loader } from "lucide-react";
 import { useWebsocket } from "@/hooks/use-websocket";
-import { useEffect, useState } from "react";
+import {useEffect, useRef, useState} from "react";
 import { WebSocketMessageType } from "@/lib/websocket-types";
 import { toast } from "@/hooks/use-toast";
 import { useSettings } from "@/hooks/use-settings";
 import { type TDFile } from "@/lib/types";
 import { getApiUrl } from "@/lib/api";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 interface PhotoPreviewProps {
   thumbnail: string;
@@ -25,7 +26,9 @@ export default function PhotoPreview({
 }: PhotoPreviewProps) {
   const url = `${getApiUrl()}/file/preview?chatId=${chatId}&messageId=${messageId}`;
   const { settings } = useSettings();
+  const isMobile = useIsMobile();
   const [isReady, setIsReady] = useState(false);
+  const imageRef = useRef<HTMLImageElement>(null);
   const [fileStatus, setFileStatus] = useState<{
     fileId: number | null;
     readyFileIds: number[];
@@ -130,9 +133,29 @@ export default function PhotoPreview({
     );
   }
 
+  const toggleFullScreen = () => {
+    if (!isMobile) return;
+    if (!document.fullscreenEnabled) {
+      console.error("Full-screen mode is not supported.");
+      return;
+    }
+    const image = imageRef.current;
+    if (!image) return;
+    if (!document.fullscreenElement) {
+      image.requestFullscreen().catch((err: Error) => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`)
+      });
+    } else {
+      if (document.exitFullscreen) {
+        void document.exitFullscreen();
+      }
+    }
+  };
+
   return (
     <div className="rounded-lg border border-gray-300 bg-white p-2 shadow-lg">
       <Image
+        ref={imageRef}
         src={url}
         unoptimized={true}
         blurDataURL={`data:image/jpeg;base64,${thumbnail}`}
@@ -140,6 +163,7 @@ export default function PhotoPreview({
         width={32}
         height={32}
         className="h-[200px] w-full"
+        onClick={toggleFullScreen}
       />
     </div>
   );

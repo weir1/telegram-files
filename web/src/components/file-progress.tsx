@@ -5,7 +5,13 @@ import { useFileSpeed } from "@/hooks/use-file-speed";
 import { useMemo } from "react";
 import { ClockArrowDown, Zap } from "lucide-react";
 
-export default function FileProgress({ file }: { file: TelegramFile }) {
+export default function FileProgress({
+  file,
+  showSize,
+}: {
+  file: TelegramFile;
+  showSize: boolean;
+}) {
   const { downloadProgress, downloadSpeed } = useFileSpeed(file.id);
   const progress = useMemo(() => {
     const fileDownloadProgress =
@@ -31,7 +37,7 @@ export default function FileProgress({ file }: { file: TelegramFile }) {
 
   return (
     <div className="flex items-end justify-between gap-2">
-      {file.downloadedSize > 0 && (
+      {showSize && file.downloadedSize > 0 && (
         <div className="flex min-w-32 items-center gap-1 bg-gray-100 px-1">
           <ClockArrowDown className="h-3 w-3" />
           <span className="text-nowrap text-xs">

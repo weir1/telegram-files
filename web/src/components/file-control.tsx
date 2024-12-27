@@ -102,3 +102,51 @@ export default function FileControl({ file }: { file: TelegramFile }) {
     </TooltipProvider>
   );
 }
+
+export function MobileFileControl({ file }: { file: TelegramFile }) {
+  const { start, starting, togglePause, togglingPause, cancel, cancelling } =
+    useFileControl(file);
+
+  if (file.downloadStatus === "completed") {
+    return null;
+  }
+
+  return (
+    <div className="flex w-full items-center justify-between space-x-2">
+      {(file.downloadStatus === "idle" || file.downloadStatus === "error") && (
+        <Button className="w-full" onClick={() => start(file.id)}>
+          {starting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <ArrowDown className="h-4 w-4" />
+          )}
+        </Button>
+      )}
+      {(file.downloadStatus === "downloading" ||
+        file.downloadStatus === "paused") && (
+        <>
+          <Button className="w-full" onClick={() => togglePause(file.id)}>
+            {togglingPause ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : file.downloadStatus === "downloading" ? (
+              <Pause className="h-4 w-4" />
+            ) : (
+              <StepForward className="h-4 w-4" />
+            )}
+          </Button>
+          <Button
+            variant="destructive"
+            className="w-full"
+            onClick={() => cancel(file.id)}
+          >
+            {cancelling ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <SquareX className="h-4 w-4" />
+            )}
+          </Button>
+        </>
+      )}
+    </div>
+  );
+}
