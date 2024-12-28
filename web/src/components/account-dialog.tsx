@@ -185,7 +185,7 @@ export function AccountDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
         aria-describedby={undefined}
-        className="relative h-full w-full pb-10 md:h-auto md:min-h-40 md:min-w-[550px]"
+        className="h-full w-full pb-10 md:h-auto md:min-h-40 md:min-w-[550px]"
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -195,121 +195,126 @@ export function AccountDialog({
             </p>
           </DialogTitle>
         </DialogHeader>
-        {!debounceIsCreateMutating && !initSuccessfully && (
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <Button
-              className={cn(
-                "w-full",
-                debounceIsCreateMutating ? "opacity-50" : "",
-              )}
-              disabled={debounceIsCreateMutating}
-              onClick={async () => {
-                await triggerCreate().then(() => {
-                  void mutate("/telegrams");
-                  setInitSuccessfully(true);
-                });
-              }}
-            >
-              {debounceIsCreateMutating ? (
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-              ) : (
-                "Start Initialization"
-              )}
-            </Button>
-          </div>
-        )}
-        {debounceIsCreateMutating && (
-          <div className="flex items-center justify-center space-x-2 text-xl">
-            <span>Initializing account, please wait</span>
-            <Ellipsis className="h-4 w-4 animate-pulse" />
-          </div>
-        )}
-        {!debounceIsCreateMutating && createError && (
-          <div className="text-center text-xl">
-            <span className="mr-3 text-3xl">😲</span>
-            Initializing account failed, please try again later.
-          </div>
-        )}
-        {!debounceIsCreateMutating && initSuccessfully && (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {authState === TelegramConstructor.WAIT_PHONE_NUMBER && (
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <p className="text-xs text-gray-500">
-                  Should with country code like: 8613712345678
-                </p>
-                <Input
-                  id="phone"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  disabled={isMethodExecuting}
-                  required
-                />
-              </div>
-            )}
-            {authState === TelegramConstructor.WAIT_CODE && (
-              <div className="space-y-2">
-                <Label htmlFor="code">Authentication Code</Label>
-                <p className="text-xs text-gray-500">
-                  Please enter the code sent to your telegram account.
-                </p>
-                <InputOTP
-                  id="code"
-                  maxLength={5}
-                  value={code}
-                  disabled={isMethodExecuting}
-                  required
-                  onChange={(value) => setCode(value)}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
-            )}
-            {authState === TelegramConstructor.WAIT_PASSWORD && (
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <p className="text-xs text-gray-500">
-                  You have enabled two-step verification, please enter your
-                  password.
-                </p>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={isMethodExecuting}
-                  required
-                />
-              </div>
-            )}
-            {authState && (
+        <div className="relative h-full w-full">
+          {!debounceIsCreateMutating && !initSuccessfully && (
+            <div className="flex flex-col items-center justify-center space-y-4">
               <Button
-                type="submit"
-                className={cn("w-full", isMethodExecuting ? "opacity-50" : "")}
-                disabled={isMethodExecuting}
+                className={cn(
+                  "w-full",
+                  debounceIsCreateMutating ? "opacity-50" : "",
+                )}
+                disabled={debounceIsCreateMutating}
+                onClick={async () => {
+                  await triggerCreate().then(() => {
+                    void mutate("/telegrams");
+                    setInitSuccessfully(true);
+                  });
+                }}
               >
-                {isMethodExecuting ? (
+                {debounceIsCreateMutating ? (
                   <LoaderCircle className="h-4 w-4 animate-spin" />
                 ) : (
-                  "🚀 Submit"
+                  "Start Initialization"
                 )}
               </Button>
-            )}
-          </form>
-        )}
-        <ProxysDialog
-          telegramId={createData?.id}
-          proxyName={proxyName}
-          onProxyNameChange={setProxyName}
-          enableSelect={true}
-          className="absolute bottom-1 right-1"
-        />
+            </div>
+          )}
+          {debounceIsCreateMutating && (
+            <div className="flex items-center justify-center space-x-2 text-xl">
+              <span>Initializing account, please wait</span>
+              <Ellipsis className="h-4 w-4 animate-pulse" />
+            </div>
+          )}
+          {!debounceIsCreateMutating && createError && (
+            <div className="text-center text-xl">
+              <span className="mr-3 text-3xl">😲</span>
+              Initializing account failed, please try again later.
+            </div>
+          )}
+          {!debounceIsCreateMutating && initSuccessfully && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {authState === TelegramConstructor.WAIT_PHONE_NUMBER && (
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <p className="text-xs text-gray-500">
+                    Should with country code like: 8613712345678
+                  </p>
+                  <Input
+                    id="phone"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    disabled={isMethodExecuting}
+                    required
+                  />
+                </div>
+              )}
+              {authState === TelegramConstructor.WAIT_CODE && (
+                <div className="space-y-2">
+                  <Label htmlFor="code">Authentication Code</Label>
+                  <p className="text-xs text-gray-500">
+                    Please enter the code sent to your telegram account.
+                  </p>
+                  <InputOTP
+                    id="code"
+                    maxLength={5}
+                    value={code}
+                    disabled={isMethodExecuting}
+                    required
+                    onChange={(value) => setCode(value)}
+                  >
+                    <InputOTPGroup>
+                      <InputOTPSlot index={0} />
+                      <InputOTPSlot index={1} />
+                      <InputOTPSlot index={2} />
+                      <InputOTPSlot index={3} />
+                      <InputOTPSlot index={4} />
+                    </InputOTPGroup>
+                  </InputOTP>
+                </div>
+              )}
+              {authState === TelegramConstructor.WAIT_PASSWORD && (
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <p className="text-xs text-gray-500">
+                    You have enabled two-step verification, please enter your
+                    password.
+                  </p>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isMethodExecuting}
+                    required
+                  />
+                </div>
+              )}
+              {authState && (
+                <Button
+                  type="submit"
+                  className={cn(
+                    "w-full",
+                    isMethodExecuting ? "opacity-50" : "",
+                  )}
+                  disabled={isMethodExecuting}
+                >
+                  {isMethodExecuting ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "🚀 Submit"
+                  )}
+                </Button>
+              )}
+            </form>
+          )}
+          <ProxysDialog
+            telegramId={createData?.id}
+            proxyName={proxyName}
+            onProxyNameChange={setProxyName}
+            enableSelect={true}
+            className="absolute bottom-1 right-1"
+          />
+        </div>
       </DialogContent>
     </Dialog>
   );
