@@ -13,6 +13,7 @@ import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.healthchecks.HealthCheckHandler;
 import io.vertx.ext.healthchecks.HealthChecks;
@@ -140,6 +141,7 @@ public class HttpVerticle extends AbstractVerticle {
 
         router.get("/file/preview").handler(this::handleFilePreview);
         router.post("/file/start-download").handler(this::handleFileStartDownload);
+        router.post("/file/start-download-multiple").handler(this::handleFileStartDownloadMultiple);
         router.post("/file/cancel-download").handler(this::handleFileCancelDownload);
         router.post("/file/toggle-pause-download").handler(this::handleFileTogglePauseDownload);
         router.post("/file/auto-download").handler(this::handleAutoDownload);
@@ -315,11 +317,11 @@ public class HttpVerticle extends AbstractVerticle {
         }
         TelegramVerticle telegramVerticle = telegramVerticleOptional.get();
         telegramVerticle.close(true)
-                        .onSuccess(r -> {
-                            telegramVerticles.remove(telegramVerticle);
-                            sessionTelegramVerticles.entrySet().removeIf(e -> e.getValue().equals(telegramVerticle));
-                            ctx.end();
-                        });
+                .onSuccess(r -> {
+                    telegramVerticles.remove(telegramVerticle);
+                    sessionTelegramVerticles.entrySet().removeIf(e -> e.getValue().equals(telegramVerticle));
+                    ctx.end();
+                });
     }
 
     private void handleTelegrams(RoutingContext ctx) {
@@ -509,6 +511,36 @@ public class HttpVerticle extends AbstractVerticle {
         telegramVerticle.startDownload(chatId, messageId, fileId)
                 .onSuccess(ctx::json)
                 .onFailure(ctx::fail);
+    }
+
+    private void handleFileStartDownloadMultiple(RoutingContext ctx) {
+        TelegramVerticle telegramVerticle = getTelegramVerticle(ctx);
+        if (telegramVerticle == null) {
+            return;
+        }
+
+        JsonObject jsonObject = ctx.body().asJsonObject();
+        Long chatId = jsonObject.getLong("chatId");
+        JsonArray files = jsonObject.getJsonArray("files");
+        if (chatId == null || CollUtil.isEmpty(files)) {
+            ctx.fail(400);
+            return;
+        }
+
+        Future.any(files.stream()
+                        .map(f -> {
+                            JsonObject file = (JsonObject) f;
+                            Long messageId = file.getLong("messageId");
+                            Integer fileId = file.getInteger("fileId");
+                            return telegramVerticle.startDownload(chatId, messageId, fileId);
+                        })
+                        .toList())
+                .onSuccess(ctx::json)
+                .onFailure(r -> {
+                    log.error(r, "Failed to start download multiple files");
+                    ctx.json(JsonObject.of("error", "Part of the files failed to start download"));
+                    ctx.response().setStatusCode(400).end();
+                });
     }
 
     private void handleFileCancelDownload(RoutingContext ctx) {

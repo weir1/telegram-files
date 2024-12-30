@@ -24,6 +24,7 @@ import {
   FileAudioIcon,
   FileIcon,
   ImageIcon,
+  LoaderCircle,
   LoaderPinwheel,
   VideoIcon,
 } from "lucide-react";
@@ -51,6 +52,8 @@ import FileNotFount from "@/components/file-not-found";
 import FileExtra from "@/components/file-extra";
 import useIsMobile from "@/hooks/use-is-mobile";
 import FileStatus from "@/components/file-status";
+import useSWRMutation from "swr/mutation";
+import { POST } from "@/lib/api";
 
 interface FileListProps {
   accountId: string;
@@ -112,6 +115,28 @@ export function FileList({ accountId, chatId }: FileListProps) {
   );
   const { filters, handleFilterChange, isLoading, files, handleLoadMore } =
     useFiles(accountId, chatId);
+  const {
+    trigger: startDownloadMultiple,
+    isMutating: startDownloadMultipleMutating,
+  } = useSWRMutation(
+    "/file/start-download-multiple",
+    (
+      key,
+      {
+        arg,
+      }: {
+        arg: {
+          chatId: number;
+          files: Array<{ messageId: number; fileId: number }>;
+        };
+      },
+    ) => POST(key, arg),
+    {
+      onSuccess: () => {
+        setSelectedFiles(new Set());
+      },
+    },
+  );
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -182,7 +207,13 @@ export function FileList({ accountId, chatId }: FileListProps) {
     if (selectedFiles.size === files.length) {
       setSelectedFiles(new Set());
     } else {
-      setSelectedFiles(new Set(files.map((file) => file.id)));
+      setSelectedFiles(
+        new Set(
+          files
+            .filter((file) => file.downloadStatus === "idle")
+            .map((file) => file.id),
+        ),
+      );
     }
   };
 
@@ -296,16 +327,32 @@ export function FileList({ accountId, chatId }: FileListProps) {
             <Button
               size="sm"
               onClick={() => {
-                //TODO implement download selected
+                void startDownloadMultiple({
+                  chatId: Number(chatId),
+                  files: Array.from(selectedFiles).map((id) => {
+                    const file = files.find((f) => f.id === id);
+                    return {
+                      messageId: file?.messageId ?? 0,
+                      fileId: file?.id ?? 0,
+                    };
+                  }),
+                });
               }}
-              disabled={Array.from(selectedFiles).every(
-                (id) =>
-                  files.find((f) => f.id === id)?.downloadStatus ===
-                  "downloading",
-              )}
+              disabled={
+                selectedFiles.size === 0 || startDownloadMultipleMutating
+              }
             >
-              <Download className="mr-2 h-4 w-4" />
-              Download Selected
+              {startDownloadMultipleMutating ? (
+                <LoaderCircle
+                  className="mr-2 h-4 w-4 animate-spin"
+                  style={{ strokeWidth: "0.8px" }}
+                />
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Selected
+                </>
+              )}
             </Button>
           </div>
         )}
@@ -350,6 +397,7 @@ export function FileList({ accountId, chatId }: FileListProps) {
                       <Checkbox
                         checked={selectedFiles.has(file.id)}
                         onCheckedChange={() => handleSelectFile(file.id)}
+                        disabled={file.downloadStatus !== "idle"}
                       />
                     </TableCell>
                     {columns.map((col) =>
