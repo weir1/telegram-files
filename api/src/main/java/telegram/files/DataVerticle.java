@@ -57,10 +57,16 @@ public class DataVerticle extends AbstractVerticle {
     }
 
     @Override
-    public void stop() throws Exception {
+    public void stop(Promise<Void> stopPromise) throws Exception {
         if (pool != null) {
-            pool.close();
-            log.debug("Database closed");
+            pool.close().onComplete(r -> {
+                stopPromise.complete();
+                if (r.succeeded()) {
+                    log.debug("Data verticle stopped!");
+                } else {
+                    log.error("Failed to close data verticle: %s".formatted(r.cause().getMessage()));
+                }
+            });
         }
     }
 

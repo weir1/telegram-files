@@ -10,8 +10,8 @@ services:
       timeout: 10s
       start_period: 30s
     environment:
-      APP_ENV: ${APP_ENV:-prod}
-      APP_ROOT: ${APP_ROOT:-/app/data}
+      APP_ENV: "prod"
+      APP_ROOT: "/app/data"
       TELEGRAM_API_ID: ${TELEGRAM_API_ID}
       TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
     ports:

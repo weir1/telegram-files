@@ -103,13 +103,20 @@ public class TelegramVerticle extends AbstractVerticle {
                 .onFailure(startPromise::fail);
     }
 
-    public void delete() {
-        this.execute(new TdApi.Close())
+    @Override
+    public void stop(Promise<Void> stopPromise) {
+        this.close(false)
+                .onComplete(stopPromise);
+    }
+
+    public Future<Void> close(boolean needDelete) {
+        return this.execute(new TdApi.Close())
                 .onSuccess(r -> {
                     log.info("[%s] Telegram account closed".formatted(this.getRootId()));
-                    this.needDelete = true;
+                    this.needDelete = needDelete;
                 })
-                .onFailure(e -> log.error("[%s] Failed to close telegram account: %s".formatted(this.getRootId(), e.getMessage())));
+                .onFailure(e -> log.error("[%s] Failed to close telegram account: %s".formatted(this.getRootId(), e.getMessage())))
+                .mapEmpty();
     }
 
     public boolean check() {

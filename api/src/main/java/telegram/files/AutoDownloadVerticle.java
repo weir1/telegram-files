@@ -68,7 +68,11 @@ public class AutoDownloadVerticle extends AbstractVerticle {
 
     @Override
     public void stop(Promise<Void> stopPromise) {
-        saveAutoRecords().onComplete(stopPromise);
+        saveAutoRecords()
+                .onComplete(r -> {
+                    log.info("Auto download verticle stopped!");
+                    stopPromise.complete();
+                });
     }
 
     private Future<Void> initAutoDownload() {
@@ -123,7 +127,6 @@ public class AutoDownloadVerticle extends AbstractVerticle {
                     autoRecords.items.forEach(settingAutoRecords::add);
                     return DataVerticle.settingRepository.createOrUpdate(SettingKey.autoDownload.name(), Json.encode(settingAutoRecords));
                 })
-                .onSuccess(v -> log.info("Save auto records success!"))
                 .onFailure(e -> log.error("Save auto records failed!", e))
                 .mapEmpty();
     }

@@ -43,6 +43,8 @@ public class HttpVerticle extends AbstractVerticle {
     // session id -> telegram verticle
     private final Map<String, TelegramVerticle> sessionTelegramVerticles = new ConcurrentHashMap<>();
 
+    private AutoDownloadVerticle autoDownloadVerticle;
+
     private static final String SESSION_COOKIE_NAME = "tf";
 
     @Override
@@ -52,6 +54,11 @@ public class HttpVerticle extends AbstractVerticle {
                 .compose(r -> initAutoDownloadVerticle())
                 .onSuccess(startPromise::complete)
                 .onFailure(startPromise::fail);
+    }
+
+    @Override
+    public void stop() {
+        log.info("Http verticle stopped!");
     }
 
     public Future<Void> initHttpServer() {
@@ -196,7 +203,8 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     public Future<Void> initAutoDownloadVerticle() {
-        return vertx.deployVerticle(new AutoDownloadVerticle(), new DeploymentOptions()
+        autoDownloadVerticle = new AutoDownloadVerticle();
+        return vertx.deployVerticle(autoDownloadVerticle, new DeploymentOptions()
                         .setThreadingModel(ThreadingModel.VIRTUAL_THREAD)
                 )
                 .mapEmpty();
@@ -306,10 +314,12 @@ public class HttpVerticle extends AbstractVerticle {
             return;
         }
         TelegramVerticle telegramVerticle = telegramVerticleOptional.get();
-        telegramVerticle.delete();
-        telegramVerticles.remove(telegramVerticle);
-        sessionTelegramVerticles.entrySet().removeIf(e -> e.getValue().equals(telegramVerticle));
-        ctx.end();
+        telegramVerticle.close(true)
+                        .onSuccess(r -> {
+                            telegramVerticles.remove(telegramVerticle);
+                            sessionTelegramVerticles.entrySet().removeIf(e -> e.getValue().equals(telegramVerticle));
+                            ctx.end();
+                        });
     }
 
     private void handleTelegrams(RoutingContext ctx) {
