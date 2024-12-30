@@ -28,6 +28,8 @@ import java.io.IOError;
 import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class TelegramVerticle extends AbstractVerticle {
@@ -214,6 +216,27 @@ public class TelegramVerticle extends AbstractVerticle {
         String status = filter.get("status");
         if (Arrays.asList("downloading", "paused", "completed", "error").contains(status)) {
             return DataVerticle.fileRepository.getFiles(chatId, filter)
+                    .compose(r -> {
+                        long[] messageIds = r.v1.stream().mapToLong(FileRecord::messageId).toArray();
+                        return this.execute(new TdApi.GetMessages(chatId, messageIds))
+                                .map(m -> {
+                                    Map<Long, TdApi.Message> messageMap = Arrays.stream(m.messages)
+                                            .collect(Collectors.toMap(message -> message.id, Function.identity()));
+                                    List<FileRecord> fileRecords = r.v1.stream()
+                                            .map(fileRecord -> {
+                                                TdApi.Message message = messageMap.get(fileRecord.messageId());
+                                                FileRecord source = TdApiHelp.getFileHandler(message)
+                                                        .map(fileHandler -> fileHandler.convertFileRecord(telegramRecord.id()))
+                                                        .orElse(null);
+                                                if (source != null) {
+                                                    fileRecord = fileRecord.withSourceField(source.id(), source.downloadedSize());
+                                                }
+                                                return fileRecord;
+                                            })
+                                            .toList();
+                                    return Tuple.tuple(fileRecords, r.v2, r.v3);
+                                });
+                    })
                     .map(tuple -> new JsonObject()
                             .put("files", tuple.v1)
                             .put("nextFromMessageId", tuple.v2)
@@ -359,6 +382,10 @@ public class TelegramVerticle extends AbstractVerticle {
 
     public Future<Void> cancelDownload(Integer fileId) {
         return this.execute(new TdApi.GetFile(fileId))
+                .compose(file -> DataVerticle.fileRepository
+                        .updateFileId(file.id, file.remote.uniqueId)
+                        .map(file)
+                )
                 .compose(file -> {
                     if (file.local == null) {
                         return Future.failedFuture("File not started downloading");

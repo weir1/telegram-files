@@ -8,6 +8,7 @@ import useSWRInfinite from "swr/infinite";
 import { useWebsocket } from "@/hooks/use-websocket";
 import { WebSocketMessageType } from "@/lib/websocket-types";
 import useLocalStorage from "@/hooks/use-local-storage";
+import {useDebounce} from "use-debounce";
 
 const DEFAULT_FILTERS: FileFilter = {
   search: "",
@@ -58,6 +59,11 @@ export function useFiles(accountId: string, chatId: string) {
   } = useSWRInfinite<FileResponse, Error>(getKey, {
     revalidateFirstPage: false,
     keepPreviousData: true,
+  });
+
+  const [debounceLoading] = useDebounce(isLoading || isValidating, 500, {
+    leading: true,
+    maxWait: 1000,
   });
 
   useEffect(() => {
@@ -129,7 +135,7 @@ export function useFiles(accountId: string, chatId: string) {
   return {
     files,
     filters,
-    isLoading: isLoading || isValidating,
+    isLoading: debounceLoading,
     handleFilterChange,
     handleLoadMore,
     hasMore,
