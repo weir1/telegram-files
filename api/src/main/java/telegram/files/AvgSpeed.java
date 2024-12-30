@@ -11,10 +11,6 @@ public class AvgSpeed {
 
     private final TreeMap<Long, SpeedPoint> speedPoints;
 
-    private long maxSpeed;
-
-    private long minSpeed;
-
     private final int smoothingWindowSize;
 
     /**
@@ -34,8 +30,6 @@ public class AvgSpeed {
     public AvgSpeed(int interval, int smoothingWindowSize) {
         this.interval = interval;
         this.speedPoints = new TreeMap<>();
-        this.maxSpeed = 0;
-        this.minSpeed = Long.MAX_VALUE;
         this.smoothingWindowSize = smoothingWindowSize;
     }
 
@@ -52,12 +46,6 @@ public class AvgSpeed {
         // Apply smoothing if we have enough points
         if (speedPoints.size() >= smoothingWindowSize) {
             speed = smoothSpeed(speed);
-        }
-
-        // Update max/min speeds only for non-zero speeds
-        if (speed > 0) {
-            maxSpeed = Math.max(maxSpeed, speed);
-            minSpeed = Math.min(minSpeed, speed);
         }
 
         // Add new speed point
@@ -162,14 +150,21 @@ public class AvgSpeed {
      * Get maximum recorded speed
      */
     public long getMaxSpeed() {
-        return maxSpeed;
+        return speedPoints.values().stream()
+                .map(point -> point.speed)
+                .max(Long::compare)
+                .orElse(0L);
     }
 
     /**
      * Get minimum recorded speed
      */
     public long getMinSpeed() {
-        return minSpeed == Long.MAX_VALUE ? 0 : minSpeed;
+        return speedPoints.values().stream()
+                .map(point -> point.speed)
+                .filter(speed -> speed > 0)
+                .min(Long::compare)
+                .orElse(0L);
     }
 
     /**
