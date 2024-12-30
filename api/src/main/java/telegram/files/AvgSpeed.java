@@ -65,7 +65,7 @@ public class AvgSpeed {
 
         // Remove old points outside the interval
         long cutoffTime = timestamp - interval * 1000L; // Convert interval to milliseconds
-        speedPoints.headMap(cutoffTime);
+        speedPoints.headMap(cutoffTime).clear();
     }
 
     private long calculateSpeed(long downloadedSize, long timestamp) {

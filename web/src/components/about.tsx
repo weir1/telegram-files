@@ -10,8 +10,8 @@ import {
 } from "@/components/ui/card";
 import { request } from "@/lib/api";
 import Link from "next/link";
-import Lottie from "lottie-react";
 import TGDuck16HeyOut from "@/components/animations/tg-duck16_hey_out.json";
+import dynamic from "next/dynamic";
 
 interface VersionData {
   version: string;
@@ -23,6 +23,7 @@ interface GitHubReleaseData {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 export default function About() {
   const { data: apiData, error: apiError } = useSWR<VersionData, Error>(
     "/version",
@@ -46,7 +47,7 @@ export default function About() {
     githubData && githubData.tag_name !== currentVersion;
 
   return (
-    <div className="flex justify-center md:items-center md:h-full">
+    <div className="flex justify-center md:h-full md:items-center">
       <Card className="w-full bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-[#7900ff] via-[#548cff] to-[#93ffd8] md:w-1/2">
         <CardHeader>
           <CardTitle className="text-white">About This Project</CardTitle>
@@ -55,7 +56,11 @@ export default function About() {
           </CardDescription>
         </CardHeader>
         <CardContent className="relative">
-          <Lottie className="absolute bottom-3 right-3 w-28 h-28" animationData={TGDuck16HeyOut} loop={true} />
+          <Lottie
+            className="absolute bottom-3 right-3 h-28 w-28"
+            animationData={TGDuck16HeyOut}
+            loop={true}
+          />
           <div className="space-y-4">
             <div className="flex flex-col items-center justify-center">
               <p className="text-sm font-medium text-white">Author</p>

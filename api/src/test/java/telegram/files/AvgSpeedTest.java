@@ -46,8 +46,8 @@ class AvgSpeedTest {
 
 
         // Download at 100 bytes/sec
-        avgSpeed.update(0L, baseTime);
-        avgSpeed.update(1000L, baseTime + 10000); // 100 bytes/sec
+        avgSpeed.update(1L, baseTime);
+        avgSpeed.update(1001L, baseTime + 10000); // 100 bytes/sec
 
         // Pause for 10 seconds
         avgSpeed.update(1000L, baseTime + 20000);
@@ -66,12 +66,12 @@ class AvgSpeedTest {
 
 
         // Initial download
-        avgSpeed.update(0L, baseTime);
-        avgSpeed.update(1000L, baseTime + 10000); // 100 bytes/sec
+        avgSpeed.update(1L, baseTime);
+        avgSpeed.update(1001L, baseTime + 10000); // 100 bytes/sec
 
         // Restart download
-        avgSpeed.update(0L, baseTime + 15000);
-        avgSpeed.update(500L, baseTime + 20000); // 100 bytes/sec after restart
+        avgSpeed.update(1L, baseTime + 15000);
+        avgSpeed.update(501L, baseTime + 20000); // 100 bytes/sec after restart
 
         AvgSpeed.SpeedStats stats = avgSpeed.getSpeedStats();
         assertTrue(stats.maxSpeed() >= 100,
