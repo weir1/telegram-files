@@ -78,6 +78,7 @@ export function FileFilters({
             <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="idle">Not downloaded</SelectItem>
             <SelectItem value="downloading">Downloading</SelectItem>
+            <SelectItem value="paused">Paused</SelectItem>
             <SelectItem value="completed">Completed</SelectItem>
             <SelectItem value="error">Error</SelectItem>
           </SelectContent>
