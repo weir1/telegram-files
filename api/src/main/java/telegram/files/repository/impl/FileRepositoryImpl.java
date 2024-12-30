@@ -121,7 +121,7 @@ public class FileRepositoryImpl implements FileRepository {
         return Future.all(
                 SqlTemplate
                         .forQuery(pool, """
-                                SELECT * FROM file_record WHERE %s ORDER BY date DESC
+                                SELECT * FROM file_record WHERE %s ORDER BY date DESC LIMIT 20
                                 """.formatted(whereClause))
                         .mapTo(FileRecord.ROW_MAPPER)
                         .execute(params)
