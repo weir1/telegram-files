@@ -144,6 +144,8 @@ docker build -t jarvis2f/telegram-files .
 - ✅ **`Task 2`**: Download statistics and reports.
 - ☑️ **`Task 3`**: Improve Telegram’s login functionality.
 - ☑️ **`Task 4`**: Support auto transfer files to other destinations.
+- ☑️ **`Task 5`**: File table is optimized using virtual lists, and API service using GraalVM.
+- ☑️ **`Task 6`**: File downloads in comments under channel messages.
 
 ---
 
