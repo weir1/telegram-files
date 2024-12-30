@@ -196,7 +196,16 @@ export function FileList({ accountId, chatId }: FileListProps) {
             />
           ))}
         </div>
-        <div ref={observerTarget} className="h-4" />
+        <div ref={observerTarget} className="h-4">
+          {isLoading && (
+            <div className="flex items-center justify-center">
+              <LoaderPinwheel
+                className="h-8 w-8 animate-spin"
+                style={{ strokeWidth: "0.8px" }}
+              />
+            </div>
+          )}
+        </div>
       </div>
     );
   }
