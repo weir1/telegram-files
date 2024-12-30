@@ -312,7 +312,7 @@ export function AccountDialog({
             proxyName={proxyName}
             onProxyNameChange={setProxyName}
             enableSelect={true}
-            className="absolute bottom-1 right-1"
+            className="absolute bottom-1 right-1 md:-bottom-9 md:-right-4"
           />
         </div>
       </DialogContent>
