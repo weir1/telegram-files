@@ -10,11 +10,9 @@ import {
 import TableColumnFilter, {
   type Column,
 } from "@/components/table-column-filter";
-import {
-  type RowHeight,
-  TableRowHeightSwitch,
-} from "@/components/table-row-height-switch";
+import { type RowHeight } from "@/components/table-row-height-switch";
 import FileTypeFilter from "@/components/file-type-filter";
+import dynamic from "next/dynamic";
 
 interface FileFiltersProps {
   telegramId: string;
@@ -26,6 +24,14 @@ interface FileFiltersProps {
   rowHeight: RowHeight;
   setRowHeight: (e: RowHeight) => void;
 }
+
+const TableRowHeightSwitch = dynamic(
+  () =>
+    import("@/components/table-row-height-switch").then(
+      (mod) => mod.TableRowHeightSwitch,
+    ),
+  { ssr: false },
+);
 
 export function FileFilters({
   telegramId,
@@ -39,7 +45,7 @@ export function FileFilters({
 }: FileFiltersProps) {
   return (
     <div className="mb-6 flex flex-col justify-between md:flex-row">
-      <div className="grid grid-cols-2 gap-4 md:flex-row md:flex">
+      <div className="grid grid-cols-2 gap-4 md:flex md:flex-row">
         <Input
           placeholder="Search files..."
           value={filters.search}
@@ -83,12 +89,10 @@ export function FileFilters({
           columns={columns}
           onColumnConfigChange={onColumnConfigChange}
         />
-        {!!rowHeight && !!setRowHeight && (
-          <TableRowHeightSwitch
-            rowHeight={rowHeight}
-            setRowHeightAction={setRowHeight}
-          />
-        )}
+        <TableRowHeightSwitch
+          rowHeight={rowHeight}
+          setRowHeightAction={setRowHeight}
+        />
       </div>
     </div>
   );

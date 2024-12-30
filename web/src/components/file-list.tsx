@@ -4,8 +4,8 @@ import { FileCard } from "./file-card";
 import React, {
   memo,
   type ReactNode,
+  useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
@@ -155,25 +155,23 @@ export function FileList({ accountId, chatId }: FileListProps) {
     return () => observer.disconnect();
   }, [handleLoadMore]);
 
-  const contentWH = useMemo(() => {
+  const dynamicClass = useCallback(() => {
     switch (rowHeight) {
       case "s":
-        return "h-6 w-6";
+        return {
+          content: "h-6 w-6",
+          contentCell: "w-6",
+        };
       case "m":
-        return "h-20 w-20";
+        return {
+          content: "h-20 w-20",
+          contentCell: "w-24",
+        };
       case "l":
-        return "h-60 w-60";
-    }
-  }, [rowHeight]);
-
-  const contentCellWidth = useMemo(() => {
-    switch (rowHeight) {
-      case "s":
-        return "w-6";
-      case "m":
-        return "w-24";
-      case "l":
-        return "w-64";
+        return {
+          content: "h-60 w-60",
+          contentCell: "w-64",
+        };
     }
   }, [rowHeight]);
 
@@ -245,7 +243,7 @@ export function FileList({ accountId, chatId }: FileListProps) {
     return (
       <div
         className={cn(
-          contentWH,
+          dynamicClass().content,
           "flex items-center justify-center rounded bg-muted",
         )}
       >
@@ -269,7 +267,7 @@ export function FileList({ accountId, chatId }: FileListProps) {
                     <PhotoColumnImage
                       thumbnail={file.thumbnail}
                       name={file.name}
-                      wh={contentWH}
+                      wh={dynamicClass().content}
                     />
                   </TooltipTrigger>
                   <TooltipContent asChild>
@@ -371,9 +369,10 @@ export function FileList({ accountId, chatId }: FileListProps) {
                   col.isVisible ? (
                     <TableHead
                       key={col.id}
+                      suppressHydrationWarning
                       className={cn(
                         col.className ?? "",
-                        col.id === "content" ? contentCellWidth : "",
+                        col.id === "content" ? dynamicClass().contentCell : "",
                       )}
                     >
                       {col.label}
@@ -406,7 +405,9 @@ export function FileList({ accountId, chatId }: FileListProps) {
                           key={col.id}
                           className={cn(
                             col.className ?? "",
-                            col.id === "content" ? contentCellWidth : "",
+                            col.id === "content"
+                              ? dynamicClass().contentCell
+                              : "",
                           )}
                         >
                           {columnRenders[col.id]!(file, index)}
