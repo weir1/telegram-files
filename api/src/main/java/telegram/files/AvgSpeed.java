@@ -1,6 +1,5 @@
 package telegram.files;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -77,25 +76,45 @@ public class AvgSpeed {
     }
 
     private long smoothSpeed(long currentSpeed) {
+        if (speedPoints.isEmpty()) {
+            return currentSpeed;
+        }
+
         List<Long> recentSpeeds = speedPoints.values().stream()
                 .skip(Math.max(0, speedPoints.size() - smoothingWindowSize))
                 .map(point -> point.speed)
                 .collect(Collectors.toList());
-
         recentSpeeds.add(currentSpeed);
 
-        // Sort speeds to find median
-        Collections.sort(recentSpeeds);
-        long median = recentSpeeds.get(recentSpeeds.size() / 2);
+        if (recentSpeeds.size() < 2) {
+            return currentSpeed;
+        }
 
-        // Filter out speeds that deviate too much from median
-        double threshold = median * 2.0;
+        double mean = recentSpeeds.stream()
+                .mapToLong(Long::longValue)
+                .average()
+                .orElse(currentSpeed);
+
+        double standardDeviation = Math.sqrt(
+                recentSpeeds.stream()
+                        .mapToDouble(speed -> {
+                            double diff = speed - mean;
+                            return diff * diff;
+                        })
+                        .average()
+                        .orElse(0.0)
+        );
+
+        double upperThreshold = mean + (2 * standardDeviation);
+        double lowerThreshold = mean - (2 * standardDeviation);
+
         List<Long> filteredSpeeds = recentSpeeds.stream()
-                .filter(speed -> speed <= threshold)
+                .filter(speed -> speed >= lowerThreshold && speed <= upperThreshold)
                 .toList();
 
-        // Calculate average of remaining speeds
-        return (long) filteredSpeeds.stream()
+        return filteredSpeeds.isEmpty()
+                ? currentSpeed
+                : (long) filteredSpeeds.stream()
                 .mapToLong(Long::longValue)
                 .average()
                 .orElse(currentSpeed);
