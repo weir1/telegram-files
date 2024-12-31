@@ -91,7 +91,7 @@ class AvgSpeedTest {
         AvgSpeed.SpeedStats stats = avgSpeed.getSpeedStats();
         assertTrue(stats.maxSpeed() >= 300,
                 "Max speed should capture high speed period");
-        assertTrue(stats.minSpeed() <= 100,
+        assertTrue(stats.minSpeed() == 250,
                 "Min speed should capture low speed period");
     }
 
@@ -160,5 +160,55 @@ class AvgSpeedTest {
         avgSpeed.update(500000L, baseTime + 6000); // 100,000 bytes/sec
         assertTrue(avgSpeed.getSpeed() > 0,
                 "Speed should be calculated correctly with large numbers");
+    }
+
+    @Test
+    void shouldShowDifferentSpeedsOverTime() {
+        // Given
+        AvgSpeed avgSpeed = new AvgSpeed(60); // 1 minute interval
+        long baseTime = System.currentTimeMillis();
+
+        // When - simulate download over 2 minutes with varying speeds
+        // First 30 seconds - constant speed
+        for (int i = 0; i < 30; i++) {
+            avgSpeed.update(1024L * 1024L * i, // 1MB increments
+                    baseTime + (i * 1000L)); // 1 second intervals
+        }
+
+        // Record speeds at 30 second mark
+        AvgSpeed.SpeedStats stats30s = avgSpeed.getSpeedStats();
+
+        // Next 30 seconds - faster speed
+        for (int i = 30; i < 60; i++) {
+            avgSpeed.update(1024L * 1024L * (i * 2), // 2MB increments
+                    baseTime + (i * 1000L)); // 1 second intervals
+        }
+
+        // Record speeds at 60 second mark
+        AvgSpeed.SpeedStats stats60s = avgSpeed.getSpeedStats();
+
+        // Another 30 seconds - slower speed
+        for (int i = 60; i < 90; i++) {
+            avgSpeed.update(1024L * 1024L * (i + 60), // slower increments
+                    baseTime + (i * 1000L)); // 1 second intervals
+        }
+
+        // Record speeds at 90 second mark
+        AvgSpeed.SpeedStats stats90s = avgSpeed.getSpeedStats();
+
+        // 30s with big speed changes
+        for (int i = 90; i < 120; i++) {
+            avgSpeed.update(1024L * 1024L * (i * 4), // 4MB increments
+                    baseTime + (i * 1000L)); // 1 second intervals
+        }
+
+        // Record speeds at 120 second mark
+        AvgSpeed.SpeedStats stats120s = avgSpeed.getSpeedStats();
+
+        // Then
+        System.out.println("30s stats: " + stats30s);
+        System.out.println("60s stats: " + stats60s);
+        System.out.println("90s stats: " + stats90s);
+        System.out.println("120s stats: " + stats120s);
     }
 }

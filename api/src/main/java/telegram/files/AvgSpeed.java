@@ -15,15 +15,15 @@ public class AvgSpeed {
     /**
      * @param speed Speed since last point
      */
-    record SpeedPoint(long downloadedSize, long speed) {
+    record SpeedPoint(long downloadedSize, long speed, long timestamp) {
     }
 
     public AvgSpeed() {
-        this(15 * 60); // Default interval is 15 minutes
+        this(5 * 60); // Default interval is 5 minutes
     }
 
     public AvgSpeed(int interval) {
-        this(interval, 5);
+        this(interval, 6);
     }
 
     public AvgSpeed(int interval, int smoothingWindowSize) {
@@ -40,7 +40,7 @@ public class AvgSpeed {
             return;
         }
         // Calculate speed since last point
-        long speed = calculateSpeed(downloadedSize, timestamp);
+        long speed = calculateInstantSpeed(downloadedSize, timestamp);
 
         // Apply smoothing if we have enough points
         if (speedPoints.size() >= smoothingWindowSize) {
@@ -48,28 +48,35 @@ public class AvgSpeed {
         }
 
         // Add new speed point
-        speedPoints.put(timestamp, new SpeedPoint(downloadedSize, speed));
+        speedPoints.put(timestamp, new SpeedPoint(downloadedSize, speed, timestamp));
 
         // Remove old points outside the interval
         long cutoffTime = timestamp - interval * 1000L; // Convert interval to milliseconds
         speedPoints.headMap(cutoffTime).clear();
     }
 
-    private long calculateSpeed(long downloadedSize, long timestamp) {
+    private long calculateInstantSpeed(long currentSize, long currentTime) {
         if (speedPoints.isEmpty()) {
             return 0;
         }
 
-        Map.Entry<Long, SpeedPoint> lastEntry = speedPoints.lastEntry();
-        long timeDiff = timestamp - lastEntry.getKey();
+        // Find the earliest point within our smoothing window
+        int pointsToConsider = Math.min(smoothingWindowSize, speedPoints.size());
+        List<SpeedPoint> recentPoints = speedPoints.values().stream()
+                .skip(speedPoints.size() - pointsToConsider)
+                .toList();
+
+        SpeedPoint earliestPoint = recentPoints.getFirst();
+
+        long timeDiff = currentTime - earliestPoint.timestamp;
         if (timeDiff <= 0) {
             return 0;
         }
 
-        long bytesDiff = downloadedSize - lastEntry.getValue().downloadedSize;
+        long bytesDiff = currentSize - earliestPoint.downloadedSize;
         if (bytesDiff < 0) {
             // Handle download restart
-            bytesDiff = downloadedSize;
+            bytesDiff = currentSize;
         }
 
         return (bytesDiff * 1000L) / timeDiff; // Speed in bytes per second
@@ -105,19 +112,28 @@ public class AvgSpeed {
                         .orElse(0.0)
         );
 
-        double upperThreshold = mean + (2 * standardDeviation);
-        double lowerThreshold = mean - (2 * standardDeviation);
+        double upperThreshold = mean + (3 * standardDeviation);
+        double lowerThreshold = mean - (3 * standardDeviation);
 
         List<Long> filteredSpeeds = recentSpeeds.stream()
                 .filter(speed -> speed >= lowerThreshold && speed <= upperThreshold)
                 .toList();
 
-        return filteredSpeeds.isEmpty()
-                ? currentSpeed
-                : (long) filteredSpeeds.stream()
-                .mapToLong(Long::longValue)
-                .average()
-                .orElse(currentSpeed);
+        if (filteredSpeeds.isEmpty()) {
+            return currentSpeed;
+        }
+
+        double totalWeight = 0;
+        double weightedSum = 0;
+        int size = filteredSpeeds.size();
+
+        for (int i = 0; i < size; i++) {
+            double weight = (i + 1.0) / size;
+            weightedSum += filteredSpeeds.get(i) * weight;
+            totalWeight += weight;
+        }
+
+        return (long) (weightedSum / totalWeight);
     }
 
     /**
