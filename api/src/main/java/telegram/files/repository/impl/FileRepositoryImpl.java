@@ -106,10 +106,6 @@ public class FileRepositoryImpl implements FileRepository {
             whereClause += " AND (file_name LIKE #{search} OR caption LIKE #{search})";
             params.put("search", "%%" + search + "%%");
         }
-        if (fromMessageId > 0) {
-            whereClause += " AND message_id > #{fromMessageId}";
-            params.put("fromMessageId", fromMessageId);
-        }
         if (StrUtil.isNotBlank(type)) {
             if (Objects.equals(type, "media")) {
                 whereClause += " AND type IN ('photo', 'video')";
@@ -118,10 +114,15 @@ public class FileRepositoryImpl implements FileRepository {
                 params.put("type", type);
             }
         }
+        String countClause = whereClause;
+        if (fromMessageId > 0) {
+            whereClause += " AND message_id < #{fromMessageId}";
+            params.put("fromMessageId", fromMessageId);
+        }
         return Future.all(
                 SqlTemplate
                         .forQuery(pool, """
-                                SELECT * FROM file_record WHERE %s ORDER BY date DESC LIMIT 20
+                                SELECT * FROM file_record WHERE %s ORDER BY message_id desc LIMIT 20
                                 """.formatted(whereClause))
                         .mapTo(FileRecord.ROW_MAPPER)
                         .execute(params)
@@ -131,7 +132,7 @@ public class FileRepositoryImpl implements FileRepository {
                 SqlTemplate
                         .forQuery(pool, """
                                 SELECT COUNT(*) FROM file_record WHERE %s
-                                """.formatted(whereClause))
+                                """.formatted(countClause))
                         .mapTo(rs -> rs.getLong(0))
                         .execute(params)
                         .onFailure(err -> log.error("Failed to get file record count: %s".formatted(err.getMessage())))
