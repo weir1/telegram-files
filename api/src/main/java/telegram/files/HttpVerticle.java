@@ -398,12 +398,19 @@ public class HttpVerticle extends AbstractVerticle {
             ctx.fail(400);
             return;
         }
-        getTelegramVerticle(telegramId)
-                .ifPresentOrElse(telegramVerticle ->
-                                telegramVerticle.getDownloadStatistics()
-                                        .onSuccess(ctx::json)
-                                        .onFailure(ctx::fail),
-                        () -> ctx.fail(404));
+        Optional<TelegramVerticle> telegramVerticleOptional = getTelegramVerticle(telegramId);
+        if (telegramVerticleOptional.isEmpty()) {
+            ctx.fail(404);
+            return;
+        }
+        TelegramVerticle telegramVerticle = telegramVerticleOptional.get();
+
+        String type = ctx.request().getParam("type");
+        String timeRange = ctx.request().getParam("timeRange");
+        (Objects.equals(type, "phase") ? telegramVerticle.  getDownloadStatisticsByPhase(Convert.toInt(timeRange, 1)) :
+                telegramVerticle.getDownloadStatistics())
+                .onSuccess(ctx::json)
+                .onFailure(ctx::fail);
     }
 
     private void handleTelegramChange(RoutingContext ctx) {

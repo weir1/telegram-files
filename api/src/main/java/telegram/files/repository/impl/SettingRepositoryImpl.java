@@ -28,19 +28,6 @@ public class SettingRepositoryImpl implements SettingRepository {
     }
 
     @Override
-    public Future<Void> init() {
-        return pool.getConnection()
-                .compose(conn -> conn
-                        .query(SettingRecord.SCHEME)
-                        .execute()
-                        .onComplete(r -> conn.close())
-                        .onFailure(err -> log.error("Failed to create table setting_record: %s".formatted(err.getMessage())))
-                        .onSuccess(ps -> log.trace("Successfully created table: setting_record"))
-                )
-                .mapEmpty();
-    }
-
-    @Override
     public Future<SettingRecord> createOrUpdate(String key, String value) {
         return SqlTemplate
                 .forUpdate(pool, """

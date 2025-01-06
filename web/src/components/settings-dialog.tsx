@@ -14,6 +14,9 @@ import { useTelegramAccount } from "@/hooks/use-telegram-account";
 import Proxys from "@/components/proxys";
 import SettingsForm from "@/components/settings-form";
 import About from "@/components/about";
+import { ChartColumnIncreasingIcon } from "@/components/ui/chart-column-increasing";
+import { LayoutPanelTopIcon } from "@/components/ui/layout-panel-top";
+import FilePhaseStatistics from "@/components/file-phase-statistics";
 
 export const SettingsDialog: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -53,9 +56,24 @@ export const SettingsDialog: React.FC = () => {
             <SettingsForm />
           </TabsContent>
           <TabsContent value="statistics" className="h-full overflow-hidden">
-            <div className="h-full flex flex-col overflow-y-scroll">
+            <div className="flex h-full flex-col overflow-y-scroll">
               {accountId ? (
-                <FileStatistics telegramId={accountId} />
+                <Tabs defaultValue="panel">
+                  <TabsList className="bg-none!">
+                    <TabsTrigger value="panel" className="w-10 h-10 scale-75 data-[state=active]:bg-accent">
+                      <LayoutPanelTopIcon />
+                    </TabsTrigger>
+                    <TabsTrigger value="phase" className="w-10 h-10 scale-75 data-[state=active]:bg-accent">
+                      <ChartColumnIncreasingIcon />
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="panel">
+                    <FileStatistics telegramId={accountId} />
+                  </TabsContent>
+                  <TabsContent value="phase">
+                    <FilePhaseStatistics telegramId={accountId} />
+                  </TabsContent>
+                </Tabs>
               ) : (
                 <div className="flex flex-1 items-center justify-center">
                   <p className="text-lg text-muted-foreground">

@@ -5,9 +5,6 @@ import io.vertx.core.Future;
 import java.util.List;
 
 public interface TelegramRepository {
-
-    Future<Void> init();
-
     String getRootPath();
 
     Future<TelegramRecord> create(TelegramRecord telegramRecord);

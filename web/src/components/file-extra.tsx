@@ -1,4 +1,4 @@
-import { Captions, Clock, Copy, FileCheck } from "lucide-react";
+import { Captions, Clock, ClockArrowDown, Copy, FileCheck } from "lucide-react";
 import SpoiledWrapper from "@/components/spoiled-wrapper";
 import {
   Tooltip,
@@ -63,9 +63,9 @@ export default function FileExtra({ file, rowHeight }: FileExtraProps) {
             </TooltipContent>
           </Tooltip>
         )}
-        <div>
+        <div className="flex items-center gap-2">
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger asChild>
               <p className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
                 <span className="rounded px-1 text-sm text-muted-foreground hover:bg-gray-100">
@@ -81,6 +81,25 @@ export default function FileExtra({ file, rowHeight }: FileExtraProps) {
               </div>
             </TooltipContent>
           </Tooltip>
+          {file.completionDate && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="flex items-center gap-2">
+                  <ClockArrowDown className="h-4 w-4" />
+                  <span className="rounded px-1 text-sm text-muted-foreground hover:bg-gray-100">
+                    {formatDistanceToNow(new Date(file.completionDate), {
+                      addSuffix: true,
+                    })}
+                  </span>
+                </p>
+              </TooltipTrigger>
+              <TooltipContent>
+                <div className="max-w-80 text-wrap rounded p-2">
+                  {`File downloaded at ${new Date(file.completionDate).toLocaleString()}`}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
       </TooltipProvider>
     </div>

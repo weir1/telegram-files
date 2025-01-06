@@ -15,6 +15,13 @@ public record SettingRecord(String key, String value) {
             )
             """;
 
+    public static class SettingRecordDefinition implements Definition {
+        @Override
+        public String getScheme() {
+            return SCHEME;
+        }
+    }
+
     public static RowMapper<SettingRecord> ROW_MAPPER = row ->
             new SettingRecord(row.getString("key"),
                     row.getString("value")

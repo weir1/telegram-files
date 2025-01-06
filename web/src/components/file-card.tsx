@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { type TelegramFile } from "@/lib/types";
 import {
   Calendar,
+  Clock10,
+  ClockArrowDown,
   Download,
   FileAudio2Icon,
   FileIcon,
@@ -183,7 +185,7 @@ function FileDrawer({
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
-                <span>Date</span>
+                <span>Received At</span>
               </div>
               <Badge variant="secondary" className="text-xs">
                 {formatDistanceToNow(new Date(file.date * 1000), {
@@ -201,6 +203,34 @@ function FileDrawer({
                 {prettyBytes(file.downloadedSize)}
               </Badge>
             </div>
+
+            {(file.downloadStatus !== 'idle' && file.startDate !== 0) && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock10 className="h-4 w-4" />
+                  <span>Download At</span>
+                </div>
+                <Badge variant="secondary" className="text-xs">
+                  {formatDistanceToNow(new Date(file.startDate), {
+                    addSuffix: true,
+                  })}
+                </Badge>
+              </div>
+            )}
+
+            {file.completionDate && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <ClockArrowDown className="h-4 w-4" />
+                  <span>Completion At</span>
+                </div>
+                <Badge variant="secondary" className="text-xs">
+                  {formatDistanceToNow(new Date(file.completionDate), {
+                    addSuffix: true,
+                  })}
+                </Badge>
+              </div>
+            )}
           </div>
         </div>
 

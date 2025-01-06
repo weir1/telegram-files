@@ -77,7 +77,7 @@ GET http://{{server}}//file/preview?chatId={{chatId}}&messageId={{messageId}}
 Cookie: {{tf}}
 
 ### Get download statistics
-GET http://{{server}}/telegram/{{telegramId}}/download-statistics
+GET http://{{server}}/telegram/{{telegramId}}/download-statistics?type=phase&timeRange=3
 Cookie: {{tf}}
 
 ### Telegram GetMe

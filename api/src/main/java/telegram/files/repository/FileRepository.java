@@ -2,6 +2,7 @@ package telegram.files.repository;
 
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.jooq.lambda.tuple.Tuple3;
 
@@ -9,8 +10,6 @@ import java.util.List;
 import java.util.Map;
 
 public interface FileRepository {
-    Future<Void> init();
-
     Future<FileRecord> create(FileRecord fileRecord);
 
     Future<Map<Integer, FileRecord>> getFiles(long chatId, List<Integer> fileIds);
@@ -25,15 +24,17 @@ public interface FileRepository {
 
     Future<JsonObject> getDownloadStatistics(long telegramId);
 
+    Future<JsonArray> getCompletedRangeStatistics(long id, long startTime, long endTime, int timeRange);
+
     Future<Integer> countByStatus(long telegramId, FileRecord.DownloadStatus downloadStatus);
 
     Future<JsonObject> updateStatus(int fileId,
                                     String uniqueId,
                                     String localPath,
-                                    FileRecord.DownloadStatus downloadStatus);
+                                    FileRecord.DownloadStatus downloadStatus,
+                                    Long completionDate);
 
     Future<Void> updateFileId(int fileId, String uniqueId);
 
     Future<Void> deleteByUniqueId(String uniqueId);
-
 }

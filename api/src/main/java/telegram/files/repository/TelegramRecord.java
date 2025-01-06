@@ -21,6 +21,13 @@ public record TelegramRecord(
             )
             """;
 
+    public static class TelegramRecordDefinition implements Definition {
+        @Override
+        public String getScheme() {
+            return SCHEME;
+        }
+    }
+
     public static RowMapper<TelegramRecord> ROW_MAPPER = row ->
             new TelegramRecord(row.getLong("id"),
                     row.getString("first_name"),

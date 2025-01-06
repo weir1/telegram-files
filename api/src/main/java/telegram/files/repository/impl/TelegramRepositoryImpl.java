@@ -27,19 +27,6 @@ public class TelegramRepositoryImpl implements TelegramRepository {
     }
 
     @Override
-    public Future<Void> init() {
-        return pool.getConnection()
-                .compose(conn -> conn
-                        .query(TelegramRecord.SCHEME)
-                        .execute()
-                        .onComplete(r -> conn.close())
-                        .onFailure(err -> log.error("Failed to create table telegram_record: %s".formatted(err.getMessage())))
-                        .onSuccess(ps -> log.trace("Successfully created table: telegram_record"))
-                )
-                .mapEmpty();
-    }
-
-    @Override
     public String getRootPath() {
         return Config.TELEGRAM_ROOT + File.separator + UUID.randomUUID();
     }

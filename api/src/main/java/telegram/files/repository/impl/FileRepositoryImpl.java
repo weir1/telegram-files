@@ -3,17 +3,21 @@ package telegram.files.repository.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.collection.IterUtil;
 import cn.hutool.core.convert.Convert;
+import cn.hutool.core.date.DatePattern;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.jdbcclient.JDBCPool;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import org.jooq.lambda.tuple.Tuple;
 import org.jooq.lambda.tuple.Tuple3;
+import telegram.files.MessyUtils;
 import telegram.files.repository.FileRecord;
 import telegram.files.repository.FileRepository;
 
@@ -35,28 +39,15 @@ public class FileRepositoryImpl implements FileRepository {
     }
 
     @Override
-    public Future<Void> init() {
-        return pool.getConnection()
-                .compose(conn -> conn
-                        .query(FileRecord.SCHEME)
-                        .execute()
-                        .onComplete(r -> conn.close())
-                        .onFailure(err -> log.error("Failed to create table file_record: %s".formatted(err.getMessage())))
-                        .onSuccess(ps -> log.trace("Successfully created table: file_record"))
-                )
-                .mapEmpty();
-    }
-
-    @Override
     public Future<FileRecord> create(FileRecord fileRecord) {
         return SqlTemplate
                 .forUpdate(pool, """
                         INSERT INTO file_record(id, unique_id, telegram_id, chat_id, message_id, date, has_sensitive_content, size, downloaded_size,
                                                 type, mime_type,
                                                 file_name, thumbnail, caption, local_path,
-                                                download_status)
+                                                download_status, start_date)
                         values (#{id}, #{unique_id}, #{telegram_id}, #{chat_id}, #{message_id}, #{date}, #{has_sensitive_content}, #{size}, #{downloaded_size}, #{type},
-                                #{mime_type}, #{file_name}, #{thumbnail}, #{caption}, #{local_path}, #{download_status})
+                                #{mime_type}, #{file_name}, #{thumbnail}, #{caption}, #{local_path}, #{download_status}, #{start_date})
                         """)
                 .mapFrom(FileRecord.PARAM_MAPPER)
                 .execute(fileRecord)
@@ -236,6 +227,61 @@ public class FileRepositoryImpl implements FileRepository {
     }
 
     @Override
+    public Future<JsonArray> getCompletedRangeStatistics(long telegramId, long startTime, long endTime, int timeRange) {
+        return SqlTemplate
+                .forQuery(pool, """
+                        SELECT strftime(
+                                       CASE
+                                           WHEN #{timeRange} = 1 THEN '%Y-%m-%d %H:%M'
+                                           WHEN #{timeRange} = 2 THEN '%Y-%m-%d %H:00'
+                                           WHEN #{timeRange} IN (3, 4) THEN '%Y-%m-%d'
+                                       END,
+                                       datetime(completion_date / 1000, 'unixepoch')
+                               )        AS time,
+                               COUNT(*) AS total
+                        FROM file_record
+                        WHERE telegram_id = #{telegramId}
+                          AND completion_date IS NOT NULL
+                          AND completion_date >= #{startTime}
+                          AND completion_date <= #{endTime}
+                        GROUP BY time
+                        ORDER BY time;
+                        """)
+                .mapTo(row -> new JsonObject()
+                        .put("time", row.getString("time"))
+                        .put("total", row.getInteger("total"))
+                )
+                .execute(Map.of("telegramId", telegramId, "startTime", startTime, "endTime", endTime, "timeRange", timeRange))
+                .map(IterUtil::toList)
+                .map(rs -> {
+                    if (CollUtil.isEmpty(rs)) {
+                        return JsonArray.of();
+                    }
+                    if (timeRange == 1) {
+                        // Statistics grouped by five minutes
+                        return rs.stream()
+                                .peek(c -> c.put("time", MessyUtils.withGrouping5Minutes(
+                                        DateUtil.toLocalDateTime(DateUtil.date(Convert.toLong(c.getString("time"), 0L)))
+                                ).format(DatePattern.NORM_DATETIME_MINUTE_FORMATTER)))
+                                .collect(Collectors.groupingBy(c -> c.getString("time"),
+                                        Collectors.summingInt(c -> c.getInteger("total"))
+                                ))
+                                .entrySet().stream()
+                                .map(e -> new JsonObject()
+                                        .put("time", e.getKey())
+                                        .put("total", e.getValue())
+                                )
+                                .collect(JsonArray::new, JsonArray::add, JsonArray::addAll);
+                    } else {
+                        JsonArray jsonArray = new JsonArray();
+                        rs.forEach(jsonArray::add);
+                        return jsonArray;
+                    }
+                })
+                .onFailure(err -> log.error("Failed to get completed statistics: %s".formatted(err.getMessage())));
+    }
+
+    @Override
     public Future<Integer> countByStatus(long telegramId, FileRecord.DownloadStatus downloadStatus) {
         return SqlTemplate
                 .forQuery(pool, """
@@ -248,7 +294,11 @@ public class FileRepositoryImpl implements FileRepository {
     }
 
     @Override
-    public Future<JsonObject> updateStatus(int fileId, String uniqueId, String localPath, FileRecord.DownloadStatus downloadStatus) {
+    public Future<JsonObject> updateStatus(int fileId,
+                                           String uniqueId,
+                                           String localPath,
+                                           FileRecord.DownloadStatus downloadStatus,
+                                           Long completionDate) {
         if (StrUtil.isBlank(localPath) && downloadStatus == null) {
             return Future.succeededFuture(null);
         }
@@ -265,13 +315,16 @@ public class FileRepositoryImpl implements FileRepository {
 
                     return SqlTemplate
                             .forUpdate(pool, """
-                                    UPDATE file_record SET local_path = #{localPath}, download_status = #{downloadStatus}
+                                    UPDATE file_record SET local_path = #{localPath},
+                                                           download_status = #{downloadStatus},
+                                                           completion_date = #{completionDate}
                                     WHERE id = #{fileId} AND unique_id = #{uniqueId}
                                     """)
                             .execute(MapUtil.ofEntries(MapUtil.entry("fileId", fileId),
                                     MapUtil.entry("uniqueId", uniqueId),
                                     MapUtil.entry("localPath", pathUpdated ? localPath : record.localPath()),
-                                    MapUtil.entry("downloadStatus", downloadStatusUpdated ? downloadStatus.name() : record.downloadStatus())
+                                    MapUtil.entry("downloadStatus", downloadStatusUpdated ? downloadStatus.name() : record.downloadStatus()),
+                                    MapUtil.entry("completionDate", completionDate)
                             ))
                             .onFailure(err ->
                                     log.error("Failed to update file record: %s".formatted(err.getMessage()))
@@ -280,6 +333,7 @@ public class FileRepositoryImpl implements FileRepository {
                                 JsonObject result = JsonObject.of();
                                 if (pathUpdated) {
                                     result.put("localPath", localPath);
+                                    result.put("completionDate", completionDate);
                                 }
                                 if (downloadStatusUpdated) {
                                     result.put("downloadStatus", downloadStatus.name());

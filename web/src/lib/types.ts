@@ -45,6 +45,8 @@ export type TelegramFile = {
   caption: string;
   localPath: string;
   hasSensitiveContent: boolean;
+  startDate: number;
+  completionDate: number;
 };
 
 export type TDFile = {

@@ -4,6 +4,9 @@ package telegram.files;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.codec.Base64;
 import cn.hutool.core.convert.Convert;
+import cn.hutool.core.date.DateField;
+import cn.hutool.core.date.DatePattern;
+import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ArrayUtil;
@@ -100,6 +103,7 @@ public class TelegramVerticle extends AbstractVerticle {
         telegramUpdateHandler.setOnFileDownloadsUpdated(this::onFileDownloadsUpdated);
         telegramUpdateHandler.setOnMessageReceived(this::onMessageReceived);
         client = Client.create(telegramUpdateHandler, this::handleException, this::handleException);
+        vertx.setPeriodic(60 * 1000, id -> handleSaveAvgSpeed());
         this.enableProxy(this.proxyName)
                 .onSuccess(r -> startPromise.complete())
                 .onFailure(startPromise::fail);
@@ -474,6 +478,72 @@ public class TelegramVerticle extends AbstractVerticle {
         });
     }
 
+    public Future<JsonObject> getDownloadStatisticsByPhase(Integer timeRange) {
+        // 1: 1 hour, 2: 1 day, 3: 1 week, 4: 1 month
+        long endTime = System.currentTimeMillis();
+        long startTime = switch (timeRange) {
+            case 1 -> DateUtil.offsetHour(DateUtil.date(), -1).getTime();
+            case 2 -> DateUtil.offsetDay(DateUtil.date(), -1).getTime();
+            case 3 -> DateUtil.offsetWeek(DateUtil.date(), -1).getTime();
+            case 4 -> DateUtil.offsetMonth(DateUtil.date(), -1).getTime();
+            default -> throw new IllegalStateException("Unexpected value: " + timeRange);
+        };
+
+        return Future.all(
+                        DataVerticle.statisticRepository.getRangeStatistics(StatisticRecord.Type.speed, this.telegramRecord.id(), startTime, endTime)
+                                .map(statisticRecords -> {
+                                    TreeMap<String, List<JsonObject>> groupedSpeedStats = new TreeMap<>(Comparator.comparing(
+                                            switch (timeRange) {
+                                                case 1, 2 -> (Function<? super String, ? extends DateTime>) time ->
+                                                        DateUtil.parse(time, DatePattern.NORM_DATETIME_MINUTE_FORMAT);
+                                                case 3, 4 -> DateUtil::parseDate;
+                                                default -> throw new IllegalStateException("Unexpected value: " + timeRange);
+                                            }
+                                    ));
+                                    for (StatisticRecord record : statisticRecords) {
+                                        JsonObject data = new JsonObject(record.data());
+                                        long timestamp = record.timestamp();
+                                        String time = switch (timeRange) {
+                                            case 1 ->
+                                                    MessyUtils.withGrouping5Minutes(DateUtil.toLocalDateTime(DateUtil.date(timestamp))).format(DatePattern.NORM_DATETIME_MINUTE_FORMATTER);
+                                            case 2 ->
+                                                    DateUtil.date(timestamp).setField(DateField.MINUTE, 0).toString(DatePattern.NORM_DATETIME_MINUTE_FORMAT);
+                                            case 3, 4 ->
+                                                    DateUtil.date(timestamp).setField(DateField.MINUTE, 0).toString(DatePattern.NORM_DATE_FORMAT);
+                                            default -> throw new IllegalStateException("Unexpected value: " + timeRange);
+                                        };
+                                        groupedSpeedStats.computeIfAbsent(time, k -> new ArrayList<>()).add(data);
+                                    }
+                                    return groupedSpeedStats.entrySet().stream()
+                                            .map(entry -> {
+                                                JsonObject speedStat = entry.getValue().stream().reduce(new JsonObject()
+                                                                .put("avgSpeed", 0)
+                                                                .put("medianSpeed", 0)
+                                                                .put("maxSpeed", 0)
+                                                                .put("minSpeed", Long.MAX_VALUE),
+                                                        (a, b) -> new JsonObject()
+                                                                .put("avgSpeed", a.getLong("avgSpeed") + b.getLong("avgSpeed"))
+                                                                .put("medianSpeed", a.getLong("medianSpeed") + b.getLong("medianSpeed"))
+                                                                .put("maxSpeed", Math.max(a.getLong("maxSpeed"), b.getLong("maxSpeed")))
+                                                                .put("minSpeed", Math.min(a.getLong("minSpeed"), b.getLong("minSpeed")))
+                                                );
+                                                int size = entry.getValue().size();
+                                                speedStat.put("avgSpeed", speedStat.getLong("avgSpeed") / size)
+                                                        .put("medianSpeed", speedStat.getLong("medianSpeed") / size);
+                                                return new JsonObject()
+                                                        .put("time", entry.getKey())
+                                                        .put("data", speedStat);
+                                            })
+                                            .toList();
+                                }),
+                        DataVerticle.fileRepository.getCompletedRangeStatistics(this.telegramRecord.id(), startTime, endTime, timeRange)
+                )
+                .map(r -> new JsonObject()
+                        .put("speedStats", r.resultAt(0))
+                        .put("completedStats", r.resultAt(1))
+                );
+    }
+
     public Future<TdApi.Proxy> enableProxy(String proxyName) {
         if (StrUtil.isBlank(proxyName)) return Future.succeededFuture();
         return DataVerticle.settingRepository.<SettingProxyRecords>getByKey(SettingKey.proxys)
@@ -625,6 +695,23 @@ public class TelegramVerticle extends AbstractVerticle {
         log.error(e);
     }
 
+    private void handleSaveAvgSpeed() {
+        if (!authorized || telegramRecord == null) return;
+        AvgSpeed.SpeedStats speedStats = avgSpeed.getSpeedStats();
+        if (speedStats.avgSpeed() == 0
+            && speedStats.minSpeed() == 0
+            && speedStats.medianSpeed() == 0
+            && speedStats.maxSpeed() == 0) {
+            return;
+        }
+        JsonObject data = JsonObject.mapFrom(speedStats);
+        data.remove("interval");
+        DataVerticle.statisticRepository.create(new StatisticRecord(Convert.toStr(telegramRecord.id()),
+                StatisticRecord.Type.speed,
+                System.currentTimeMillis(),
+                data.encode()));
+    }
+
     private void onAuthorizationStateUpdated(TdApi.AuthorizationState authorizationState) {
         log.debug("[%s] Receive authorization state update: %s".formatted(getRootId(), authorizationState));
         this.lastAuthorizationState = authorizationState;
@@ -695,20 +782,24 @@ public class TelegramVerticle extends AbstractVerticle {
         TdApi.File file = updateFile.file;
         if (file != null) {
             String localPath = null;
+            Long completionDate = null;
             if (file.local != null && file.local.isDownloadingCompleted) {
                 localPath = file.local.path;
+                completionDate = System.currentTimeMillis();
             }
             FileRecord.DownloadStatus downloadStatus = TdApiHelp.getDownloadStatus(file);
             DataVerticle.fileRepository.updateStatus(file.id,
                             file.remote.uniqueId,
                             localPath,
-                            downloadStatus)
+                            downloadStatus,
+                            completionDate)
                     .onSuccess(r -> {
                         if (r == null || r.isEmpty()) return;
                         sendHttpEvent(EventPayload.build(EventPayload.TYPE_FILE_STATUS, new JsonObject()
                                 .put("fileId", file.id)
                                 .put("downloadStatus", r.getString("downloadStatus"))
                                 .put("localPath", r.getString("localPath"))
+                                .put("completionDate", r.getLong("completionDate"))
                         ));
                     });
         }

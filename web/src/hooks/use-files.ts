@@ -30,6 +30,7 @@ export function useFiles(accountId: string, chatId: string) {
       {
         downloadStatus: DownloadStatus;
         localPath: string;
+        completionDate: number;
       }
     >
   >({});
@@ -74,6 +75,7 @@ export function useFiles(accountId: string, chatId: string) {
       fileId: number;
       downloadStatus: DownloadStatus;
       localPath: string;
+      completionDate: number;
     };
 
     setLatestFileStatus((prev) => ({
@@ -82,6 +84,7 @@ export function useFiles(accountId: string, chatId: string) {
         downloadStatus:
           data.downloadStatus ?? prev[data.fileId]?.downloadStatus,
         localPath: data.localPath ?? prev[data.fileId]?.localPath,
+        completionDate: data.completionDate ?? prev[data.fileId]?.completionDate,
       },
     }));
   }, [lastJsonMessage]);
@@ -96,6 +99,8 @@ export function useFiles(accountId: string, chatId: string) {
           downloadStatus:
             latestFilesStatus[file.id]?.downloadStatus ?? file.downloadStatus,
           localPath: latestFilesStatus[file.id]?.localPath ?? file.localPath,
+          completionDate:
+            latestFilesStatus[file.id]?.completionDate ?? file.completionDate,
         });
       });
     });

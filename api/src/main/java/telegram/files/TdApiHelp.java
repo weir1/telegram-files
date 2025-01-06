@@ -276,7 +276,9 @@ public class TdApiHelp {
                     Base64.encode((byte[]) BeanUtil.getProperty(content, "photo.minithumbnail.data")),
                     content.caption.text,
                     null,
-                    "idle"
+                    "idle",
+                    System.currentTimeMillis(),
+                    null
             );
         }
     }
@@ -329,7 +331,9 @@ public class TdApiHelp {
                     Base64.encode((byte[]) BeanUtil.getProperty(content, "video.minithumbnail.data")),
                     content.caption.text,
                     null,
-                    "idle"
+                    "idle",
+                    System.currentTimeMillis(),
+                    null
             );
         }
     }
@@ -369,7 +373,9 @@ public class TdApiHelp {
                     Base64.encode((byte[]) BeanUtil.getProperty(content, "audio.albumCoverMinithumbnail.data")),
                     content.caption.text,
                     null,
-                    "idle"
+                    "idle",
+                    System.currentTimeMillis(),
+                    null
             );
         }
     }
@@ -409,7 +415,9 @@ public class TdApiHelp {
                     Base64.encode((byte[]) BeanUtil.getProperty(content, "document.minithumbnail.data")),
                     content.caption.text,
                     null,
-                    "idle"
+                    "idle",
+                    System.currentTimeMillis(),
+                    null
             );
         }
     }

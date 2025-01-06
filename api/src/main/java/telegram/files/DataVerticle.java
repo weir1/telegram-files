@@ -1,5 +1,6 @@
 package telegram.files;
 
+import cn.hutool.core.lang.Version;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
@@ -9,11 +10,12 @@ import io.vertx.core.Promise;
 import io.vertx.jdbcclient.JDBCConnectOptions;
 import io.vertx.jdbcclient.JDBCPool;
 import io.vertx.sqlclient.PoolOptions;
-import telegram.files.repository.FileRepository;
-import telegram.files.repository.SettingRepository;
-import telegram.files.repository.TelegramRepository;
+import io.vertx.sqlclient.SqlConnection;
+import org.jooq.lambda.tuple.Tuple;
+import telegram.files.repository.*;
 import telegram.files.repository.impl.FileRepositoryImpl;
 import telegram.files.repository.impl.SettingRepositoryImpl;
+import telegram.files.repository.impl.StatisticRepositoryImpl;
 import telegram.files.repository.impl.TelegramRepositoryImpl;
 
 import java.io.File;
@@ -31,6 +33,8 @@ public class DataVerticle extends AbstractVerticle {
 
     public static SettingRepository settingRepository;
 
+    public static StatisticRepository statisticRepository;
+
     public void start(Promise<Void> stopPromise) {
         pool = JDBCPool.pool(vertx,
                 new JDBCConnectOptions()
@@ -38,14 +42,26 @@ public class DataVerticle extends AbstractVerticle {
                 ,
                 new PoolOptions().setMaxSize(16).setName("pool-tf")
         );
+        settingRepository = new SettingRepositoryImpl(pool);
         telegramRepository = new TelegramRepositoryImpl(pool);
         fileRepository = new FileRepositoryImpl(pool);
-        settingRepository = new SettingRepositoryImpl(pool);
-        Future.all(List.of(
-                        telegramRepository.init(),
-                        fileRepository.init(),
-                        settingRepository.init()
-                ))
+        statisticRepository = new StatisticRepositoryImpl(pool);
+        List<Definition> definitions = List.of(
+                new SettingRecord.SettingRecordDefinition(),
+                new TelegramRecord.TelegramRecordDefinition(),
+                new FileRecord.FileRecordDefinition(),
+                new StatisticRecord.StatisticRecordDefinition()
+        );
+        pool.getConnection()
+                .compose(conn -> Future.all(definitions.stream().map(d -> d.createTable(conn)).toList()).map(conn))
+                .compose(conn -> settingRepository.<Version>getByKey(SettingKey.version).map(v -> Tuple.tuple(conn, v)))
+                .compose(tuple -> {
+                    SqlConnection conn = tuple.v1;
+                    Version version = tuple.v2 == null ? new Version("0.0.0") : tuple.v2;
+                    return Future.all(definitions.stream().map(d -> d.migrate(conn, version, new Version(Start.VERSION))).toList());
+                })
+                .compose(r ->
+                        settingRepository.createOrUpdate(SettingKey.version.name(), Start.VERSION))
                 .onSuccess(r -> {
                     log.info("Database initialized");
                     stopPromise.complete();

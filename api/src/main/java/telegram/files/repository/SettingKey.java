@@ -1,11 +1,13 @@
 package telegram.files.repository;
 
 import cn.hutool.core.convert.Convert;
+import cn.hutool.core.lang.Version;
 import io.vertx.core.json.JsonObject;
 
 import java.util.function.Function;
 
 public enum SettingKey {
+    version(Version::new),
     uniqueOnly(Convert::toBool, false),
     needToLoadImages(Convert::toBool, false),
     imageLoadSize,
@@ -17,6 +19,10 @@ public enum SettingKey {
      */
     autoDownloadLimit(Convert::toInt),
     proxys(value -> new JsonObject(value).mapTo(SettingProxyRecords.class)),
+    /**
+     * Interval for calculating average speed, in seconds
+     */
+    avgSpeedInterval(Convert::toInt, 5 * 60),
     ;
 
     public final Function<String, ?> converter;

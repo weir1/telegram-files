@@ -1,9 +1,13 @@
 package telegram.files.repository;
 
 import cn.hutool.core.convert.Convert;
+import cn.hutool.core.lang.Version;
 import cn.hutool.core.map.MapUtil;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
+
+import java.util.Objects;
+import java.util.TreeMap;
 
 public record FileRecord(int id, //file id will change
                          String uniqueId, // unique id of the file, if empty, it means the file is cant be downloaded
@@ -20,7 +24,9 @@ public record FileRecord(int id, //file id will change
                          String thumbnail,
                          String caption,
                          String localPath,
-                         String downloadStatus // 'idle' | 'downloading' | 'paused' | 'completed' | 'error'
+                         String downloadStatus, // 'idle' | 'downloading' | 'paused' | 'completed' | 'error'
+                         long startDate, // date when the file was started to download
+                         Long completionDate // date when the file was downloaded
 ) {
 
     public enum DownloadStatus {
@@ -46,9 +52,30 @@ public record FileRecord(int id, //file id will change
                 caption             VARCHAR(255),
                 local_path          VARCHAR(255),
                 download_status     VARCHAR(255),
+                start_date          BIGINT,
+                completion_date     BIGINT,
                 PRIMARY KEY (id, unique_id)
             )
             """;
+
+    public static final TreeMap<Version, String[]> MIGRATIONS = new TreeMap<>(MapUtil.ofEntries(
+            MapUtil.entry(new Version("0.1.7"), new String[]{
+                    "ALTER TABLE file_record ADD COLUMN start_date BIGINT;",
+                    "ALTER TABLE file_record ADD COLUMN completion_date BIGINT;",
+            })
+    ));
+
+    public static class FileRecordDefinition implements Definition {
+        @Override
+        public String getScheme() {
+            return SCHEME;
+        }
+
+        @Override
+        public TreeMap<Version, String[]> getMigrations() {
+            return MIGRATIONS;
+        }
+    }
 
     public static RowMapper<FileRecord> ROW_MAPPER = row ->
             new FileRecord(row.getInteger("id"),
@@ -66,7 +93,9 @@ public record FileRecord(int id, //file id will change
                     row.getString("thumbnail"),
                     row.getString("caption"),
                     row.getString("local_path"),
-                    row.getString("download_status")
+                    row.getString("download_status"),
+                    Objects.requireNonNullElse(row.getLong("start_date"), 0L),
+                    row.getLong("completion_date")
             );
 
     public static TupleMapper<FileRecord> PARAM_MAPPER = TupleMapper.mapper(r ->
@@ -86,11 +115,13 @@ public record FileRecord(int id, //file id will change
                     MapUtil.entry("thumbnail", r.thumbnail()),
                     MapUtil.entry("caption", r.caption()),
                     MapUtil.entry("local_path", r.localPath()),
-                    MapUtil.entry("download_status", r.downloadStatus())
+                    MapUtil.entry("download_status", r.downloadStatus()),
+                    MapUtil.entry("start_date", r.startDate()),
+                    MapUtil.entry("completion_date", r.completionDate())
             ));
 
     public FileRecord withSourceField(int id, long downloadedSize) {
-        return new FileRecord(id, uniqueId, telegramId, chatId, messageId, date, hasSensitiveContent, size, downloadedSize, type, mimeType, fileName, thumbnail, caption, localPath, downloadStatus);
+        return new FileRecord(id, uniqueId, telegramId, chatId, messageId, date, hasSensitiveContent, size, downloadedSize, type, mimeType, fileName, thumbnail, caption, localPath, downloadStatus, startDate, completionDate);
     }
 }
 
