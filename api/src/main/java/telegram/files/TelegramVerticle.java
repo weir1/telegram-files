@@ -491,51 +491,7 @@ public class TelegramVerticle extends AbstractVerticle {
 
         return Future.all(
                         DataVerticle.statisticRepository.getRangeStatistics(StatisticRecord.Type.speed, this.telegramRecord.id(), startTime, endTime)
-                                .map(statisticRecords -> {
-                                    TreeMap<String, List<JsonObject>> groupedSpeedStats = new TreeMap<>(Comparator.comparing(
-                                            switch (timeRange) {
-                                                case 1, 2 -> (Function<? super String, ? extends DateTime>) time ->
-                                                        DateUtil.parse(time, DatePattern.NORM_DATETIME_MINUTE_FORMAT);
-                                                case 3, 4 -> DateUtil::parseDate;
-                                                default -> throw new IllegalStateException("Unexpected value: " + timeRange);
-                                            }
-                                    ));
-                                    for (StatisticRecord record : statisticRecords) {
-                                        JsonObject data = new JsonObject(record.data());
-                                        long timestamp = record.timestamp();
-                                        String time = switch (timeRange) {
-                                            case 1 ->
-                                                    MessyUtils.withGrouping5Minutes(DateUtil.toLocalDateTime(DateUtil.date(timestamp))).format(DatePattern.NORM_DATETIME_MINUTE_FORMATTER);
-                                            case 2 ->
-                                                    DateUtil.date(timestamp).setField(DateField.MINUTE, 0).toString(DatePattern.NORM_DATETIME_MINUTE_FORMAT);
-                                            case 3, 4 ->
-                                                    DateUtil.date(timestamp).setField(DateField.MINUTE, 0).toString(DatePattern.NORM_DATE_FORMAT);
-                                            default -> throw new IllegalStateException("Unexpected value: " + timeRange);
-                                        };
-                                        groupedSpeedStats.computeIfAbsent(time, k -> new ArrayList<>()).add(data);
-                                    }
-                                    return groupedSpeedStats.entrySet().stream()
-                                            .map(entry -> {
-                                                JsonObject speedStat = entry.getValue().stream().reduce(new JsonObject()
-                                                                .put("avgSpeed", 0)
-                                                                .put("medianSpeed", 0)
-                                                                .put("maxSpeed", 0)
-                                                                .put("minSpeed", Long.MAX_VALUE),
-                                                        (a, b) -> new JsonObject()
-                                                                .put("avgSpeed", a.getLong("avgSpeed") + b.getLong("avgSpeed"))
-                                                                .put("medianSpeed", a.getLong("medianSpeed") + b.getLong("medianSpeed"))
-                                                                .put("maxSpeed", Math.max(a.getLong("maxSpeed"), b.getLong("maxSpeed")))
-                                                                .put("minSpeed", Math.min(a.getLong("minSpeed"), b.getLong("minSpeed")))
-                                                );
-                                                int size = entry.getValue().size();
-                                                speedStat.put("avgSpeed", speedStat.getLong("avgSpeed") / size)
-                                                        .put("medianSpeed", speedStat.getLong("medianSpeed") / size);
-                                                return new JsonObject()
-                                                        .put("time", entry.getKey())
-                                                        .put("data", speedStat);
-                                            })
-                                            .toList();
-                                }),
+                                .map(statisticRecords -> convertRangedSpeedStats(statisticRecords, timeRange)),
                         DataVerticle.fileRepository.getCompletedRangeStatistics(this.telegramRecord.id(), startTime, endTime, timeRange)
                 )
                 .map(r -> new JsonObject()
@@ -896,6 +852,51 @@ public class TelegramVerticle extends AbstractVerticle {
                             .put("size", fileObjects.size())
                             .put("nextFromMessageId", foundChatMessages.nextFromMessageId);
                 });
+    }
 
+    private List<JsonObject> convertRangedSpeedStats(List<StatisticRecord> statisticRecords, int timeRange) {
+        TreeMap<String, List<JsonObject>> groupedSpeedStats = new TreeMap<>(Comparator.comparing(
+                switch (timeRange) {
+                    case 1, 2 -> (Function<? super String, ? extends DateTime>) time ->
+                            DateUtil.parse(time, DatePattern.NORM_DATETIME_MINUTE_FORMAT);
+                    case 3, 4 -> DateUtil::parseDate;
+                    default -> throw new IllegalStateException("Unexpected value: " + timeRange);
+                }
+        ));
+        for (StatisticRecord record : statisticRecords) {
+            JsonObject data = new JsonObject(record.data());
+            long timestamp = record.timestamp();
+            String time = switch (timeRange) {
+                case 1 ->
+                        MessyUtils.withGrouping5Minutes(DateUtil.toLocalDateTime(DateUtil.date(timestamp))).format(DatePattern.NORM_DATETIME_MINUTE_FORMATTER);
+                case 2 ->
+                        DateUtil.date(timestamp).setField(DateField.MINUTE, 0).toString(DatePattern.NORM_DATETIME_MINUTE_FORMAT);
+                case 3, 4 ->
+                        DateUtil.date(timestamp).setField(DateField.MINUTE, 0).toString(DatePattern.NORM_DATE_FORMAT);
+                default -> throw new IllegalStateException("Unexpected value: " + timeRange);
+            };
+            groupedSpeedStats.computeIfAbsent(time, k -> new ArrayList<>()).add(data);
+        }
+        return groupedSpeedStats.entrySet().stream()
+                .map(entry -> {
+                    JsonObject speedStat = entry.getValue().stream().reduce(new JsonObject()
+                                    .put("avgSpeed", 0)
+                                    .put("medianSpeed", 0)
+                                    .put("maxSpeed", 0)
+                                    .put("minSpeed", Long.MAX_VALUE),
+                            (a, b) -> new JsonObject()
+                                    .put("avgSpeed", a.getLong("avgSpeed") + b.getLong("avgSpeed"))
+                                    .put("medianSpeed", a.getLong("medianSpeed") + b.getLong("medianSpeed"))
+                                    .put("maxSpeed", Math.max(a.getLong("maxSpeed"), b.getLong("maxSpeed")))
+                                    .put("minSpeed", Math.min(a.getLong("minSpeed"), b.getLong("minSpeed")))
+                    );
+                    int size = entry.getValue().size();
+                    speedStat.put("avgSpeed", speedStat.getLong("avgSpeed") / size)
+                            .put("medianSpeed", speedStat.getLong("medianSpeed") / size);
+                    return new JsonObject()
+                            .put("time", entry.getKey())
+                            .put("data", speedStat);
+                })
+                .toList();
     }
 }
