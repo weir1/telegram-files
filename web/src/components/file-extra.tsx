@@ -77,7 +77,7 @@ export default function FileExtra({ file, rowHeight }: FileExtraProps) {
             </TooltipTrigger>
             <TooltipContent>
               <div className="max-w-80 text-wrap rounded p-2">
-                {`Message received at ${file.formatDate}`}
+                {`Message received at ${new Date(file.date * 1000).toLocaleString()}`}
               </div>
             </TooltipContent>
           </Tooltip>
