@@ -236,7 +236,8 @@ public class FileRepositoryImpl implements FileRepository {
                                            WHEN #{timeRange} = 2 THEN '%Y-%m-%d %H:00'
                                            WHEN #{timeRange} IN (3, 4) THEN '%Y-%m-%d'
                                        END,
-                                       datetime(completion_date / 1000, 'unixepoch')
+                                       datetime(completion_date / 1000, 'unixepoch'),
+                                       'localtime'
                                )        AS time,
                                COUNT(*) AS total
                         FROM file_record
@@ -261,7 +262,7 @@ public class FileRepositoryImpl implements FileRepository {
                         // Statistics grouped by five minutes
                         return rs.stream()
                                 .peek(c -> c.put("time", MessyUtils.withGrouping5Minutes(
-                                        DateUtil.toLocalDateTime(DateUtil.date(Convert.toLong(c.getString("time"), 0L)))
+                                        DateUtil.parseLocalDateTime(c.getString("time"), DatePattern.NORM_DATETIME_MINUTE_PATTERN)
                                 ).format(DatePattern.NORM_DATETIME_MINUTE_FORMATTER)))
                                 .collect(Collectors.groupingBy(c -> c.getString("time"),
                                         Collectors.summingInt(c -> c.getInteger("total"))
