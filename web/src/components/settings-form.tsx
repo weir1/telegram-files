@@ -1,4 +1,4 @@
-import { Bell } from "lucide-react";
+import {Bell, Copy} from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -12,9 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import React, { type FormEvent } from "react";
 import { useSettings } from "@/hooks/use-settings";
+import { useTelegramAccount } from "@/hooks/use-telegram-account";
+import {useCopyToClipboard} from "@/hooks/use-copy-to-clipboard";
 
 export default function SettingsForm() {
   const { settings, setSetting, updateSettings } = useSettings();
+  const { account } = useTelegramAccount();
+  const [, copyToClipboard] = useCopyToClipboard();
 
   const imageLoadSizeOptions = [
     { value: "s", label: "box 100x100" },
@@ -34,7 +38,7 @@ export default function SettingsForm() {
     { value: "600", label: "10 minutes" },
     { value: "900", label: "15 minutes" },
     { value: "1800", label: "30 minutes" },
-  ]
+  ];
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -51,6 +55,24 @@ export default function SettingsForm() {
           <Bell className="mr-2 inline-block h-4 w-4" />
           These settings will be applied to all accounts.
         </p>
+        <div className="w-full rounded-md border p-4 shadow">
+          <p className="mb-1 text-xs text-muted-foreground">Your root path</p>
+          <div className="flex items-center justify-between space-x-1">
+            <p className="bg-gray-50 rounded-md p-2 text-xs text-muted-foreground">
+              {account?.rootPath}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.preventDefault();
+                void copyToClipboard(account?.rootPath ?? "");
+              }}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
         <div className="flex w-full flex-col space-y-4 rounded-md border p-4 shadow">
           <div className="flex items-center space-x-2">
             <Label htmlFor="unique-only">Unique Only</Label>

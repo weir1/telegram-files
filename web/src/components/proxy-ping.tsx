@@ -30,11 +30,11 @@ export default function ProxyPing({ accountId }: { accountId: string }) {
           >
             <ChevronsLeftRightEllipsis className="h-4 w-4 text-gray-500" />
             {isLoading && (
-              <div className="h-6 w-24 animate-pulse rounded bg-gray-200"></div>
+              <div className="h-6 w-16 animate-pulse rounded bg-gray-200"></div>
             )}
             {!isLoading && error && <span>Connection error</span>}
             {!isLoading && data && (
-              <div className="flex items-center space-x-2">
+              <div className="flex h-6 items-center space-x-2">
                 <span className="text-sm">{(data.ping * 1000).toFixed(0)} ms</span>
               </div>
             )}

@@ -8,6 +8,7 @@ export type TelegramAccount = {
   status: "active" | "inactive";
   lastAuthorizationState?: TelegramObject;
   proxy?: string;
+  rootPath: string;
 };
 
 export type TelegramChat = {

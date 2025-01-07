@@ -25,6 +25,7 @@ import useSWRMutation from "swr/mutation";
 import { request } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import ProxyPing from "@/components/proxy-ping";
+import { Label } from "./ui/label";
 
 export interface ProxysProps {
   enableSelect?: boolean;
@@ -231,34 +232,46 @@ export default function Proxys({
           <div className="space-y-4">
             {/* Radio buttons for proxy type */}
             <div>
-              <label className="mb-1 block text-lg text-gray-700">Type</label>
+              <Label className="mb-2 block">Type</Label>
               <div className="flex space-x-4">
-                <label className="flex items-center space-x-2">
+                <label className="flex cursor-pointer items-center">
                   <input
                     type="radio"
                     name="type"
                     value="http"
                     checked={formState.type === "http"}
                     onChange={handleInputChange}
+                    className="peer hidden"
                   />
-                  <span>HTTP</span>
+                  <div className="mr-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-300 peer-checked:border-primary peer-checked:bg-primary">
+                    <div className="h-2.5 w-2.5 rounded-full bg-white"></div>
+                  </div>
+                  <span className="text-gray-700 peer-checked:text-primary">
+                    HTTP
+                  </span>
                 </label>
-                <label className="flex items-center space-x-2">
+
+                <label className="flex cursor-pointer items-center">
                   <input
                     type="radio"
                     name="type"
                     value="socks5"
                     checked={formState.type === "socks5"}
                     onChange={handleInputChange}
+                    className="peer hidden"
                   />
-                  <span>SOCKS5</span>
+                  <div className="mr-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-300 peer-checked:border-primary peer-checked:bg-primary">
+                    <div className="h-2.5 w-2.5 rounded-full bg-white"></div>
+                  </div>
+                  <span className="text-gray-400 peer-checked:text-primary">
+                    SOCKS5
+                  </span>
                 </label>
               </div>
             </div>
 
-            {/* Other input fields */}
             <div>
-              <label className="mb-1 block text-lg text-gray-700">Name</label>
+              <Label className="mb-2 block">Name</Label>
               <Input
                 name="name"
                 value={formState.name}
@@ -267,12 +280,12 @@ export default function Proxys({
               />
             </div>
             <div>
-              <p className="mb-1 text-lg text-gray-700">
+              <Label className="mb-2 block">
                 Proxy server address and port number
-              </p>
+              </Label>
               <div className="flex space-x-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-500">
+                  <label className="block text-xs font-medium text-gray-500">
                     Server
                   </label>
                   <Input
@@ -283,7 +296,7 @@ export default function Proxys({
                   />
                 </div>
                 <div className="w-24">
-                  <label className="block text-sm font-medium text-gray-500">
+                  <label className="block text-xs font-medium text-gray-500">
                     Port
                   </label>
                   <Input
@@ -296,11 +309,9 @@ export default function Proxys({
                 </div>
               </div>
             </div>
-            <p className="mb-1 text-lg text-gray-700">
-              Authentication (optional)
-            </p>
+            <Label className="mb-2 block">Authentication (optional)</Label>
             <div>
-              <label className="block text-sm font-medium text-gray-500">
+              <label className="block text-xs font-medium text-gray-500">
                 Username
               </label>
               <Input
@@ -311,7 +322,7 @@ export default function Proxys({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-500">
+              <label className="block text-xs font-medium text-gray-500">
                 Password
               </label>
               <Input
