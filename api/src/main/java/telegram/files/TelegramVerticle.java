@@ -424,6 +424,15 @@ public class TelegramVerticle extends AbstractVerticle {
                         return Future.failedFuture("File not started downloading");
                     }
                     if (isPaused && !file.local.isDownloadingActive) {
+                        if (file.local.isDownloadingCompleted) {
+                            return DataVerticle.fileRepository.updateStatus(
+                                    file.id,
+                                    file.remote.uniqueId,
+                                    file.local.path,
+                                    FileRecord.DownloadStatus.completed,
+                                    System.currentTimeMillis()
+                            ).compose(r -> Future.failedFuture("File is already downloaded successfully"));
+                        }
                         return Future.failedFuture("File is not downloading");
                     }
                     if (!isPaused && file.local.isDownloadingActive) {
