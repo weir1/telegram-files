@@ -90,6 +90,7 @@ export const SettingKeys = [
   "showSensitiveContent",
   "autoDownloadLimit",
   "proxys",
+  "avgSpeedInterval",
 ] as const;
 
 export type SettingKey = (typeof SettingKeys)[number];

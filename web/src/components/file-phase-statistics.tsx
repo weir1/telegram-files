@@ -21,7 +21,7 @@ import {
   YAxis,
 } from "recharts";
 import { request } from "@/lib/api";
-import prettyBytes from "pretty-bytes"; // Type definitions
+import prettyBytes from "pretty-bytes";
 
 // Type definitions
 type TimeRange = "1" | "2" | "3" | "4";
@@ -144,63 +144,75 @@ const TelegramStats: React.FC<TelegramStatsProps> = ({ telegramId }) => {
         </CardHeader>
         <CardContent className="px-1">
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={speedChartData}>
-                <CartesianGrid stroke="#e5e7eb" />
-                <XAxis
-                  dataKey="time"
-                  tick={axisStyle}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  tickFormatter={(value: number) =>
-                    prettyBytes(value, { bits: true })
-                  }
-                  tick={axisStyle}
-                  interval="preserveStartEnd"
-                />
-                <Tooltip
-                  formatter={(value: number) =>
-                    prettyBytes(value, { bits: true })
-                  }
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    border: "none",
-                    borderRadius: "6px",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                  }}
-                />
-                <Legend wrapperStyle={axisStyle} iconType="circle" />
-                <Area
-                  type="monotone"
-                  dataKey="Max Speed"
-                  stroke="#06b6d4"
-                  fill="#06b6d4"
-                  fillOpacity={0.6}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Average Speed"
-                  stroke="#8b5cf6"
-                  fill="#8b5cf6"
-                  fillOpacity={0.8}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Median Speed"
-                  stroke="#f59e0b"
-                  fill="#f59e0b"
-                  fillOpacity={0.2}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Min Speed"
-                  stroke="#ec4899"
-                  fill="#ec4899"
-                  fillOpacity={0.7}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            {!speedChartData || speedChartData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-gray-500">
+                No data available
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={speedChartData}>
+                  <CartesianGrid stroke="#e5e7eb" vertical={false} />
+                  <XAxis
+                    dataKey="time"
+                    tick={axisStyle}
+                    tickMargin={10}
+                    interval="preserveStartEnd"
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={(value: number) =>
+                      prettyBytes(value, { bits: true })
+                    }
+                    tick={axisStyle}
+                    tickLine={false}
+                    axisLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <Tooltip
+                    formatter={(value: number) =>
+                      prettyBytes(value, { bits: true })
+                    }
+                    contentStyle={{
+                      backgroundColor: "rgba(255, 255, 255, 0.9)",
+                      border: "none",
+                      borderRadius: "6px",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Legend wrapperStyle={axisStyle} iconType="circle" />
+                  <Area
+                    type="monotone"
+                    dataKey="Max Speed"
+                    stroke="#06b6d4"
+                    fill="#06b6d4"
+                    fillOpacity={0.6}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Average Speed"
+                    stroke="#8b5cf6"
+                    fill="#8b5cf6"
+                    fillOpacity={0.8}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Median Speed"
+                    stroke="#f59e0b"
+                    fill="#f59e0b"
+                    fillOpacity={0.2}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="Min Speed"
+                    stroke="#ec4899"
+                    fill="#ec4899"
+                    fillOpacity={0.7}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -211,34 +223,48 @@ const TelegramStats: React.FC<TelegramStatsProps> = ({ telegramId }) => {
         </CardHeader>
         <CardContent className="px-1">
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={completionChartData}>
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="time"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                />
-                <YAxis tick={axisStyle} interval="preserveStartEnd" />
-                <Tooltip
-                  cursor={{ fill: "rgba(59, 130, 246, 0.1)" }}
-                  contentStyle={{
-                    backgroundColor: "rgba(255, 255, 255, 0.9)",
-                    border: "none",
-                    borderRadius: "6px",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                  }}
-                />
-                <Legend wrapperStyle={axisStyle} iconType="rect" />
-                <Bar
-                  dataKey="Completed Downloads"
-                  fill="#299d90"
-                  fillOpacity={0.8}
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {!completionChartData || completionChartData.length === 0 ? (
+              <div className="flex h-full items-center justify-center text-gray-500">
+                No data available
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={completionChartData}>
+                  <CartesianGrid stroke="#e5e7eb" vertical={false} />
+                  <XAxis
+                    dataKey="time"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                    tick={axisStyle}
+                  />
+                  <YAxis
+                    tick={axisStyle}
+                    tickLine={false}
+                    axisLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <Tooltip
+                    cursor={false}
+                    contentStyle={{
+                      backgroundColor: "rgba(255, 255, 255, 0.9)",
+                      border: "none",
+                      borderRadius: "6px",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                      fontSize: "12px",
+                    }}
+                  />
+                  <Legend wrapperStyle={axisStyle} iconType="rect" />
+                  <Bar
+                    dataKey="Completed Downloads"
+                    fill="#299d90"
+                    fillOpacity={0.8}
+                    maxBarSize={100}
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </CardContent>
       </Card>

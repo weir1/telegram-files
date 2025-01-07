@@ -37,6 +37,7 @@ public class AvgSpeed {
      */
     public void update(long downloadedSize, long timestamp) {
         if (downloadedSize <= 0) {
+            removeOldPoints(timestamp);
             return;
         }
         // Calculate speed since last point
@@ -50,7 +51,10 @@ public class AvgSpeed {
         // Add new speed point
         speedPoints.put(timestamp, new SpeedPoint(downloadedSize, speed, timestamp));
 
-        // Remove old points outside the interval
+        removeOldPoints(timestamp);
+    }
+
+    private void removeOldPoints(long timestamp) {
         long cutoffTime = timestamp - interval * 1000L; // Convert interval to milliseconds
         speedPoints.headMap(cutoffTime).clear();
     }

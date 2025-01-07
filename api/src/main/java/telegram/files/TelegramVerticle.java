@@ -57,7 +57,9 @@ public class TelegramVerticle extends AbstractVerticle {
 
     public TelegramRecord telegramRecord;
 
-    private final AvgSpeed avgSpeed = new AvgSpeed();
+    private AvgSpeed avgSpeed = new AvgSpeed();
+
+    private long avgSpeedPersistenceTimerId;
 
     static {
         Client.setLogMessageHandler(0, new LogMessageHandler());
@@ -103,8 +105,9 @@ public class TelegramVerticle extends AbstractVerticle {
         telegramUpdateHandler.setOnFileDownloadsUpdated(this::onFileDownloadsUpdated);
         telegramUpdateHandler.setOnMessageReceived(this::onMessageReceived);
         client = Client.create(telegramUpdateHandler, this::handleException, this::handleException);
-        vertx.setPeriodic(60 * 1000, id -> handleSaveAvgSpeed());
-        this.enableProxy(this.proxyName)
+
+        Future.all(initEventConsumer(), initAvgSpeed())
+                .compose(r -> this.enableProxy(this.proxyName))
                 .onSuccess(r -> startPromise.complete())
                 .onFailure(startPromise::fail);
     }
@@ -225,6 +228,7 @@ public class TelegramVerticle extends AbstractVerticle {
                         return this.execute(new TdApi.GetMessages(chatId, messageIds))
                                 .map(m -> {
                                     Map<Long, TdApi.Message> messageMap = Arrays.stream(m.messages)
+                                            .filter(Objects::nonNull)
                                             .collect(Collectors.toMap(message -> message.id, Function.identity()));
                                     List<FileRecord> fileRecords = r.v1.stream()
                                             .map(fileRecord -> {
@@ -666,6 +670,37 @@ public class TelegramVerticle extends AbstractVerticle {
                 StatisticRecord.Type.speed,
                 System.currentTimeMillis(),
                 data.encode()));
+
+        // Avoid speed not being updated for a long time
+        avgSpeed.update(0, System.currentTimeMillis());
+    }
+
+    private Future<Void> initAvgSpeed() {
+        return DataVerticle.settingRepository.<Integer>getByKey(SettingKey.avgSpeedInterval)
+                .compose(interval -> {
+                    if (Objects.equals(interval, avgSpeed.getSpeedStats().interval())) {
+                        if (avgSpeedPersistenceTimerId == 0) {
+                            avgSpeedPersistenceTimerId = vertx.setPeriodic(interval * 1000, id -> handleSaveAvgSpeed());
+                        }
+                        return Future.succeededFuture();
+                    }
+
+                    avgSpeed = new AvgSpeed(interval);
+                    if (avgSpeedPersistenceTimerId != 0) {
+                        vertx.cancelTimer(avgSpeedPersistenceTimerId);
+                    }
+                    avgSpeedPersistenceTimerId = vertx.setPeriodic(interval * 1000, id -> handleSaveAvgSpeed());
+                    return Future.succeededFuture();
+                });
+    }
+
+    private Future<Void> initEventConsumer() {
+        vertx.eventBus().consumer(EventEnum.SETTING_UPDATE.address(SettingKey.avgSpeedInterval.name()), message -> {
+            log.debug("Avg Speed Interval update: %s".formatted(message.body()));
+            this.initAvgSpeed();
+        });
+
+        return Future.succeededFuture();
     }
 
     private void onAuthorizationStateUpdated(TdApi.AuthorizationState authorizationState) {
@@ -883,16 +918,18 @@ public class TelegramVerticle extends AbstractVerticle {
                                     .put("avgSpeed", 0)
                                     .put("medianSpeed", 0)
                                     .put("maxSpeed", 0)
-                                    .put("minSpeed", Long.MAX_VALUE),
+                                    .put("minSpeed", 0),
                             (a, b) -> new JsonObject()
                                     .put("avgSpeed", a.getLong("avgSpeed") + b.getLong("avgSpeed"))
                                     .put("medianSpeed", a.getLong("medianSpeed") + b.getLong("medianSpeed"))
-                                    .put("maxSpeed", Math.max(a.getLong("maxSpeed"), b.getLong("maxSpeed")))
-                                    .put("minSpeed", Math.min(a.getLong("minSpeed"), b.getLong("minSpeed")))
+                                    .put("maxSpeed", a.getLong("maxSpeed") + b.getLong("maxSpeed"))
+                                    .put("minSpeed", a.getLong("minSpeed") + b.getLong("minSpeed"))
                     );
                     int size = entry.getValue().size();
                     speedStat.put("avgSpeed", speedStat.getLong("avgSpeed") / size)
-                            .put("medianSpeed", speedStat.getLong("medianSpeed") / size);
+                            .put("medianSpeed", speedStat.getLong("medianSpeed") / size)
+                            .put("maxSpeed", speedStat.getLong("maxSpeed") / size)
+                            .put("minSpeed", speedStat.getLong("minSpeed") / size);
                     return new JsonObject()
                             .put("time", entry.getKey())
                             .put("data", speedStat);

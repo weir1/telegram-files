@@ -28,6 +28,14 @@ export default function SettingsForm() {
     { value: "d", label: "crop 1280x1280" },
   ];
 
+  const avgSpeedIntervalOptions = [
+    { value: "60", label: "1 minute" },
+    { value: "300", label: "5 minutes" },
+    { value: "600", label: "10 minutes" },
+    { value: "900", label: "15 minutes" },
+    { value: "1800", label: "30 minutes" },
+  ]
+
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     await updateSettings();
@@ -148,6 +156,28 @@ export default function SettingsForm() {
                 void setSetting("autoDownloadLimit", e.target.value);
               }}
             />
+          </div>
+          <div className="flex flex-col space-y-2">
+            <Label htmlFor="avg-speed-interval">Avg Speed Interval</Label>
+            <Select
+              value={String(settings?.avgSpeedInterval)}
+              onValueChange={(v) => void setSetting("avgSpeedInterval", v)}
+            >
+              <SelectTrigger id="avg-speed-interval">
+                <SelectValue placeholder="Select Avg Speed Interval" />
+              </SelectTrigger>
+              <SelectContent>
+                {avgSpeedIntervalOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              The interval to calculate the average download speed. <br />
+              Longer intervals may consume more memory.
+            </p>
           </div>
         </div>
       </div>

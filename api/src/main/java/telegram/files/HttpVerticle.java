@@ -24,6 +24,7 @@ import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.SessionHandler;
 import io.vertx.ext.web.sstore.LocalSessionStore;
 import io.vertx.ext.web.sstore.SessionStore;
+import telegram.files.repository.SettingKey;
 import telegram.files.repository.SettingRecord;
 import telegram.files.repository.TelegramRecord;
 
@@ -261,17 +262,24 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleSettings(RoutingContext ctx) {
-        String keys = ctx.request().getParam("keys");
-        if (StrUtil.isBlank(keys)) {
+        String keysStr = ctx.request().getParam("keys");
+        if (StrUtil.isBlank(keysStr)) {
             ctx.fail(400);
             return;
         }
+        List<String> keys = Arrays.asList(keysStr.split(","));
         DataVerticle.settingRepository
-                .getByKeys(Arrays.asList(keys.split(",")))
+                .getByKeys(keys)
                 .onSuccess(settings -> {
                     JsonObject object = new JsonObject();
                     for (SettingRecord record : settings) {
                         object.put(record.key(), record.value());
+                    }
+                    for (String key : keys) {
+                        if (object.containsKey(key)) {
+                            continue;
+                        }
+                        object.put(key, SettingKey.valueOf(key).defaultValue);
                     }
                     ctx.json(object);
                 })
