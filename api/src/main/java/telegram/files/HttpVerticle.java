@@ -605,8 +605,8 @@ public class HttpVerticle extends AbstractVerticle {
             ctx.fail(400);
             return;
         }
-
-        telegramVerticle.toggleAutoDownload(Convert.toLong(chatId))
+        JsonObject params = ctx.body().asJsonObject();
+        telegramVerticle.toggleAutoDownload(Convert.toLong(chatId), params)
                 .onSuccess(r -> ctx.end())
                 .onFailure(ctx::fail);
     }

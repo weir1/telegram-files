@@ -33,15 +33,39 @@ export default {
           },
         },
         breathing: {
-          '0%, 100%': { transform: 'scale(1)', opacity: '0.7' },
-          '50%': { transform: 'scale(1.3)', opacity: '1' },
+          "0%, 100%": {
+            transform: "scale(1)",
+            opacity: "0.7",
+          },
+          "50%": {
+            transform: "scale(1.3)",
+            opacity: "1",
+          },
+        },
+        "accordion-down": {
+          from: {
+            height: "0",
+          },
+          to: {
+            height: "var(--radix-accordion-content-height)",
+          },
+        },
+        "accordion-up": {
+          from: {
+            height: "var(--radix-accordion-content-height)",
+          },
+          to: {
+            height: "0",
+          },
         },
       },
       animation: {
         "caret-blink": "caret-blink 1.25s ease-out infinite",
         "border-beam": "border-beam calc(var(--duration)*1s) infinite linear",
         orbit: "orbit calc(var(--duration)*1s) linear infinite",
-        'breathing': 'breathing 6s ease-in-out infinite',
+        breathing: "breathing 6s ease-in-out infinite",
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", ...fontFamily.sans],

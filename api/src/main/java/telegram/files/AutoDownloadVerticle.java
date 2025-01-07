@@ -11,6 +11,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import org.drinkless.tdlib.TdApi;
+import org.jooq.lambda.tuple.Tuple2;
 import telegram.files.repository.FileRecord;
 import telegram.files.repository.SettingAutoRecords;
 import telegram.files.repository.SettingKey;
@@ -34,7 +35,7 @@ public class AutoDownloadVerticle extends AbstractVerticle {
 
     private static final int DOWNLOAD_INTERVAL = 10 * 1000;
 
-    private static final List<String> FILE_TYPE_ORDER = List.of("photo", "video", "audio", "file");
+    private static final List<String> DEFAULT_FILE_TYPE_ORDER = List.of("photo", "video", "audio", "file");
 
     // telegramId -> messages
     private final Map<Long, LinkedList<TdApi.Message>> waitingDownloadMessages = new ConcurrentHashMap<>();
@@ -137,11 +138,11 @@ public class AutoDownloadVerticle extends AbstractVerticle {
             log.debug("Scan history end! TelegramId: %d ChatId: %d".formatted(auto.telegramId, auto.chatId));
             return;
         }
-        if (StrUtil.isBlank(auto.nextFileType)) {
-            auto.nextFileType = FILE_TYPE_ORDER.getFirst();
-        }
+        Tuple2<String, List<String>> rule = handleRule(auto);
+
         TelegramVerticle telegramVerticle = this.getTelegramVerticle(auto.telegramId);
         TdApi.SearchChatMessages searchChatMessages = new TdApi.SearchChatMessages();
+        searchChatMessages.query = rule.v1;
         searchChatMessages.chatId = auto.chatId;
         searchChatMessages.fromMessageId = auto.nextFromMessageId;
         searchChatMessages.limit = Math.min(MAX_WAITING_LENGTH, 100);
@@ -153,10 +154,11 @@ public class AutoDownloadVerticle extends AbstractVerticle {
             return;
         }
         if (foundChatMessages.messages.length == 0) {
-            int nextTypeIndex = FILE_TYPE_ORDER.indexOf(auto.nextFileType) + 1;
-            if (nextTypeIndex < FILE_TYPE_ORDER.size()) {
+            List<String> fileTypes = rule.v2;
+            int nextTypeIndex = fileTypes.indexOf(auto.nextFileType) + 1;
+            if (nextTypeIndex < fileTypes.size()) {
                 String originalType = auto.nextFileType;
-                auto.nextFileType = FILE_TYPE_ORDER.get(nextTypeIndex);
+                auto.nextFileType = fileTypes.get(nextTypeIndex);
                 auto.nextFromMessageId = 0;
                 log.debug("%s No more %s files found! Switch to %s".formatted(auto.uniqueKey(), originalType, auto.nextFileType));
                 addHistoryMessage(auto, currentTimeMillis);
@@ -179,6 +181,25 @@ public class AutoDownloadVerticle extends AbstractVerticle {
                         }
                     });
         }
+    }
+
+    private Tuple2<String, List<String>> handleRule(SettingAutoRecords.Item auto) {
+        SettingAutoRecords.Rule rule = auto.rule;
+        String query = null;
+        List<String> fileTypes = DEFAULT_FILE_TYPE_ORDER;
+        if (rule != null) {
+            if (StrUtil.isNotBlank(rule.query)) {
+                query = rule.query;
+            }
+            if (CollUtil.isNotEmpty(rule.fileTypes)) {
+                fileTypes = rule.fileTypes;
+            }
+        }
+        if (StrUtil.isBlank(auto.nextFileType)) {
+            auto.nextFileType = fileTypes.getFirst();
+        }
+
+        return new Tuple2<>(query, fileTypes);
     }
 
     private boolean isExceedLimit(long telegramId) {

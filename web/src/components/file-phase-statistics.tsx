@@ -88,7 +88,7 @@ const axisStyle = {
 };
 
 const TelegramStats: React.FC<TelegramStatsProps> = ({ telegramId }) => {
-  const [timeRange, setTimeRange] = useState<TimeRange>("2");
+  const [timeRange, setTimeRange] = useState<TimeRange>("1");
 
   const { data, error, isLoading } = useSWR<ApiResponse, Error>(
     `/telegram/${telegramId}/download-statistics?type=phase&timeRange=${timeRange}`,

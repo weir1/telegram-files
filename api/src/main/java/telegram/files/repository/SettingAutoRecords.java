@@ -2,7 +2,8 @@ package telegram.files.repository;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class SettingAutoRecords {
@@ -18,16 +19,33 @@ public class SettingAutoRecords {
 
         public long nextFromMessageId;
 
+        public Rule rule;
+
         public Item() {
         }
 
-        public Item(long telegramId, long chatId) {
+        public Item(long telegramId, long chatId, Rule rule) {
             this.telegramId = telegramId;
             this.chatId = chatId;
+            this.rule = rule;
         }
 
         public String uniqueKey() {
             return telegramId + ":" + chatId;
+        }
+    }
+
+    public static class Rule {
+        public String query;
+
+        public List<String> fileTypes;
+
+        public Rule() {
+        }
+
+        public Rule(String query, List<String> fileTypes) {
+            this.query = query;
+            this.fileTypes = fileTypes;
         }
     }
 
@@ -48,19 +66,18 @@ public class SettingAutoRecords {
         items.add(item);
     }
 
-    public void add(long telegramId, long chatId) {
-        items.add(new Item(telegramId, chatId));
+    public void add(long telegramId, long chatId, Rule rule) {
+        items.add(new Item(telegramId, chatId, rule));
     }
 
     public void remove(long telegramId, long chatId) {
         items.removeIf(item -> item.telegramId == telegramId && item.chatId == chatId);
     }
 
-    public Set<Long> getChatIds(long telegramId) {
+    public Map<Long, Item> getItems(long telegramId) {
         return items.stream()
                 .filter(item -> item.telegramId == telegramId)
-                .map(item -> item.chatId)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toMap(i -> i.chatId, Function.identity()));
     }
 
 }

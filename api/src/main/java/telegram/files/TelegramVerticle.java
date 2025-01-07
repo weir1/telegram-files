@@ -3,6 +3,7 @@ package telegram.files;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.codec.Base64;
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.date.DateField;
 import cn.hutool.core.date.DatePattern;
@@ -439,7 +440,7 @@ public class TelegramVerticle extends AbstractVerticle {
                 .mapEmpty();
     }
 
-    public Future<Void> toggleAutoDownload(Long chatId) {
+    public Future<Void> toggleAutoDownload(Long chatId, JsonObject params) {
         return DataVerticle.settingRepository.<SettingAutoRecords>getByKey(SettingKey.autoDownload)
                 .compose(settingAutoRecords -> {
                     if (settingAutoRecords == null) {
@@ -448,7 +449,14 @@ public class TelegramVerticle extends AbstractVerticle {
                     if (settingAutoRecords.exists(this.telegramRecord.id(), chatId)) {
                         settingAutoRecords.remove(this.telegramRecord.id(), chatId);
                     } else {
-                        settingAutoRecords.add(this.telegramRecord.id(), chatId);
+                        SettingAutoRecords.Rule rule = null;
+                        if (params != null && params.containsKey("rule")) {
+                            rule = params.getJsonObject("rule").mapTo(SettingAutoRecords.Rule.class);
+                            if (StrUtil.isBlank(rule.query) && CollUtil.isEmpty(rule.fileTypes)) {
+                                rule = null;
+                            }
+                        }
+                        settingAutoRecords.add(this.telegramRecord.id(), chatId, rule);
                     }
                     return DataVerticle.settingRepository.createOrUpdate(SettingKey.autoDownload.name(), Json.encode(settingAutoRecords));
                 })
@@ -824,19 +832,22 @@ public class TelegramVerticle extends AbstractVerticle {
 
     private Future<JsonArray> convertChat(List<TdApi.Chat> chats) {
         return DataVerticle.settingRepository.<SettingAutoRecords>getByKey(SettingKey.autoDownload)
-                .map(settingAutoRecords -> settingAutoRecords == null ? Collections.emptySet()
-                        : settingAutoRecords.getChatIds(this.telegramRecord.id()))
-                .map(enableAutoChatIds -> new JsonArray(chats.stream()
-                        .map(chat -> new JsonObject()
-                                .put("id", Convert.toStr(chat.id))
-                                .put("name", chat.id == this.telegramRecord.id() ? "Saved Messages" : chat.title)
-                                .put("type", TdApiHelp.getChatType(chat.type))
-                                .put("avatar", Base64.encode((byte[]) BeanUtil.getProperty(chat, "photo.minithumbnail.data")))
-                                .put("unreadCount", chat.unreadCount)
-                                .put("lastMessage", "")
-                                .put("lastMessageTime", "")
-                                .put("autoEnabled", enableAutoChatIds.contains(chat.id))
-                        )
+                .map(settingAutoRecords -> settingAutoRecords == null ? new HashMap<Long, SettingAutoRecords.Item>()
+                        : settingAutoRecords.getItems(this.telegramRecord.id()))
+                .map(enableAutoChats -> new JsonArray(chats.stream()
+                        .map(chat -> {
+                            SettingAutoRecords.Item autoItem = enableAutoChats.get(chat.id);
+                            return new JsonObject()
+                                    .put("id", Convert.toStr(chat.id))
+                                    .put("name", chat.id == this.telegramRecord.id() ? "Saved Messages" : chat.title)
+                                    .put("type", TdApiHelp.getChatType(chat.type))
+                                    .put("avatar", Base64.encode((byte[]) BeanUtil.getProperty(chat, "photo.minithumbnail.data")))
+                                    .put("unreadCount", chat.unreadCount)
+                                    .put("lastMessage", "")
+                                    .put("lastMessageTime", "")
+                                    .put("autoEnabled", autoItem != null)
+                                    .put("autoRule", autoItem == null ? null : autoItem.rule);
+                        })
                         .toList()
                 ));
     }

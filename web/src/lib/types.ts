@@ -19,6 +19,7 @@ export type TelegramChat = {
   lastMessage?: string;
   lastMessageTime?: string;
   autoEnabled: boolean;
+  autoRule?: AutoDownloadRule;
 };
 
 export type FileType = "media" | "photo" | "video" | "audio" | "file";
@@ -106,4 +107,9 @@ export type Proxy = {
   password: string;
   type: "http" | "socks5";
   isEnabled?: boolean;
-}
+};
+
+export type AutoDownloadRule = {
+  query: string;
+  fileTypes: Array<Exclude<FileType, "media">>;
+};
