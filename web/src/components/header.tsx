@@ -13,6 +13,7 @@ import {
   ChevronsLeftRightEllipsisIcon,
   CloudDownloadIcon,
   Ellipsis,
+  Home,
   UnplugIcon,
 } from "lucide-react";
 import {
@@ -32,7 +33,7 @@ import TelegramIcon from "@/components/telegram-icon";
 import AutoDownloadDialog from "@/components/auto-download-dialog";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { useState } from "react";
-import {Button} from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 
 export function Header() {
   const { isLoading, getAccounts, accountId, account, handleAccountChange } =
@@ -46,7 +47,7 @@ export function Header() {
     <Card className="mb-6">
       <CardContent className="p-4">
         <div className="relative flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-          <div className="w-full flex flex-1 flex-col gap-4 md:flex-row md:items-center">
+          <div className="flex w-full flex-1 flex-col gap-4 md:flex-row md:items-center">
             <Link href={"/"} className="hidden md:inline-flex">
               <TelegramIcon className="h-6 w-6" />
             </Link>
@@ -111,7 +112,6 @@ export function Header() {
                 <AutoDownloadDialog />
               </>
             )}
-
           </div>
 
           <div className="flex items-center gap-4">
@@ -161,8 +161,17 @@ export function Header() {
           <Button
             size="xs"
             variant="ghost"
+            onClick={() => (location.href = "/")}
+            className="absolute bottom-[0.3rem] right-10 md:hidden"
+          >
+            <Home className="h-4 w-4" />
+          </Button>
+
+          <Button
+            size="xs"
+            variant="ghost"
             onClick={() => setShowMore(!showMore)}
-            className="absolute bottom-0 right-0 md:hidden"
+            className="absolute bottom-[0.3rem] right-0 md:hidden"
           >
             <Ellipsis className="h-4 w-4" />
           </Button>
