@@ -21,10 +21,7 @@ import telegram.files.MessyUtils;
 import telegram.files.repository.FileRecord;
 import telegram.files.repository.FileRepository;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -272,6 +269,7 @@ public class FileRepositoryImpl implements FileRepository {
                                         .put("time", e.getKey())
                                         .put("total", e.getValue())
                                 )
+                                .sorted(Comparator.comparing(o -> o.getString("time")))
                                 .collect(JsonArray::new, JsonArray::add, JsonArray::addAll);
                     } else {
                         JsonArray jsonArray = new JsonArray();
