@@ -81,6 +81,10 @@ Copy [docker-compose.yaml](docker-compose.yaml) to your project directory and ru
 docker-compose up -d
 ```
 
+**Install on unRaid**
+
+On unRaid, install from the Community Repositories by searching for `telegram-files`.
+
 > **Important Note:** You should NOT expose the service to the public internet. Because the service is not secure.
 
 ---
