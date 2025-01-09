@@ -53,11 +53,14 @@ public class DataVerticle extends AbstractVerticle {
                 new StatisticRecord.StatisticRecordDefinition()
         );
         pool.getConnection()
-                .compose(conn -> Future.all(definitions.stream().map(d -> d.createTable(conn)).toList()).map(conn))
-                .compose(conn -> settingRepository.<Version>getByKey(SettingKey.version).map(v -> Tuple.tuple(conn, v)))
+                .compose(conn -> isCompletelyNewInitialization(conn).map(isNew -> Tuple.tuple(conn, isNew)))
+                .compose(tuple -> Future.all(definitions.stream().map(d -> d.createTable(tuple.v1)).toList()).map(tuple))
+                .compose(tuple -> settingRepository.<Version>getByKey(SettingKey.version).map(tuple::concat))
                 .compose(tuple -> {
+                    if (tuple.v2) return Future.succeededFuture();
+
                     SqlConnection conn = tuple.v1;
-                    Version version = tuple.v2 == null ? new Version("0.0.0") : tuple.v2;
+                    Version version = tuple.v3 == null ? new Version("0.0.0") : tuple.v3;
                     return Future.all(definitions.stream().map(d -> d.migrate(conn, version, new Version(Start.VERSION))).toList());
                 })
                 .compose(r ->
@@ -91,5 +94,16 @@ public class DataVerticle extends AbstractVerticle {
         dataPath = StrUtil.blankToDefault(dataPath, "data.db");
         dataPath = Config.APP_ROOT + File.separator + dataPath;
         return dataPath;
+    }
+
+    private Future<Boolean> isCompletelyNewInitialization(SqlConnection conn) {
+        return conn.query("""
+                        SELECT name
+                        FROM sqlite_master
+                        WHERE type = 'table'
+                        ORDER BY name;
+                        """)
+                .execute()
+                .map(rs -> rs.size() == 0);
     }
 }
