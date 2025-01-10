@@ -246,7 +246,7 @@ export default function Proxys({
                   <div className="mr-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-gray-300 peer-checked:border-primary peer-checked:bg-primary">
                     <div className="h-2.5 w-2.5 rounded-full bg-white"></div>
                   </div>
-                  <span className="text-gray-700 peer-checked:text-primary">
+                  <span className="text-gray-400 peer-checked:text-primary">
                     HTTP
                   </span>
                 </label>

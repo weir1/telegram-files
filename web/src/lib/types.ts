@@ -36,7 +36,7 @@ export type TelegramFile = {
   uniqueId: string;
   messageId: number;
   chatId: number;
-  name: string;
+  fileName: string;
   type: FileType;
   size: number;
   downloadedSize: number;

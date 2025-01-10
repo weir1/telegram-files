@@ -27,7 +27,11 @@ export default function FileStatus({ status }: { status: DownloadStatus }) {
     },
   };
 
-  return <Badge className={cn("text-xs", STATUS[status].className)}>
-    {STATUS[status].text}
-  </Badge>;
+  return (
+    <Badge
+      className={cn("text-xs hover:bg-gray-200", STATUS[status].className)}
+    >
+      {STATUS[status].text}
+    </Badge>
+  );
 }

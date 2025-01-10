@@ -34,31 +34,39 @@ import { Separator } from "./ui/separator";
 import { Badge } from "./ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import FileStatus from "@/components/file-status";
+import { cn } from "@/lib/utils";
+import { useFileSpeed } from "@/hooks/use-file-speed";
 
 interface FileCardProps {
   file: TelegramFile;
 }
 
 export function FileCard({ file }: FileCardProps) {
+  const { downloadProgress, downloadSpeed } = useFileSpeed(file.id);
   return (
-    <FileDrawer file={file}>
+    <FileDrawer file={file} downloadProgress={downloadProgress}>
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
             <FileAvatar file={file} />
             <div className="flex-1">
-              <h3 className="mb-1 font-medium">{file.name}</h3>
+              <h3 className="max-w-40 truncate font-medium">{file.fileName}</h3>
               <div className="mb-2 flex items-center justify-between text-sm text-muted-foreground">
                 <span>
                   {prettyBytes(file.size)} • {file.type}
                 </span>
                 <FileStatus status={file.downloadStatus} />
               </div>
-              <div className="mb-2 w-full overflow-hidden">
-                <FileProgress file={file} showSize={false} />
+              <div
+                className={cn(
+                  "mb-2 w-full overflow-hidden",
+                  file.downloadStatus === "idle" && "hidden",
+                )}
+              >
+                <FileProgress file={file} downloadProgress={downloadProgress} />
               </div>
               <div className="flex items-center justify-end">
-                <FileControl file={file} />
+                <FileControl file={file} downloadSpeed={downloadSpeed} isMobile={true}/>
               </div>
             </div>
           </div>
@@ -96,14 +104,14 @@ function FileAvatar({
             {loadPreview ? (
               <PhotoPreview
                 thumbnail={file.thumbnail}
-                name={file.name}
+                name={file.fileName}
                 chatId={file.chatId}
                 messageId={file.messageId}
               />
             ) : (
               <Image
                 src={`data:image/jpeg;base64,${file.thumbnail}`}
-                alt={file.name ?? "File thumbnail"}
+                alt={file.fileName ?? "File thumbnail"}
                 width={32}
                 height={32}
                 className="inline-block h-16 w-16 rounded object-cover"
@@ -126,9 +134,11 @@ function FileAvatar({
 
 function FileDrawer({
   file,
+  downloadProgress,
   children,
 }: {
   file: TelegramFile;
+  downloadProgress: number;
   children: React.ReactNode;
 }) {
   return (
@@ -139,21 +149,24 @@ function FileDrawer({
         aria-describedby={undefined}
       >
         <DrawerHeader className="text-center">
-          <DrawerTitle className="flex items-center justify-center gap-2 text-xl">
+          <DrawerTitle className="flex flex-col items-center justify-center gap-2">
             <FileAvatar file={file} loadPreview={true} />
-            <span className="max-w-md truncate">{file.name}</span>
+            <span className="max-w-64 truncate">{file.fileName}</span>
           </DrawerTitle>
           <div className="py-1">
             <FileStatus status={file.downloadStatus} />
           </div>
           {file.caption && (
             <SpoiledWrapper hasSensitiveContent={file.hasSensitiveContent}>
-              <DrawerDescription className="mx-auto mt-2 max-w-md">
-                {file.caption}
-              </DrawerDescription>
+              <DrawerDescription
+                className="mx-auto mt-2 max-h-48 max-w-md overflow-y-auto text-start"
+                dangerouslySetInnerHTML={{
+                  __html: file.caption.replaceAll("\n", "<br />"),
+                }}
+              ></DrawerDescription>
             </SpoiledWrapper>
           )}
-          <FileProgress file={file} showSize={false} />
+          <FileProgress file={file} downloadProgress={downloadProgress} />
         </DrawerHeader>
 
         <div className="px-2">
@@ -204,7 +217,7 @@ function FileDrawer({
               </Badge>
             </div>
 
-            {(file.downloadStatus !== 'idle' && file.startDate !== 0) && (
+            {file.downloadStatus !== "idle" && file.startDate !== 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock10 className="h-4 w-4" />

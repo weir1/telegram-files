@@ -1,14 +1,6 @@
 "use client";
-import { type TelegramFile } from "@/lib/types";
 import { FileCard } from "./file-card";
-import React, {
-  memo,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Table,
   TableBody,
@@ -19,41 +11,17 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import {
-  Download,
-  FileAudioIcon,
-  FileIcon,
-  ImageIcon,
-  LoaderCircle,
-  LoaderPinwheel,
-  VideoIcon,
-} from "lucide-react";
+import { Download, LoaderCircle, LoaderPinwheel } from "lucide-react";
 import { useFiles } from "@/hooks/use-files";
 import { FileFilters } from "@/components/file-filters";
-import {
-  getRowHeightTailwindClass,
-  useRowHeightLocalStorage,
-} from "@/components/table-row-height-switch";
+import { useRowHeightLocalStorage } from "@/components/table-row-height-switch";
 import { type Column } from "@/components/table-column-filter";
 import { cn } from "@/lib/utils";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import PhotoPreview from "@/components/photo-preview";
-import SpoiledWrapper from "@/components/spoiled-wrapper";
-import Image from "next/image";
-import FileControl from "@/components/file-control";
-import prettyBytes from "pretty-bytes";
-import FileProgress from "@/components/file-progress";
 import FileNotFount from "@/components/file-not-found";
-import FileExtra from "@/components/file-extra";
 import useIsMobile from "@/hooks/use-is-mobile";
-import FileStatus from "@/components/file-status";
 import useSWRMutation from "swr/mutation";
 import { POST } from "@/lib/api";
+import FileRow from "@/components/file-row";
 
 interface FileListProps {
   accountId: string;
@@ -83,26 +51,6 @@ const COLUMNS: Column[] = [
     className: "text-center w-40 min-w-40",
   },
 ];
-
-const PhotoColumnImage = memo(function PhotoColumnImage({
-  thumbnail,
-  name,
-  wh,
-}: {
-  thumbnail: string;
-  name: string;
-  wh: string;
-}) {
-  return (
-    <Image
-      src={`data:image/jpeg;base64,${thumbnail}`}
-      alt={name ?? "File thumbnail"}
-      width={32}
-      height={32}
-      className={cn(wh, "rounded object-cover")}
-    />
-  );
-});
 
 export function FileList({ accountId, chatId }: FileListProps) {
   const isMobile = useIsMobile();
@@ -155,12 +103,12 @@ export function FileList({ accountId, chatId }: FileListProps) {
     return () => observer.disconnect();
   }, [handleLoadMore]);
 
-  const dynamicClass = useCallback(() => {
+  const dynamicClass = useMemo(() => {
     switch (rowHeight) {
       case "s":
         return {
           content: "h-6 w-6",
-          contentCell: "w-6",
+          contentCell: "w-4",
         };
       case "m":
         return {
@@ -234,84 +182,6 @@ export function FileList({ accountId, chatId }: FileListProps) {
     setSelectedFiles(newSelected);
   };
 
-  const getFileIcon = (type: TelegramFile["type"]) => {
-    let icon;
-    switch (type) {
-      case "photo":
-        icon = <ImageIcon className="h-4 w-4" />;
-        break;
-      case "video":
-        icon = <VideoIcon className="h-4 w-4" />;
-        break;
-      case "audio":
-        icon = <FileAudioIcon className="h-4 w-4" />;
-        break;
-      default:
-        icon = <FileIcon className="h-4 w-4" />;
-    }
-    return (
-      <div
-        className={cn(
-          dynamicClass().content,
-          "flex items-center justify-center rounded bg-muted",
-        )}
-      >
-        {icon}
-      </div>
-    );
-  };
-
-  const columnRenders: Record<
-    string,
-    (file: TelegramFile, index: number) => ReactNode
-  > = {
-    content: (file: TelegramFile) => (
-      <div className="flex items-center gap-2">
-        {file.type === "photo" || file.type === "video" ? (
-          file.thumbnail ? (
-            <SpoiledWrapper hasSensitiveContent={file.hasSensitiveContent}>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <PhotoColumnImage
-                      thumbnail={file.thumbnail}
-                      name={file.name}
-                      wh={dynamicClass().content}
-                    />
-                  </TooltipTrigger>
-                  <TooltipContent asChild>
-                    <PhotoPreview
-                      thumbnail={file.thumbnail}
-                      name={file.name}
-                      chatId={file.chatId}
-                      messageId={file.messageId}
-                    />
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </SpoiledWrapper>
-          ) : (
-            getFileIcon(file.type)
-          )
-        ) : (
-          getFileIcon(file.type)
-        )}
-      </div>
-    ),
-    type: (file: TelegramFile) => (
-      <div className="flex flex-col items-center">
-        <span className="capitalize">{file.type}</span>
-        <span className="text-xs">{file.id}</span>
-      </div>
-    ),
-    size: (file: TelegramFile) => <span>{prettyBytes(file.size)}</span>,
-    status: (file: TelegramFile) => <FileStatus status={file.downloadStatus} />,
-    extra: (file: TelegramFile) => (
-      <FileExtra file={file} rowHeight={rowHeight} />
-    ),
-    actions: (file: TelegramFile) => <FileControl file={file} />,
-  };
-
   return (
     <>
       <FileFilters
@@ -381,7 +251,7 @@ export function FileList({ accountId, chatId }: FileListProps) {
                       suppressHydrationWarning
                       className={cn(
                         col.className ?? "",
-                        col.id === "content" ? dynamicClass().contentCell : "",
+                        col.id === "content" ? dynamicClass.contentCell : "",
                       )}
                     >
                       {col.label}
@@ -392,47 +262,13 @@ export function FileList({ accountId, chatId }: FileListProps) {
             </TableHeader>
             <TableBody className="[&_tr:last-child]:border-b">
               {files.map((file, index) => (
-                <React.Fragment
+                <FileRow
+                  file={file}
+                  checked={selectedFiles.has(file.id)}
+                  onCheckedChange={() => handleSelectFile(file.id)}
+                  properties={{ rowHeight, dynamicClass, columns }}
                   key={`${file.messageId}-${file.uniqueId}-${index}`}
-                >
-                  <TableRow
-                    className={cn(
-                      getRowHeightTailwindClass(rowHeight),
-                      "border-b-0",
-                    )}
-                  >
-                    <TableCell className="text-center">
-                      <Checkbox
-                        checked={selectedFiles.has(file.id)}
-                        onCheckedChange={() => handleSelectFile(file.id)}
-                        disabled={file.downloadStatus !== "idle"}
-                      />
-                    </TableCell>
-                    {columns.map((col) =>
-                      col.isVisible ? (
-                        <TableCell
-                          key={col.id}
-                          className={cn(
-                            col.className ?? "",
-                            col.id === "content"
-                              ? dynamicClass().contentCell
-                              : "",
-                          )}
-                        >
-                          {columnRenders[col.id]!(file, index)}
-                        </TableCell>
-                      ) : null,
-                    )}
-                  </TableRow>
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length + 1}
-                      className="h-px p-0"
-                    >
-                      <FileProgress file={file} showSize={true} />
-                    </TableCell>
-                  </TableRow>
-                </React.Fragment>
+                />
               ))}
               {!isLoading && files.length === 0 && (
                 <TableRow className="border-b-0">

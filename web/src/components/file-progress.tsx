@@ -1,18 +1,14 @@
 import { Progress } from "@/components/ui/progress";
-import prettyBytes from "pretty-bytes";
 import { type TelegramFile } from "@/lib/types";
-import { useFileSpeed } from "@/hooks/use-file-speed";
 import { useMemo } from "react";
-import { ClockArrowDown, Zap } from "lucide-react";
 
 export default function FileProgress({
   file,
-  showSize,
+  downloadProgress,
 }: {
   file: TelegramFile;
-  showSize: boolean;
+  downloadProgress: number;
 }) {
-  const { downloadProgress, downloadSpeed } = useFileSpeed(file.id);
   const progress = useMemo(() => {
     const fileDownloadProgress =
       file.size > 0
@@ -37,22 +33,30 @@ export default function FileProgress({
 
   return (
     <div className="flex items-end justify-between gap-2">
-      {showSize && file.downloadedSize > 0 && (
-        <div className="flex min-w-32 items-center gap-1 bg-gray-100 px-1">
-          <ClockArrowDown className="h-3 w-3" />
-          <span className="text-nowrap text-xs">
-            {prettyBytes(file.downloadedSize)}
-          </span>
-        </div>
-      )}
-      <div className="hidden min-w-32 items-center gap-1 bg-gray-100 px-1 md:flex">
-        <Zap className="h-3 w-3" />
-        <span className="text-nowrap text-xs">
-          {file.downloadStatus === "downloading"
-            ? `${prettyBytes(downloadSpeed, { bits: true })}/s`
-            : "0/s"}
-        </span>
-      </div>
+      {/*<div className="hidden min-w-20 md:flex">*/}
+      {/*  <div className="group flex items-center gap-1 px-1">*/}
+      {/*    <AnimatePresence mode="wait">*/}
+      {/*      <motion.div*/}
+      {/*        key="content"*/}
+      {/*        className="flex items-center gap-1"*/}
+      {/*        initial={{ opacity: 1 }}*/}
+      {/*        exit={{ opacity: 0 }}*/}
+      {/*      >*/}
+      {/*        <Zap className="h-3 w-3 group-hover:hidden" />*/}
+      {/*        <ClockArrowDown className="hidden h-3 w-3 group-hover:block" />*/}
+      {/*        <span className="text-nowrap text-xs">*/}
+      {/*          <span className="group-hover:hidden">*/}
+      {/*            {`${prettyBytes(downloadSpeed, { bits: true })}/s`}*/}
+      {/*          </span>*/}
+      {/*          <span className="hidden group-hover:inline">*/}
+      {/*            {prettyBytes(file.downloadedSize)}*/}
+      {/*          </span>*/}
+      {/*        </span>*/}
+      {/*      </motion.div>*/}
+      {/*    </AnimatePresence>*/}
+      {/*  </div>*/}
+      {/*</div>*/}
+
       <Progress value={progress} className="flex-1 rounded-none md:w-32" />
     </div>
   );
