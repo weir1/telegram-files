@@ -553,7 +553,13 @@ public class TelegramVerticle extends AbstractVerticle {
                     return edit ? this.execute(new TdApi.EditProxy(tdProxy.id, proxy.server, proxy.port, true, proxyType))
                             : this.execute(new TdApi.AddProxy(proxy.server, proxy.port, true, proxyType));
                 })
-                .compose(r -> DataVerticle.telegramRepository.update(this.telegramRecord.withProxy(proxyName)).map(r))
+                .compose(r -> {
+                    if (this.telegramRecord != null) {
+                        return DataVerticle.telegramRepository.update(this.telegramRecord.withProxy(proxyName)).map(r);
+                    } else {
+                        return Future.succeededFuture(r);
+                    }
+                })
                 .compose(r -> {
                     this.proxyName = proxyName;
                     return Future.succeededFuture(r);

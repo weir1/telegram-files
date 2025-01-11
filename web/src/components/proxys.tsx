@@ -17,15 +17,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Edit2, Plus, Trash2 } from "lucide-react";
+import { Copy, Edit2, Plus, Trash2 } from "lucide-react";
 import { type Proxy } from "@/lib/types";
 import { BorderBeam } from "@/components/ui/border-beam";
-import { cn } from "@/lib/utils";
+import { cn, parseProxyString } from "@/lib/utils";
 import useSWRMutation from "swr/mutation";
 import { request } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import ProxyPing from "@/components/proxy-ping";
 import { Label } from "./ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface ProxysProps {
   enableSelect?: boolean;
@@ -160,6 +166,11 @@ export default function Proxys({
           <Plus className="mr-2 h-5 w-5" /> Add Proxy
         </Button>
       </div>
+      {proxys.length === 0 && (
+        <div className="flex h-32 items-center justify-center">
+          <p className="text-center text-gray-500">No proxys added yet</p>
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3 2xl:grid-cols-4">
         {proxys.map((proxy) => (
           <Card
@@ -226,7 +237,10 @@ export default function Proxys({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingProxy ? "Edit Proxy" : "Add Proxy"}
+              <span className="mr-2">
+                {editingProxy ? "Edit Proxy" : "Add Proxy"}
+              </span>
+              <ProxyParser onParsed={(proxy) => setFormState(proxy)} />
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -345,5 +359,53 @@ export default function Proxys({
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function ProxyParser({ onParsed }: { onParsed: (proxys: Proxy) => void }) {
+  const handleParseProxy = async () => {
+    const clipboardText = await navigator.clipboard.readText();
+    if (!clipboardText || clipboardText.trim().length === 0) {
+      return;
+    }
+    const proxy = parseProxyString(clipboardText);
+    if (proxy) {
+      toast({
+        title: "Success",
+        description: "Proxy string is parsed successfully",
+      });
+      onParsed(proxy);
+    } else {
+      toast({
+        title: "Error",
+        description: "Invalid proxy string format",
+      });
+    }
+  };
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button size="xs" variant="ghost" onClick={() => handleParseProxy()}>
+            <Copy className="h-3 w-3" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="flex flex-col space-y-2 p-2">
+            <p className="text-sm font-semibold">
+              Parse the proxy string from the clipboard and add them to the list
+            </p>
+            <p className="text-xs text-gray-500">
+              The proxy should be in the following format:
+              <br />
+              <code>http://username:password@server:port</code>
+              <br />
+              <code>socks://username:password@server:port</code>
+            </p>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }

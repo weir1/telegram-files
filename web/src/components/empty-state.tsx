@@ -1,4 +1,4 @@
-import { MessageSquare, UserPlus } from "lucide-react";
+import { LoaderPinwheel, MessageSquare, UserPlus } from "lucide-react";
 import { AccountList } from "./account-list";
 import { type TelegramAccount } from "@/lib/types";
 import TelegramIcon from "@/components/telegram-icon";
@@ -9,6 +9,7 @@ import { BorderBeam } from "@/components/ui/border-beam";
 import ProxysDialog from "@/components/proxys-dialog";
 
 interface EmptyStateProps {
+  isLoadingAccount?: boolean;
   hasAccounts: boolean;
   accounts?: TelegramAccount[];
   message?: string;
@@ -16,6 +17,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
+  isLoadingAccount,
   hasAccounts,
   accounts = [],
   message,
@@ -70,6 +72,15 @@ export function EmptyState({
           <ProxysDialog />
         </div>
       </div>
+
+      {isLoadingAccount && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <LoaderPinwheel
+            className="h-8 w-8 animate-spin"
+            style={{ strokeWidth: "0.8px" }}
+          />
+        </div>
+      )}
 
       {hasAccounts && accounts.length > 0 && onSelectAccount && (
         <AccountList accounts={accounts} onSelectAccount={onSelectAccount} />
