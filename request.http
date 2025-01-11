@@ -80,6 +80,14 @@ Cookie: {{tf}}
 GET http://{{server}}/telegram/{{telegramId}}/download-statistics?type=phase&timeRange=3
 Cookie: {{tf}}
 
+### Telegram api methods
+GET http://{{server}}/telegram/api/methods
+Cookie: {{tf}}
+
+### Telegram api method parameters
+GET http://{{server}}/telegram/api/GetChats/parameters
+Cookie: {{tf}}
+
 ### Telegram GetMe
 POST http://{{server}}/telegram/api/GetMe
 Content-Type: application/json

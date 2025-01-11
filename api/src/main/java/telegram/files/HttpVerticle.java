@@ -24,6 +24,7 @@ import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.SessionHandler;
 import io.vertx.ext.web.sstore.LocalSessionStore;
 import io.vertx.ext.web.sstore.SessionStore;
+import org.drinkless.tdlib.TdApi;
 import telegram.files.repository.SettingKey;
 import telegram.files.repository.SettingRecord;
 import telegram.files.repository.TelegramRecord;
@@ -130,6 +131,8 @@ public class HttpVerticle extends AbstractVerticle {
 
         router.post("/telegram/create").handler(this::handleTelegramCreate);
         router.post("/telegram/:telegramId/delete").handler(this::handleTelegramDelete);
+        router.get("/telegram/api/methods").handler(this::handleTelegramApiMethods);
+        router.get("/telegram/api/:method/parameters").handler(this::handleTelegramApiMethodParameters);
         router.post("/telegram/api/:method").handler(this::handleTelegramApi);
         router.get("/telegrams").handler(this::handleTelegrams);
         router.get("/telegram/:telegramId/chats").handler(this::handleTelegramChats);
@@ -415,7 +418,7 @@ public class HttpVerticle extends AbstractVerticle {
 
         String type = ctx.request().getParam("type");
         String timeRange = ctx.request().getParam("timeRange");
-        (Objects.equals(type, "phase") ? telegramVerticle.  getDownloadStatisticsByPhase(Convert.toInt(timeRange, 1)) :
+        (Objects.equals(type, "phase") ? telegramVerticle.getDownloadStatisticsByPhase(Convert.toInt(timeRange, 1)) :
                 telegramVerticle.getDownloadStatistics())
                 .onSuccess(ctx::json)
                 .onFailure(ctx::fail);
@@ -457,6 +460,16 @@ public class HttpVerticle extends AbstractVerticle {
                                 .onSuccess(r -> ctx.json(JsonObject.of("ping", r)))
                                 .onFailure(ctx::fail), () -> ctx.fail(404)
                 );
+    }
+
+    private void handleTelegramApiMethods(RoutingContext ctx) {
+        Map<String, Class<TdApi.Function<?>>> functions = TdApiHelp.getFunctions();
+        ctx.json(JsonObject.of("methods", functions.keySet()));
+    }
+
+    private void handleTelegramApiMethodParameters(RoutingContext ctx) {
+        String method = ctx.pathParam("method");
+        ctx.json(JsonObject.of("parameters", TdApiHelp.getFunction(method, null)));
     }
 
     private void handleTelegramApi(RoutingContext ctx) {

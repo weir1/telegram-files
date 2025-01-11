@@ -17,6 +17,7 @@ import About from "@/components/about";
 import { ChartColumnIncreasingIcon } from "@/components/ui/chart-column-increasing";
 import { LayoutPanelTopIcon } from "@/components/ui/layout-panel-top";
 import FilePhaseStatistics from "@/components/file-phase-statistics";
+import DebugTelegramMethod from "@/components/debug-telegram-method";
 
 export const SettingsDialog: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -50,6 +51,7 @@ export const SettingsDialog: React.FC = () => {
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="statistics">Statistics</TabsTrigger>
             <TabsTrigger value="proxys">Proxys</TabsTrigger>
+            <TabsTrigger value="api">API</TabsTrigger>
             <TabsTrigger value="about">About</TabsTrigger>
           </TabsList>
           <TabsContent value="general" className="overflow-hidden">
@@ -60,10 +62,16 @@ export const SettingsDialog: React.FC = () => {
               {accountId ? (
                 <Tabs defaultValue="panel">
                   <TabsList className="bg-none!">
-                    <TabsTrigger value="panel" className="w-10 h-10 scale-75 data-[state=active]:bg-accent">
+                    <TabsTrigger
+                      value="panel"
+                      className="h-10 w-10 scale-75 data-[state=active]:bg-accent"
+                    >
                       <LayoutPanelTopIcon />
                     </TabsTrigger>
-                    <TabsTrigger value="phase" className="w-10 h-10 scale-75 data-[state=active]:bg-accent">
+                    <TabsTrigger
+                      value="phase"
+                      className="h-10 w-10 scale-75 data-[state=active]:bg-accent"
+                    >
                       <ChartColumnIncreasingIcon />
                     </TabsTrigger>
                   </TabsList>
@@ -91,6 +99,9 @@ export const SettingsDialog: React.FC = () => {
                 enableSelect={true}
               />
             </div>
+          </TabsContent>
+          <TabsContent value="api" className="h-full overflow-hidden">
+            <DebugTelegramMethod />
           </TabsContent>
           <TabsContent value="about" className="h-full overflow-hidden">
             <About />

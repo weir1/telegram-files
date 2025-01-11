@@ -71,6 +71,10 @@ public class TdApiHelp {
                 });
     }
 
+    public static Map<String, Class<TdApi.Function<?>>> getFunctions() {
+        return FUNCTIONS;
+    }
+
     public static TdApi.Function<?> getFunction(String method, Object params) {
         Class<TdApi.Function<?>> func = FUNCTIONS.get(method);
         if (func == null) {

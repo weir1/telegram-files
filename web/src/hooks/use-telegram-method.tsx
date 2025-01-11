@@ -5,8 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useWebsocket } from "@/hooks/use-websocket";
 
 export function useTelegramMethod() {
+  const [lastMethodCode, setLastMethodCode] = useState<string>();
   const [methodCodes, setMethodCodes] = useState<string[]>([]);
   const [methodCompleteCodes, setMethodCompleteCodes] = useState<string[]>([]);
+  const [lastMethodResult, setLastMethodResult] = useState<unknown>();
   const { lastJsonMessage } = useWebsocket();
 
   const { trigger: triggerMethod, isMutating: isMethodMutating } =
@@ -15,6 +17,7 @@ export function useTelegramMethod() {
       telegramApi,
       {
         onSuccess: (data) => {
+          setLastMethodCode(data.code);
           setMethodCodes((prev) => [...prev, data.code]);
         },
       },
@@ -24,6 +27,7 @@ export function useTelegramMethod() {
     if (!lastJsonMessage) return;
     if (lastJsonMessage.code) {
       setMethodCompleteCodes((prev) => [...prev, lastJsonMessage.code]);
+      setLastMethodResult(lastJsonMessage.data)
     }
   }, [lastJsonMessage]);
 
@@ -37,5 +41,7 @@ export function useTelegramMethod() {
   return {
     triggerMethod,
     isMethodExecuting,
+    lastMethodCode,
+    lastMethodResult,
   };
 }

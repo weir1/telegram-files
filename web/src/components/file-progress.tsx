@@ -33,30 +33,6 @@ export default function FileProgress({
 
   return (
     <div className="flex items-end justify-between gap-2">
-      {/*<div className="hidden min-w-20 md:flex">*/}
-      {/*  <div className="group flex items-center gap-1 px-1">*/}
-      {/*    <AnimatePresence mode="wait">*/}
-      {/*      <motion.div*/}
-      {/*        key="content"*/}
-      {/*        className="flex items-center gap-1"*/}
-      {/*        initial={{ opacity: 1 }}*/}
-      {/*        exit={{ opacity: 0 }}*/}
-      {/*      >*/}
-      {/*        <Zap className="h-3 w-3 group-hover:hidden" />*/}
-      {/*        <ClockArrowDown className="hidden h-3 w-3 group-hover:block" />*/}
-      {/*        <span className="text-nowrap text-xs">*/}
-      {/*          <span className="group-hover:hidden">*/}
-      {/*            {`${prettyBytes(downloadSpeed, { bits: true })}/s`}*/}
-      {/*          </span>*/}
-      {/*          <span className="hidden group-hover:inline">*/}
-      {/*            {prettyBytes(file.downloadedSize)}*/}
-      {/*          </span>*/}
-      {/*        </span>*/}
-      {/*      </motion.div>*/}
-      {/*    </AnimatePresence>*/}
-      {/*  </div>*/}
-      {/*</div>*/}
-
       <Progress value={progress} className="flex-1 rounded-none md:w-32" />
     </div>
   );
