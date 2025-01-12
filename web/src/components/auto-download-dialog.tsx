@@ -70,7 +70,7 @@ export default function AutoDownloadDialog() {
   });
 
   if (isLoading) {
-    return <div className="h-8 w-32 animate-pulse bg-gray-200"></div>;
+    return <div className="h-8 w-32 animate-pulse bg-gray-200 dark:bg-gray-700"></div>;
   }
 
   return (
@@ -151,17 +151,17 @@ export default function AutoDownloadDialog() {
                 </div>
               </div>
             )}
-            <div className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">
+            <div className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4 dark:bg-gray-800 dark:border-gray-700">
               <div className="flex items-start">
                 <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-yellow-400"></span>
-                <p className="text-sm leading-6 text-gray-700">
+                <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
                   This will disable auto download for this chat. You can always
                   enable it later.
                 </p>
               </div>
               <div className="flex items-start">
                 <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-yellow-400"></span>
-                <p className="text-sm leading-6 text-gray-700">
+                <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
                   Files that are being downloaded will be paused and you can
                   enable automatic downloading again later.
                 </p>
@@ -170,26 +170,26 @@ export default function AutoDownloadDialog() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">
+            <div className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4 dark:bg-gray-800 dark:border-gray-700">
               <div className="flex items-start">
                 <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-cyan-400"></span>
-                <p className="text-sm leading-6 text-gray-700">
+                <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
                   This will enable auto download for this chat. Files will be
                   downloaded automatically.
                 </p>
               </div>
               <div className="flex items-start">
                 <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-cyan-400"></span>
-                <p className="text-sm leading-6 text-gray-700">
+                <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
                   Files in historical messages will be downloaded first, and
                   then files in new messages will be downloaded automatically.
                 </p>
               </div>
               <div className="flex items-start">
                 <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-cyan-400"></span>
-                <p className="text-sm leading-6 text-gray-700">
+                <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
                   Download Order:
-                  <span className="ml-1 rounded bg-blue-100 px-2">
+                  <span className="ml-1 rounded bg-blue-100 px-2 dark:bg-blue-800 dark:text-blue-200 text-blue-700">
                     {"Photo -> Video -> Audio -> File"}
                   </span>
                 </p>

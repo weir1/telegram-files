@@ -34,6 +34,7 @@ import AutoDownloadDialog from "@/components/auto-download-dialog";
 import useIsMobile from "@/hooks/use-is-mobile";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import ThemeToggleButton from "@/components/theme-toggle-button";
 
 export function Header() {
   const { isLoading, getAccounts, accountId, account, handleAccountChange } =
@@ -114,7 +115,7 @@ export function Header() {
             )}
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -154,6 +155,8 @@ export function Header() {
                 </Tooltip>
               </TooltipProvider>
             )}
+
+            <ThemeToggleButton />
 
             <SettingsDialog />
           </div>

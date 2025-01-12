@@ -79,7 +79,9 @@ export default function About() {
                   <span>Loading...</span>
                 </div>
               ) : (
-                <p className="rounded bg-gray-100 px-3">{currentVersion}</p>
+                <p className="rounded bg-gray-100 px-3 dark:bg-gray-800">
+                  {currentVersion}
+                </p>
               )}
             </div>
 
@@ -95,7 +97,7 @@ export default function About() {
                   <span>Loading...</span>
                 </div>
               ) : (
-                <p className="rounded bg-gray-100 px-3">
+                <p className="rounded bg-gray-100 px-3 dark:bg-gray-800">
                   {githubData.tag_name}
                 </p>
               )}

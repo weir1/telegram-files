@@ -8,6 +8,7 @@ import { SettingsProvider } from "@/hooks/use-settings";
 import { WebSocketProvider } from "@/hooks/use-websocket";
 import { env } from "@/env";
 import { TelegramAccountProvider } from "@/hooks/use-telegram-account";
+import {ThemeProvider} from "@/components/theme-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,7 +23,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link
           rel="icon"
@@ -47,14 +48,21 @@ export default async function RootLayout({
         )}
       </head>
       <body className={inter.className}>
-        <SWRProvider>
-          <WebSocketProvider>
-            <SettingsProvider>
-              <TelegramAccountProvider>{children}</TelegramAccountProvider>
-            </SettingsProvider>
-          </WebSocketProvider>
-        </SWRProvider>
-        <Toaster />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SWRProvider>
+            <WebSocketProvider>
+              <SettingsProvider>
+                <TelegramAccountProvider>{children}</TelegramAccountProvider>
+              </SettingsProvider>
+            </WebSocketProvider>
+          </SWRProvider>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

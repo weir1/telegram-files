@@ -68,8 +68,6 @@ export function EmptyState({
               </Button>
             </div>
           </AccountDialog>
-
-          <ProxysDialog />
         </div>
       </div>
 

@@ -224,8 +224,9 @@ export default function Proxys({
         ))}
       </div>
       {enableSelect && (
-        <div className="absolute bottom-0 right-0 flex items-center space-x-4">
+        <div className="w-full absolute bottom-0 justify-end flex items-center space-x-4">
           <Button
+            className="w-full md:w-auto"
             disabled={isToggleProxyMutating}
             onClick={() => handleProxySubmit()}
           >

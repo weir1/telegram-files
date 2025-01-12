@@ -38,7 +38,7 @@ export function AccountDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
         aria-describedby={undefined}
-        className="h-full w-full pb-10 md:h-auto md:min-h-40 md:min-w-[550px]"
+        className="h-full w-full pb-16 md:h-auto md:min-h-40 md:min-w-[550px]"
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -62,7 +62,7 @@ export function AccountDialog({
             proxyName={proxyName}
             onProxyNameChange={setProxyName}
             enableSelect={true}
-            className="absolute bottom-1 right-1 md:-bottom-9 md:-right-4"
+            className="absolute bottom-1 right-1 md:-bottom-14 md:-right-4"
           />
         </div>
       </DialogContent>

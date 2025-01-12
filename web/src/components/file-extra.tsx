@@ -33,7 +33,7 @@ function FileName({ file }: { file: TelegramFile }) {
     <SpoiledWrapper hasSensitiveContent={file.hasSensitiveContent}>
       <p className="flex items-center gap-2">
         <Mountain className="h-4 w-4" />
-        <span className="rounded px-1 text-sm hover:bg-gray-100">
+        <span className="rounded px-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
           {file.fileName}
         </span>
       </p>
@@ -86,7 +86,7 @@ function FilePath({ file }: { file: TelegramFile }) {
         <div className="flex items-center gap-2 text-sm">
           <FileCheck className="h-4 w-4 flex-shrink-0" />
           <p
-            className="group line-clamp-1 cursor-pointer overflow-hidden truncate text-ellipsis text-wrap rounded px-1 hover:bg-gray-100"
+            className="group line-clamp-1 cursor-pointer overflow-hidden truncate text-ellipsis text-wrap rounded px-1 hover:bg-gray-100 dark:hover:bg-gray-800"
             onClick={() => copyToClipboard(file.localPath)}
           >
             {file.localPath.split("/").pop()}
@@ -108,7 +108,7 @@ function FileTime({ file }: { file: TelegramFile }) {
         <TooltipTrigger asChild>
           <p className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
-            <span className="rounded px-1 text-sm text-muted-foreground hover:bg-gray-100">
+            <span className="rounded px-1 text-sm text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800">
               {formatDistanceToNow(new Date(file.date * 1000), {
                 addSuffix: true,
               })}
@@ -126,7 +126,7 @@ function FileTime({ file }: { file: TelegramFile }) {
           <TooltipTrigger asChild>
             <p className="flex items-center gap-2">
               <ClockArrowDown className="h-4 w-4" />
-              <span className="rounded px-1 text-sm text-muted-foreground hover:bg-gray-100">
+              <span className="rounded px-1 text-sm text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800">
                 {formatDistanceToNow(new Date(file.completionDate), {
                   addSuffix: true,
                 })}

@@ -3,7 +3,7 @@ import useSWRMutation from "swr/mutation";
 import { request } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useSWRConfig } from "swr";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import React, { type FormEvent, useCallback, useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { Ellipsis, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/input-otp";
 import { useWebsocket } from "@/hooks/use-websocket";
 import { useTelegramAccount } from "@/hooks/use-telegram-account";
+import TGDuck16Plane from "@/components/animations/tg-duck16_plane.json";
+import dynamic from "next/dynamic";
 
 interface AccountCreatorProps {
   isAdd?: boolean;
@@ -29,6 +31,8 @@ interface AccountCreatorProps {
   onCreated?: (id: string) => void;
   onLoginSuccess?: () => void;
 }
+
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
 export default function AccountCreator({
   isAdd,
@@ -153,6 +157,11 @@ export default function AccountCreator({
   if (!initSuccessfully) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4">
+        <Lottie
+          className="mb-10 h-28 w-28 md:mb-3"
+          animationData={TGDuck16Plane}
+          loop={true}
+        />
         <Button
           className={cn("w-full", debounceIsCreateMutating ? "opacity-50" : "")}
           disabled={debounceIsCreateMutating}

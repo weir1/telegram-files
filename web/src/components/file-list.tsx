@@ -280,7 +280,7 @@ export function FileList({ accountId, chatId }: FileListProps) {
             </TableBody>
           </Table>
           {isLoading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white bg-opacity-90">
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-accent bg-opacity-90">
               <LoaderPinwheel
                 className="h-8 w-8 animate-spin"
                 style={{ strokeWidth: "0.8px" }}

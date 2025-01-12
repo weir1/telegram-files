@@ -77,7 +77,7 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
   // Render an error message if the API call fails
   if (error) {
     return (
-      <div className="flex items-center space-x-2 rounded-lg bg-white p-4 text-red-600 shadow-md">
+      <div className="flex items-center space-x-2 rounded-lg bg-white p-4 text-red-600 shadow-md dark:bg-red-50 dark:text-red-400">
         <AlertTriangle className="h-5 w-5" />
         <span>Failed to load data.</span>
       </div>
@@ -87,7 +87,7 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
   // Render a loading indicator while the data is being fetched
   if (!data) {
     return (
-      <div className="flex items-center space-x-2 rounded-lg bg-white p-4 text-gray-600 shadow-md">
+      <div className="flex items-center space-x-2 rounded-lg bg-white p-4 text-gray-600 shadow-md dark:bg-gray-50 dark:text-gray-400">
         <LoaderPinwheel
           className="h-5 w-5 animate-spin"
           style={{ strokeWidth: "0.8px" }}
@@ -167,94 +167,109 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
   ];
 
   return (
-    <div className="space-y-6 rounded-lg bg-gray-50 p-2 md:p-6">
-      <div className="flex-1 rounded-lg bg-white p-4 shadow-md">
+    <div className="space-y-6 rounded-lg bg-gray-50 p-2 dark:bg-gray-800 md:p-6">
+      <div className="flex-1 rounded-lg bg-white p-4 shadow-md dark:bg-gray-900">
         <div className="flex items-center space-x-3 border-gray-200">
-          <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700">
+          <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700 dark:text-gray-200">
             <CloudDownload className="h-5 w-5 text-blue-600" />
             <span>Download Statistics</span>
           </h3>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-5">
-          <div className="rounded-lg bg-gray-50 p-4 shadow-sm">
+          <div className="rounded-lg bg-gray-50 p-4 shadow-sm dark:bg-gray-800">
             <div className="flex items-center space-x-2">
-              <FileText className="h-5 w-5 text-gray-600" />
-              <span className="text-sm text-gray-600">Total Files</span>
+              <FileText className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Total Files
+              </span>
             </div>
-            <div className="mt-2 text-center text-lg font-semibold text-gray-800">
+            <div className="mt-2 text-center text-lg font-semibold text-gray-800 dark:text-gray-200">
               {total}
             </div>
           </div>
-          <div className="rounded-lg bg-gray-50 p-4 shadow-sm">
+          <div className="rounded-lg bg-gray-50 p-4 shadow-sm dark:bg-gray-800">
             <div className="flex items-center space-x-2">
               <Download className="h-5 w-5 text-blue-600" />
-              <span className="text-sm text-gray-600">Downloading</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Downloading
+              </span>
             </div>
-            <div className="mt-2 text-center text-lg font-semibold text-gray-800">
+            <div className="mt-2 text-center text-lg font-semibold text-gray-800 dark:text-gray-200">
               {downloading}
             </div>
           </div>
-          <div className="rounded-lg bg-gray-50 p-4 shadow-sm">
+          <div className="rounded-lg bg-gray-50 p-4 shadow-sm dark:bg-gray-800">
             <div className="flex items-center space-x-2">
               <PauseCircle className="h-5 w-5 text-yellow-500" />
-              <span className="text-sm text-gray-600">Paused</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Paused
+              </span>
             </div>
-            <div className="mt-2 text-center text-lg font-semibold text-gray-800">
+            <div className="mt-2 text-center text-lg font-semibold text-gray-800 dark:text-gray-200">
               {paused}
             </div>
           </div>
-          <div className="rounded-lg bg-gray-50 p-4 shadow-sm">
+          <div className="rounded-lg bg-gray-50 p-4 shadow-sm dark:bg-gray-800">
             <div className="flex items-center space-x-2">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              <span className="text-sm text-gray-600">Completed</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Completed
+              </span>
             </div>
-            <div className="mt-2 text-center text-lg font-semibold text-gray-800">
+            <div className="mt-2 text-center text-lg font-semibold text-gray-800 dark:text-gray-200">
               {completed}
             </div>
           </div>
-          <div className="rounded-lg bg-gray-50 p-4 shadow-sm">
+          <div className="rounded-lg bg-gray-50 p-4 shadow-sm dark:bg-gray-800">
             <div className="flex items-center space-x-2">
               <AlertTriangle className="h-5 w-5 text-red-600" />
-              <span className="text-sm text-gray-600">Error</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Error
+              </span>
             </div>
-            <div className="mt-2 text-center text-lg font-semibold text-gray-800">
+            <div className="mt-2 text-center text-lg font-semibold text-gray-800 dark:text-gray-200">
               {errorCount}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 rounded-lg bg-white p-4 shadow-md">
-        <div className="flex items-center space-x-3 border-gray-200">
-          <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700">
+      <div className="flex-1 rounded-lg bg-white p-4 shadow-md dark:bg-gray-900">
+        <div className="flex items-center space-x-3 border-gray-200 dark:border-gray-700">
+          <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700 dark:text-gray-200">
             <Clock className="h-5 w-5 text-yellow-500" />
             <span>Speed Statistics</span>
-            <span className="text-sm text-gray-500 font-medium">({data.speedStats.interval / 60} minute interval)</span>
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              ({data.speedStats.interval / 60} minute interval)
+            </span>
           </h3>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
           {avgStatFields.map((stat, index) => (
             <div
               key={index}
-              className="flex flex-col space-y-3 rounded-xl border border-gray-100 p-4 transition-colors hover:border-gray-200"
+              className="flex flex-col space-y-3 rounded-xl border border-gray-100 p-4 transition-colors hover:border-gray-200 dark:border-gray-700
+              dark:hover:border-gray-600"
             >
               <div className="flex items-center space-x-2">
                 <div className={`rounded-lg p-2 ${stat.bgColor}`}>
                   <stat.icon className={`h-5 w-5 ${stat.color}`} />
                 </div>
-                <span className="text-sm font-medium text-gray-500">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
                   {stat.label}
                 </span>
               </div>
-              <div className="text-lg font-semibold">{stat.value}</div>
+              <div className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                {stat.value}
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <div className="flex-1 rounded-lg bg-white p-4 shadow-md md:col-span-2">
-          <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700">
+        <div className="flex-1 rounded-lg bg-white p-4 shadow-md dark:bg-gray-900 md:col-span-2">
+          <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700 dark:text-gray-200">
             <CheckCircle className="h-5 w-5 text-green-600" />
             <span>Completed by Type</span>
           </h3>
@@ -262,13 +277,15 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
             {completedTypes.map((type) => (
               <li
                 key={type.label}
-                className="rounded-lg bg-gray-50 p-3 shadow-sm"
+                className="rounded-lg bg-gray-50 p-3 shadow-sm dark:bg-gray-800"
               >
                 <div className="flex items-center space-x-2">
                   {type.icon}
-                  <span className="text-sm text-gray-600">{type.label}</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {type.label}
+                  </span>
                 </div>
-                <div className="mt-2 text-lg font-semibold text-gray-800">
+                <div className="mt-2 text-lg font-semibold text-gray-800 dark:text-gray-200">
                   {type.value}
                 </div>
               </li>
@@ -276,21 +293,21 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
           </ul>
         </div>
 
-        <div className="flex-1 rounded-lg bg-white p-4 shadow-md">
-          <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700">
+        <div className="flex-1 rounded-lg bg-white p-4 shadow-md dark:bg-gray-900">
+          <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700 dark:text-gray-200">
             <Network className="h-5 w-5 text-gray-500" />
             <span>Network Statistics</span>
           </h3>
           <div className="mt-4 h-full">
-            <div className="flex items-center justify-center space-x-2 rounded-lg bg-gray-50 p-4 shadow-sm">
+            <div className="flex items-center justify-center space-x-2 rounded-lg bg-gray-50 p-4 shadow-sm dark:bg-gray-800">
               <Upload className="h-5 w-5 text-yellow-500" />
-              <span className="text-lg font-semibold text-gray-800">
+              <span className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                 {prettyBytes(data.networkStatistics.sentBytes)}
               </span>
             </div>
-            <div className="mt-4 flex items-center justify-center space-x-2 rounded-lg bg-gray-50 p-4 shadow-sm">
+            <div className="mt-4 flex items-center justify-center space-x-2 rounded-lg bg-gray-50 p-4 shadow-sm dark:bg-gray-800">
               <Download className="h-5 w-5 text-blue-600" />
-              <span className="text-lg font-semibold text-gray-800">
+              <span className="text-lg font-semibold text-gray-800 dark:text-gray-200">
                 {prettyBytes(data.networkStatistics.receivedBytes)}
               </span>
             </div>

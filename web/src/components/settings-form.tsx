@@ -51,14 +51,14 @@ export default function SettingsForm() {
       className="flex h-full flex-col overflow-hidden"
     >
       <div className="flex flex-col space-y-4 overflow-y-scroll">
-        <p className="rounded-md bg-gray-50 p-2 text-sm text-muted-foreground shadow">
+        <p className="rounded-md bg-gray-50 p-2 text-sm text-muted-foreground shadow dark:bg-gray-700">
           <Bell className="mr-2 inline-block h-4 w-4" />
           These settings will be applied to all accounts.
         </p>
         <div className="w-full rounded-md border p-4 shadow">
           <p className="mb-1 text-xs text-muted-foreground">Your root path</p>
           <div className="flex items-center justify-between space-x-1">
-            <p className="bg-gray-50 rounded-md p-2 text-xs text-muted-foreground">
+            <p className="bg-gray-50 rounded-md p-2 text-xs text-muted-foreground dark:bg-gray-700">
               {account?.rootPath}
             </p>
             <Button
@@ -204,7 +204,7 @@ export default function SettingsForm() {
         </div>
       </div>
       <div className="mt-2 flex flex-1 justify-end">
-        <Button type="submit">Submit</Button>
+        <Button className="w-full md:w-auto" type="submit">Submit</Button>
       </div>
     </form>
   );

@@ -34,17 +34,17 @@ export default function FileNotFount() {
 
       {/* Inner Circles */}
       <OrbitingCircles
-        className="size-[30px] border-none bg-transparent"
+        className="size-[30px] border-none bg-transparent dark:bg-transparent"
         duration={20}
         delay={20}
         radius={80}
       >
-        <div className="rounded bg-gray-100 p-2">
+        <div className="rounded bg-gray-100 p-2 dark:bg-gray-800">
           <FolderClosed className="h-4 w-4 stroke-1" />
         </div>
       </OrbitingCircles>
       <OrbitingCircles
-        className="size-[30px] border-none bg-transparent"
+        className="size-[30px] border-none bg-transparent dark:bg-transparent"
         duration={20}
         delay={10}
         radius={80}
@@ -54,17 +54,17 @@ export default function FileNotFount() {
 
       {/* Outer Circles (reverse) */}
       <OrbitingCircles
-        className="size-[100px] border-none bg-transparent"
+        className="size-[100px] border-none bg-transparent dark:bg-transparent"
         radius={120}
         duration={20}
         reverse
       >
-        <div className="rounded bg-gray-100 p-2">
+        <div className="rounded bg-gray-100 p-2 dark:bg-gray-800">
           <ImageIcon className="h-4 w-4 stroke-1" />
         </div>
       </OrbitingCircles>
       <OrbitingCircles
-        className="size-[120px] border-none bg-transparent"
+        className="size-[120px] border-none bg-transparent dark:bg-transparent"
         radius={160}
         duration={20}
         delay={20}
@@ -74,7 +74,7 @@ export default function FileNotFount() {
       </OrbitingCircles>
 
       <OrbitingCircles
-        className="size-[160px] border-none bg-transparent"
+        className="size-[160px] border-none bg-transparent dark:bg-transparent"
         circleClassName="stroke-black/5 stroke-1 dark:stroke-white/5"
         radius={200}
         duration={20}
@@ -84,7 +84,7 @@ export default function FileNotFount() {
       </OrbitingCircles>
 
       <OrbitingCircles
-        className="size-[160px] border-none bg-transparent"
+        className="size-[160px] border-none bg-transparent dark:bg-transparent"
         circleClassName="stroke-black/5 stroke-1 dark:stroke-white/5"
         radius={200}
         duration={20}
@@ -94,13 +94,13 @@ export default function FileNotFount() {
       </OrbitingCircles>
 
       <OrbitingCircles
-        className="size-[200px] border-none bg-transparent"
+        className="size-[200px] border-none bg-transparent dark:bg-transparent"
         circleClassName="stroke-black/5 stroke-1 dark:stroke-white/5"
         radius={240}
       >
       </OrbitingCircles>
       <OrbitingCircles
-        className="size-[280px] border-none bg-transparent"
+        className="size-[280px] border-none bg-transparent dark:bg-transparent"
         circleClassName="stroke-black/5 stroke-1 dark:stroke-white/5"
         radius={280}
       ></OrbitingCircles>
