@@ -8,7 +8,7 @@ import useSWRInfinite from "swr/infinite";
 import { useWebsocket } from "@/hooks/use-websocket";
 import { WebSocketMessageType } from "@/lib/websocket-types";
 import useLocalStorage from "@/hooks/use-local-storage";
-import {useDebounce} from "use-debounce";
+import { useDebounce } from "use-debounce";
 
 const DEFAULT_FILTERS: FileFilter = {
   search: "",
@@ -31,6 +31,7 @@ export function useFiles(accountId: string, chatId: string) {
         downloadStatus: DownloadStatus;
         localPath: string;
         completionDate: number;
+        downloadedSize: number;
       }
     >
   >({});
@@ -76,6 +77,7 @@ export function useFiles(accountId: string, chatId: string) {
       downloadStatus: DownloadStatus;
       localPath: string;
       completionDate: number;
+      downloadedSize: number;
     };
 
     setLatestFileStatus((prev) => ({
@@ -84,7 +86,10 @@ export function useFiles(accountId: string, chatId: string) {
         downloadStatus:
           data.downloadStatus ?? prev[data.fileId]?.downloadStatus,
         localPath: data.localPath ?? prev[data.fileId]?.localPath,
-        completionDate: data.completionDate ?? prev[data.fileId]?.completionDate,
+        completionDate:
+          data.completionDate ?? prev[data.fileId]?.completionDate,
+        downloadedSize:
+          data.downloadedSize ?? prev[data.fileId]?.downloadedSize,
       },
     }));
   }, [lastJsonMessage]);
@@ -101,6 +106,8 @@ export function useFiles(accountId: string, chatId: string) {
           localPath: latestFilesStatus[file.id]?.localPath ?? file.localPath,
           completionDate:
             latestFilesStatus[file.id]?.completionDate ?? file.completionDate,
+          downloadedSize:
+            latestFilesStatus[file.id]?.downloadedSize ?? file.downloadedSize,
         });
       });
     });

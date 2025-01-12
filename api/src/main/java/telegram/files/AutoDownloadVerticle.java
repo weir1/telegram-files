@@ -110,7 +110,7 @@ public class AutoDownloadVerticle extends AbstractVerticle {
         });
         vertx.eventBus().consumer(EventEnum.SETTING_UPDATE.address(SettingKey.autoDownloadLimit.name()), message -> {
             log.debug("Auto download limit update: %s".formatted(message.body()));
-            this.limit = Convert.toInt(message.body());
+            this.limit = Convert.toInt(message.body(), DEFAULT_LIMIT);
         });
         vertx.eventBus().consumer(EventEnum.MESSAGE_RECEIVED.address(), message -> {
             log.trace("Auto download message received: %s".formatted(message.body()));

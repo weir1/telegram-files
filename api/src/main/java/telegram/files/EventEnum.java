@@ -23,6 +23,14 @@ public enum EventEnum {
      * body = JSONObject with "telegramId", "chatId", "messageId"
      */
     MESSAGE_RECEIVED,
+
+    /**
+     * suffix = null <br>
+     * body = JSONObject with "telegramId", "payload"
+     *
+     * @see telegram.files.EventPayload
+     */
+    TELEGRAM_EVENT,
     ;
 
     public String address() {

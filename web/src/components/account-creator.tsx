@@ -171,8 +171,8 @@ export default function AccountCreator({
 
   if (!authState && !isMethodExecuting) {
     return (
-      <div className="flex items-center justify-center space-x-2 text-xl">
-        <p>Waiting for the telegram account to be initialized, please wait</p>
+      <div className="flex flex-col items-center justify-center space-y-2 rounded bg-gray-50 p-2">
+        <p>Waiting for the telegram account to be initialized, please wait.</p>
         <p>If it takes too long, please refresh the page or try again later.</p>
         <Ellipsis className="h-4 w-4 animate-pulse" />
       </div>

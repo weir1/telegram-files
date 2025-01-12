@@ -17,6 +17,7 @@ import {
 import { useToast } from "./use-toast";
 import { useDebounce } from "use-debounce";
 import { getWsUrl } from "@/lib/api";
+import { useParams } from "next/navigation";
 
 const WS_URL = `${getWsUrl()}`;
 
@@ -39,6 +40,7 @@ interface WebSocketProviderProps {
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
   children,
 }) => {
+  const params = useParams();
   const [isReady, setIsReady] = useState(false);
   const [accountDownloadSpeed, setAccountDownloadSpeed] = useState({
     speed: 0,
@@ -46,17 +48,20 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
     lastTimestamp: 0,
   });
   const { toast } = useToast();
-  const [debounceSpeed] = useDebounce(accountDownloadSpeed.speed, 1000, {
+  const [debounceSpeed] = useDebounce(accountDownloadSpeed.speed, 300, {
     leading: true,
-    maxWait: 2000,
+    maxWait: 1000,
   });
 
   const { sendMessage, lastJsonMessage, readyState } =
-    useWebSocket<WebSocketMessage>(WS_URL, {
-      shouldReconnect: (closeEvent) => true,
-      reconnectAttempts: 3,
-      reconnectInterval: 3000,
-    });
+    useWebSocket<WebSocketMessage>(
+      `${WS_URL}?telegramId=${(params.accountId as string) ?? ""}`,
+      {
+        shouldReconnect: (closeEvent) => true,
+        reconnectAttempts: 3,
+        reconnectInterval: 3000,
+      },
+    );
 
   const connectionStatus = {
     [ReadyState.CONNECTING]: "Connecting",
@@ -106,7 +111,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({
                 lastDownloadedSize: downloadedSize,
               };
               const timeDiff = (timestamp - prev.lastTimestamp) / 1000;
-              if (prev.lastTimestamp === 0 || timeDiff <= 0) {
+              if (prev.lastTimestamp === 0 || timeDiff <= 0 || downloadedSize <= prev.lastDownloadedSize) {
                 return {
                   ...state,
                   speed: prev.speed,

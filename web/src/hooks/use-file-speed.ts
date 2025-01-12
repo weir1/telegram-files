@@ -14,9 +14,14 @@ export function useFileSpeed(fileId: number) {
     lastTimestamp: 0,
   });
 
-  const [debounceSpeed] = useDebounce(downloadSpeed.speed, 1000, {
+  const [debounceSpeed] = useDebounce(downloadSpeed.speed, 300, {
     leading: true,
-    maxWait: 2000,
+    maxWait: 1000,
+  });
+
+  const [debounceProgress] = useDebounce(downloadProgress, 300, {
+    leading: true,
+    maxWait: 1000,
   });
 
   useEffect(() => {
@@ -94,7 +99,7 @@ export function useFileSpeed(fileId: number) {
   }, []);
 
   return {
-    downloadProgress,
+    downloadProgress: debounceProgress,
     downloadSpeed: debounceSpeed,
   };
 }

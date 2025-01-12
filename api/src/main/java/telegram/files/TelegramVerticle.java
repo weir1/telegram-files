@@ -42,8 +42,6 @@ public class TelegramVerticle extends AbstractVerticle {
 
     private Client client;
 
-    private volatile String httpSessionId;
-
     public boolean authorized = false;
 
     public TdApi.AuthorizationState lastAuthorizationState;
@@ -61,6 +59,10 @@ public class TelegramVerticle extends AbstractVerticle {
     private AvgSpeed avgSpeed = new AvgSpeed();
 
     private long avgSpeedPersistenceTimerId;
+
+    private long lastFileEventTime;
+
+    private long lastFileDownloadEventTime;
 
     static {
         Client.setLogMessageHandler(0, new LogMessageHandler());
@@ -135,10 +137,6 @@ public class TelegramVerticle extends AbstractVerticle {
             return false;
         }
         return true;
-    }
-
-    public void bindHttpSession(String httpSessionId) {
-        this.httpSessionId = httpSessionId;
     }
 
     public Future<JsonObject> getTelegramAccount() {
@@ -441,11 +439,6 @@ public class TelegramVerticle extends AbstractVerticle {
 
                     return this.execute(new TdApi.ToggleDownloadIsPaused(fileId, isPaused));
                 })
-                .onSuccess(r ->
-                        sendHttpEvent(EventPayload.build(EventPayload.TYPE_FILE_STATUS, new JsonObject()
-                                .put("fileId", fileId)
-                                .put("downloadStatus", isPaused ? FileRecord.DownloadStatus.paused : FileRecord.DownloadStatus.downloading)
-                        )))
                 .mapEmpty();
     }
 
@@ -644,14 +637,8 @@ public class TelegramVerticle extends AbstractVerticle {
     }
 
     private void sendHttpEvent(EventPayload payload) {
-        if (this.httpSessionId == null) return;
-
-        String address = HttpVerticle.getWSHandlerId(httpSessionId);
-        if (address == null) {
-            log.debug("[%s] Can not found websocket textHandlerID for session id:%s".formatted(getRootId(), httpSessionId));
-            return;
-        }
-        vertx.eventBus().send(address, Json.encode(payload));
+        vertx.eventBus().send(EventEnum.TELEGRAM_EVENT.address(),
+                JsonObject.of("telegramId", this.getId(), "payload", JsonObject.mapFrom(payload)));
     }
 
     private void handleAuthorizationResult(TdApi.Object object) {
@@ -797,6 +784,7 @@ public class TelegramVerticle extends AbstractVerticle {
         if (file != null) {
             String localPath = null;
             Long completionDate = null;
+            long downloadedSize = file.local == null ? 0 : file.local.downloadedSize;
             if (file.local != null && file.local.isDownloadingCompleted) {
                 localPath = file.local.path;
                 completionDate = System.currentTimeMillis();
@@ -814,16 +802,23 @@ public class TelegramVerticle extends AbstractVerticle {
                                 .put("downloadStatus", r.getString("downloadStatus"))
                                 .put("localPath", r.getString("localPath"))
                                 .put("completionDate", r.getLong("completionDate"))
+                                .put("downloadedSize", downloadedSize)
                         ));
                     });
         }
-        sendHttpEvent(EventPayload.build(EventPayload.TYPE_FILE, updateFile));
+        if (lastFileEventTime == 0 || System.currentTimeMillis() - lastFileEventTime > 1000) {
+            sendHttpEvent(EventPayload.build(EventPayload.TYPE_FILE, updateFile));
+            lastFileEventTime = System.currentTimeMillis();
+        }
     }
 
     private void onFileDownloadsUpdated(TdApi.UpdateFileDownloads updateFileDownloads) {
         log.trace("[%s] Receive file downloads update: %s".formatted(getRootId(), updateFileDownloads));
         avgSpeed.update(updateFileDownloads.downloadedSize, System.currentTimeMillis());
-        sendHttpEvent(EventPayload.build(EventPayload.TYPE_FILE_DOWNLOAD, updateFileDownloads));
+        if (lastFileDownloadEventTime == 0 || System.currentTimeMillis() - lastFileDownloadEventTime > 1000) {
+            sendHttpEvent(EventPayload.build(EventPayload.TYPE_FILE_DOWNLOAD, updateFileDownloads));
+            lastFileDownloadEventTime = System.currentTimeMillis();
+        }
     }
 
     private void onMessageReceived(TdApi.Message message) {

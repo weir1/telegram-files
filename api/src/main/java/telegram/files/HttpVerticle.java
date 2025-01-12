@@ -13,6 +13,7 @@ import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.healthchecks.HealthCheckHandler;
@@ -55,6 +56,7 @@ public class HttpVerticle extends AbstractVerticle {
         initHttpServer()
                 .compose(r -> initTelegramVerticles())
                 .compose(r -> initAutoDownloadVerticle())
+                .compose(r -> initEventConsumer())
                 .onSuccess(startPromise::complete)
                 .onFailure(startPromise::fail);
     }
@@ -216,12 +218,37 @@ public class HttpVerticle extends AbstractVerticle {
                 .mapEmpty();
     }
 
+    private Future<Void> initEventConsumer() {
+        vertx.eventBus().consumer(EventEnum.TELEGRAM_EVENT.address(), message -> {
+            log.debug("Received telegram event: %s".formatted(message.body()));
+            JsonObject jsonObject = (JsonObject) message.body();
+            String telegramId = jsonObject.getString("telegramId");
+            EventPayload payload = jsonObject.getJsonObject("payload").mapTo(EventPayload.class);
+
+            sessionTelegramVerticles.entrySet().stream()
+                    .filter(e -> Objects.equals(Convert.toStr(e.getValue().getId()), telegramId))
+                    .map(Map.Entry::getKey)
+                    .forEach(sessionId -> {
+                        String wsHandlerId = clients.get(sessionId);
+                        if (StrUtil.isNotBlank(wsHandlerId)) {
+                            vertx.eventBus().send(wsHandlerId, Json.encode(payload));
+                        }
+                    });
+        });
+
+        return Future.succeededFuture();
+    }
+
     private void handleWebSocket(RoutingContext ctx) {
         String sessionId = ctx.session().id();
+        String telegramId = ctx.request().getParam("telegramId");
         ctx.request().toWebSocket()
                 .onSuccess(ws -> {
                     log.debug("Upgraded to WebSocket. SessionId: %s".formatted(sessionId));
                     clients.put(sessionId, ws.textHandlerID());
+                    if (StrUtil.isNotBlank(telegramId) && !handleTelegramChange(sessionId, telegramId)) {
+                        log.debug("Failed to change telegram verticle. SessionId: %s".formatted(sessionId));
+                    }
 
                     long timerId = vertx.setPeriodic(30000, id -> {
                         if (!ws.isClosed()) {
@@ -237,9 +264,7 @@ public class HttpVerticle extends AbstractVerticle {
                         log.debug("WebSocket closed. SessionId: %s".formatted(sessionId));
                     });
 
-                    ws.textMessageHandler(text -> {
-                        log.debug("Received WebSocket message: " + text);
-                    });
+                    ws.textMessageHandler(text -> log.debug("Received WebSocket message: " + text));
                 })
                 .onFailure(err -> log.warn("Failed to upgrade to WebSocket: %s".formatted(err.getMessage())));
     }
@@ -303,7 +328,6 @@ public class HttpVerticle extends AbstractVerticle {
         String proxyName = jsonObject.getString("proxyName");
 
         TelegramVerticle newTelegramVerticle = new TelegramVerticle(DataVerticle.telegramRepository.getRootPath());
-        newTelegramVerticle.bindHttpSession(sessionId);
         newTelegramVerticle.setProxy(proxyName);
         sessionTelegramVerticles.put(sessionId, newTelegramVerticle);
         telegramVerticles.add(newTelegramVerticle);
@@ -356,11 +380,10 @@ public class HttpVerticle extends AbstractVerticle {
         String query = ctx.request().getParam("query");
         String chatId = ctx.request().getParam("chatId");
         getTelegramVerticle(telegramId)
-                .ifPresentOrElse(telegramVerticle -> {
-                    telegramVerticle.getChats(Convert.toLong(chatId), query)
-                            .onSuccess(ctx::json)
-                            .onFailure(ctx::fail);
-                }, () -> ctx.fail(404));
+                .ifPresentOrElse(telegramVerticle ->
+                        telegramVerticle.getChats(Convert.toLong(chatId), query)
+                                .onSuccess(ctx::json)
+                                .onFailure(ctx::fail), () -> ctx.fail(404));
     }
 
     private void handleTelegramFiles(RoutingContext ctx) {
@@ -427,16 +450,24 @@ public class HttpVerticle extends AbstractVerticle {
     private void handleTelegramChange(RoutingContext ctx) {
         String sessionId = ctx.session().id();
         String telegramId = ctx.request().getParam("telegramId");
+        if (handleTelegramChange(sessionId, telegramId)) {
+            ctx.end();
+        } else {
+            ctx.fail(400);
+        }
+    }
+
+    private boolean handleTelegramChange(String sessionId, String telegramId) {
         if (StrUtil.isBlank(telegramId)) {
             sessionTelegramVerticles.remove(sessionId);
-            ctx.end();
+            return true;
         }
-        getTelegramVerticle(telegramId)
-                .ifPresentOrElse(telegramVerticle -> {
-                    telegramVerticle.bindHttpSession(sessionId);
-                    sessionTelegramVerticles.put(sessionId, telegramVerticle);
-                    ctx.end();
-                }, () -> ctx.fail(404));
+        Optional<TelegramVerticle> optionalTelegramVerticle = getTelegramVerticle(telegramId);
+        if (optionalTelegramVerticle.isEmpty()) {
+            return false;
+        }
+        sessionTelegramVerticles.put(sessionId, optionalTelegramVerticle.get());
+        return true;
     }
 
     private void handleTelegramToggleProxy(RoutingContext ctx) {
@@ -478,13 +509,11 @@ public class HttpVerticle extends AbstractVerticle {
             ctx.fail(400);
             return;
         }
-        String sessionId = ctx.session().id();
         TelegramVerticle telegramVerticle = getTelegramVerticle(ctx);
         if (telegramVerticle == null) {
             return;
         }
         JsonObject params = ctx.body().asJsonObject();
-        telegramVerticle.bindHttpSession(sessionId);
         telegramVerticle.execute(method, params == null ? null : params.getMap())
                 .onSuccess(code -> ctx.json(JsonObject.of("code", code)))
                 .onFailure(ctx::fail);
@@ -635,10 +664,6 @@ public class HttpVerticle extends AbstractVerticle {
         return telegramVerticles.stream()
                 .filter(t -> t.telegramRecord != null && t.telegramRecord.id() == telegramId)
                 .findFirst();
-    }
-
-    public static String getWSHandlerId(String sessionId) {
-        return clients.get(sessionId);
     }
 
     private TelegramVerticle getTelegramVerticle(RoutingContext ctx) {
