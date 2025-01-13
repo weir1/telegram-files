@@ -314,10 +314,11 @@ public class FileRepositoryImpl implements FileRepository {
 
                     return SqlTemplate
                             .forUpdate(pool, """
-                                    UPDATE file_record SET local_path = #{localPath},
+                                    UPDATE file_record SET id = #{fileId},
+                                                           local_path = #{localPath},
                                                            download_status = #{downloadStatus},
                                                            completion_date = #{completionDate}
-                                    WHERE id = #{fileId} AND unique_id = #{uniqueId}
+                                    WHERE unique_id = #{uniqueId}
                                     """)
                             .execute(MapUtil.ofEntries(MapUtil.entry("fileId", fileId),
                                     MapUtil.entry("uniqueId", uniqueId),
