@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [ "dev", "main" ]
+    paths:
+      - 'api/**'
+  pull_request:
+    branches: [ "main", "dev" ]
+    paths:
+      - 'api/**'
+
+jobs:
+  build:
+    runs-on: 'ubuntu-24.04'
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: ./api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Cache tdlib and config
+        id: cache-tdlib
+        uses: actions/cache@v3
+        with:
+          path: |
+            ../libs
+            ../.env.test
+          key: ${{ runner.os }}-tdlib-1.15.0
+
+      - name: Download tdlib and create .env.test file
+        if: steps.cache-tdlib.outputs.cache-hit != 'true'
+        run: |
+          cd ../ && \
+          wget --no-check-certificate -q -O libs.zip https://github.com/p-vorobyev/spring-boot-starter-telegram/releases/download/1.15.0/libs.zip && \
+          unzip -q libs.zip && \
+          cat <<EOF > .env.test
+          TDLIB_PATH=../libs/linux_x64
+          APP_ENV=prod
+          APP_ROOT=${{ github.workspace }}/data
+          TELEGRAM_API_ID=94575
+          TELEGRAM_API_HASH=a3406de8d171bb422bb6ddf3bbd800e2
+          LOG_LEVEL=FINE
+          EOF
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build with Gradle
+        run: ./gradlew build
+
+      - name: Run tests
+        run: ./gradlew test
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

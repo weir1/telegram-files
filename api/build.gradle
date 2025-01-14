@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'com.gradleup.shadow' version '8.3.5'
+    id 'jacoco'
 }
 
 group = 'telegram.files'
@@ -45,6 +46,20 @@ test {
     jvmArgs "-Djava.library.path=${System.getenv('TDLIB_PATH')}"
     environment "APP_ROOT", "${testClassesDirs.asPath}"
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = false
+    }
+    afterEvaluate {
+        classDirectories = files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: "org/drinkless/tdlib/**")
+        })
+    }
 }
 
 tasks.build {
