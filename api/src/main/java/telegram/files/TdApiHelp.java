@@ -223,6 +223,8 @@ public class TdApiHelp {
         public T getContent() {
             return content;
         }
+
+        public abstract TdApi.File getFile();
     }
 
     public static class PhotoHandler extends FileHandler<TdApi.MessagePhoto> {
@@ -263,17 +265,17 @@ public class TdApiHelp {
 
         @Override
         public FileRecord convertFileRecord(long telegramId) {
-            TdApi.PhotoSize photoSize = content.photo.sizes[content.photo.sizes.length - 1];
+            TdApi.File file = getFile();
             return new FileRecord(
                     getFileId(),
-                    photoSize.photo.remote.uniqueId,
+                    file.remote.uniqueId,
                     telegramId,
                     message.chatId,
                     message.id,
                     message.date,
                     message.hasSensitiveContent,
-                    photoSize.photo.size == 0 ? photoSize.photo.expectedSize : photoSize.photo.size,
-                    photoSize.photo.local == null ? 0 : photoSize.photo.local.downloadedSize,
+                    file.size == 0 ? file.expectedSize : file.size,
+                    file.local == null ? 0 : file.local.downloadedSize,
                     "photo",
                     null,
                     null,
@@ -284,6 +286,11 @@ public class TdApiHelp {
                     System.currentTimeMillis(),
                     null
             );
+        }
+
+        @Override
+        public TdApi.File getFile() {
+            return content.photo.sizes[content.photo.sizes.length - 1].photo;
         }
     }
 
@@ -318,7 +325,7 @@ public class TdApiHelp {
 
         @Override
         public FileRecord convertFileRecord(long telegramId) {
-            TdApi.File file = content.video.video;
+            TdApi.File file = getFile();
             return new FileRecord(
                     file.id,
                     file.remote.uniqueId,
@@ -340,6 +347,11 @@ public class TdApiHelp {
                     null
             );
         }
+
+        @Override
+        public TdApi.File getFile() {
+            return content.video.video;
+        }
     }
 
     public static class AudioHandler extends FileHandler<TdApi.MessageAudio> {
@@ -360,7 +372,7 @@ public class TdApiHelp {
 
         @Override
         public FileRecord convertFileRecord(long telegramId) {
-            TdApi.File file = content.audio.audio;
+            TdApi.File file = getFile();
             return new FileRecord(
                     file.id,
                     file.remote.uniqueId,
@@ -382,6 +394,11 @@ public class TdApiHelp {
                     null
             );
         }
+
+        @Override
+        public TdApi.File getFile() {
+            return content.audio.audio;
+        }
     }
 
     public static class DocumentHandler extends FileHandler<TdApi.MessageDocument> {
@@ -402,7 +419,7 @@ public class TdApiHelp {
 
         @Override
         public FileRecord convertFileRecord(long telegramId) {
-            TdApi.File file = content.document.document;
+            TdApi.File file = getFile();
             return new FileRecord(
                     file.id,
                     file.remote.uniqueId,
@@ -423,6 +440,11 @@ public class TdApiHelp {
                     System.currentTimeMillis(),
                     null
             );
+        }
+
+        @Override
+        public TdApi.File getFile() {
+            return content.document.document;
         }
     }
 

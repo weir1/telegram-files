@@ -259,12 +259,39 @@ public class TelegramVerticle extends AbstractVerticle {
             searchChatMessages.limit = Convert.toInt(filter.get("limit"), 20);
             searchChatMessages.filter = TdApiHelp.getSearchMessagesFilter(filter.get("type"));
 
-            return this.execute(searchChatMessages)
+            return (Objects.equals(filter.get("status"), FileRecord.DownloadStatus.idle.name()) ?
+                    this.getIdleChatFiles(searchChatMessages) :
+                    this.execute(searchChatMessages))
                     .compose(foundChatMessages ->
                             DataVerticle.fileRepository.getFilesByUniqueId(TdApiHelp.getFileUniqueIds(Arrays.asList(foundChatMessages.messages)))
                                     .map(fileRecords -> Tuple.tuple(foundChatMessages, fileRecords)))
-                    .compose(r -> this.convertFiles(r, filter));
+                    .compose(this::convertFiles);
         }
+    }
+
+    private Future<TdApi.FoundChatMessages> getIdleChatFiles(TdApi.SearchChatMessages searchChatMessages) {
+        return this.execute(searchChatMessages)
+                .compose(foundChatMessages -> {
+                    TdApi.Message[] messages = Stream.of(foundChatMessages.messages)
+                            .filter(message ->
+                                    TdApiHelp.getFileHandler(message)
+                                            .map(TdApiHelp.FileHandler::getFile)
+                                            .map(file -> file.local == null || (
+                                                    !file.local.isDownloadingActive
+                                                    && !file.local.isDownloadingCompleted
+                                                    && file.local.downloadedSize == 0
+                                            ))
+                                            .orElse(false)
+                            )
+                            .toArray(TdApi.Message[]::new);
+                    if (ArrayUtil.isEmpty(messages)) {
+                        searchChatMessages.fromMessageId = foundChatMessages.nextFromMessageId;
+                        return getIdleChatFiles(searchChatMessages);
+                    } else {
+                        foundChatMessages.messages = messages;
+                        return Future.succeededFuture(foundChatMessages);
+                    }
+                });
     }
 
     public Future<JsonObject> getChatFilesCount(long chatId) {
@@ -363,7 +390,13 @@ public class TelegramVerticle extends AbstractVerticle {
                     TdApi.Message message = results.resultAt(1);
                     if (file.local != null) {
                         if (file.local.isDownloadingCompleted) {
-                            return Future.failedFuture("File already downloaded");
+                            return DataVerticle.fileRepository.updateStatus(
+                                    file.id,
+                                    file.remote.uniqueId,
+                                    file.local.path,
+                                    FileRecord.DownloadStatus.completed,
+                                    System.currentTimeMillis()
+                            ).compose(r -> Future.failedFuture("File is already downloaded successfully"));
                         }
                         if (file.local.isDownloadingActive) {
                             return Future.failedFuture("File is downloading");
@@ -862,10 +895,9 @@ public class TelegramVerticle extends AbstractVerticle {
                 ));
     }
 
-    private Future<JsonObject> convertFiles(Tuple2<TdApi.FoundChatMessages, Map<String, FileRecord>> tuple, MultiMap filter) {
+    private Future<JsonObject> convertFiles(Tuple2<TdApi.FoundChatMessages, Map<String, FileRecord>> tuple) {
         TdApi.FoundChatMessages foundChatMessages = tuple.v1;
         Map<String, FileRecord> fileRecords = tuple.v2;
-        boolean searchIdle = Objects.equals(filter.get("status"), FileRecord.DownloadStatus.idle.name());
 
         return DataVerticle.settingRepository.<Boolean>getByKey(SettingKey.uniqueOnly)
                 .map(uniqueOnly -> {
@@ -889,9 +921,6 @@ public class TelegramVerticle extends AbstractVerticle {
                                     fileRecord = source;
                                 } else {
                                     fileRecord = fileRecord.withSourceField(source.id(), source.downloadedSize());
-                                }
-                                if (searchIdle && !Objects.equals(fileRecord.downloadStatus(), FileRecord.DownloadStatus.idle.name())) {
-                                    return null;
                                 }
 
                                 //TODO Processing of the same file under different accounts
