@@ -8,8 +8,10 @@
 <p align="center">
 	<img src="https://img.shields.io/github/license/jarvis2f/telegram-files?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
 	<img src="https://img.shields.io/github/last-commit/jarvis2f/telegram-files?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
-	<img src="https://img.shields.io/github/languages/top/jarvis2f/telegram-files?style=default&color=0080ff" alt="repo-top-language">
-	<img src="https://img.shields.io/github/languages/count/jarvis2f/telegram-files?style=default&color=0080ff" alt="repo-language-count">
+	<img src="https://img.shields.io/github/v/release/jarvis2f/telegram-files?style=default&logo=git&logoColor=white&color=0080ff" alt="release">
+    <a href="https://codecov.io/gh/jarvis2f/telegram-files" > 
+        <img src="https://codecov.io/gh/jarvis2f/telegram-files/graph/badge.svg?token=Y4YN2W8ARV"/> 
+    </a>
 </p>
 <br>
 
@@ -55,7 +57,8 @@
 
 ## 🚀 Getting Started
 
-Before getting started with telegram-files, you should apply a telegram api id and hash. You can apply for it on the [Telegram API](https://my.telegram.org/apps) page.
+Before getting started with telegram-files, you should apply a telegram api id and hash. You can apply for it on
+the [Telegram API](https://my.telegram.org/apps) page.
 
 **Using `docker`**
 &nbsp; [<img align="center" src="https://img.shields.io/badge/Docker-2CA5E0.svg?style={badge_style}&logo=docker&logoColor=white" />](https://www.docker.com/)
@@ -203,7 +206,8 @@ refer to the [LICENSE](LICENSE) file.
 
 ~~**Q.** Can't start the api server, error：`java.lang.UnsatisfiedLinkError: no tdjni in java.library.path`~~
 
-~~**A.** Maybe download tdlib failed, you can see the [entrypoint.sh](entrypoint.sh) file, then download tdlib manually.~~
+~~**A.** Maybe download tdlib failed, you can see the [entrypoint.sh](entrypoint.sh) file, then download tdlib
+manually.~~
 
 **Q.** Web's spoiler is static, how to solve it?
 
