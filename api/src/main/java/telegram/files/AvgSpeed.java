@@ -1,5 +1,6 @@
 package telegram.files;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -172,7 +173,7 @@ public class AvgSpeed {
             return 0;
         }
 
-        List<Long> speeds = speedPoints.values().stream()
+        List<Long> speeds = new ArrayList<>(speedPoints.values()).stream()
                 .map(point -> point.speed)
                 .filter(speed -> speed > 0)
                 .sorted()

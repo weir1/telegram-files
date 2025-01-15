@@ -100,17 +100,19 @@ public class DataVerticleTest {
         );
         String updateLocalPath = "local_path";
         Long completionDate = 1L;
+        int newFileId = 2;
         DataVerticle.fileRepository.create(fileRecord)
-                .compose(r -> DataVerticle.fileRepository.updateStatus(r.id(), r.uniqueId(), updateLocalPath, FileRecord.DownloadStatus.downloading, completionDate))
+                .compose(r -> DataVerticle.fileRepository.updateStatus(newFileId, r.uniqueId(), updateLocalPath, FileRecord.DownloadStatus.downloading, completionDate))
                 .compose(r -> {
                     testContext.verify(() -> {
                         Assertions.assertEquals(updateLocalPath, r.getString("localPath"));
                         Assertions.assertEquals(FileRecord.DownloadStatus.downloading.name(), r.getString("downloadStatus"));
                         Assertions.assertEquals(completionDate, r.getLong("completionDate"));
                     });
-                    return DataVerticle.fileRepository.getByPrimaryKey(fileRecord.id(), fileRecord.uniqueId());
+                    return DataVerticle.fileRepository.getByPrimaryKey(newFileId, fileRecord.uniqueId());
                 })
                 .onComplete(testContext.succeeding(r -> testContext.verify(() -> {
+                    Assertions.assertEquals(newFileId, r.id());
                     Assertions.assertEquals(FileRecord.DownloadStatus.downloading.name(), r.downloadStatus());
                     Assertions.assertEquals(updateLocalPath, r.localPath());
                     testContext.completeNow();

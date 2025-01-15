@@ -260,7 +260,7 @@ public class TelegramVerticle extends AbstractVerticle {
             searchChatMessages.filter = TdApiHelp.getSearchMessagesFilter(filter.get("type"));
 
             return (Objects.equals(filter.get("status"), FileRecord.DownloadStatus.idle.name()) ?
-                    this.getIdleChatFiles(searchChatMessages) :
+                    this.getIdleChatFiles(searchChatMessages, 0) :
                     this.execute(searchChatMessages))
                     .compose(foundChatMessages ->
                             DataVerticle.fileRepository.getFilesByUniqueId(TdApiHelp.getFileUniqueIds(Arrays.asList(foundChatMessages.messages)))
@@ -269,7 +269,11 @@ public class TelegramVerticle extends AbstractVerticle {
         }
     }
 
-    private Future<TdApi.FoundChatMessages> getIdleChatFiles(TdApi.SearchChatMessages searchChatMessages) {
+    private Future<TdApi.FoundChatMessages> getIdleChatFiles(TdApi.SearchChatMessages searchChatMessages, int seq) {
+        if (seq != 0) {
+            // Increase the limit and reduce the number of requests
+            searchChatMessages.limit = 100;
+        }
         return this.execute(searchChatMessages)
                 .compose(foundChatMessages -> {
                     TdApi.Message[] messages = Stream.of(foundChatMessages.messages)
@@ -284,9 +288,9 @@ public class TelegramVerticle extends AbstractVerticle {
                                             .orElse(false)
                             )
                             .toArray(TdApi.Message[]::new);
-                    if (ArrayUtil.isEmpty(messages)) {
+                    if (ArrayUtil.isEmpty(messages) && foundChatMessages.nextFromMessageId != 0) {
                         searchChatMessages.fromMessageId = foundChatMessages.nextFromMessageId;
-                        return getIdleChatFiles(searchChatMessages);
+                        return getIdleChatFiles(searchChatMessages, seq + 1);
                     } else {
                         foundChatMessages.messages = messages;
                         return Future.succeededFuture(foundChatMessages);
@@ -461,7 +465,14 @@ public class TelegramVerticle extends AbstractVerticle {
                                 file.local.path,
                                 FileRecord.DownloadStatus.completed,
                                 System.currentTimeMillis()
-                        ).compose(r -> Future.failedFuture("File is already downloaded successfully"));
+                        ).compose(r -> {
+                            sendFileStatusHttpEvent(file, r);
+                            if (r == null || r.isEmpty()) {
+                                return Future.failedFuture("File is downloaded completed, but update status failed");
+                            } else {
+                                return Future.failedFuture("File is already downloaded successfully");
+                            }
+                        });
                     }
                     if (isPaused && !file.local.isDownloadingActive) {
                         return Future.failedFuture("File is not downloading");
@@ -674,6 +685,17 @@ public class TelegramVerticle extends AbstractVerticle {
                 JsonObject.of("telegramId", this.getId(), "payload", JsonObject.mapFrom(payload)));
     }
 
+    private void sendFileStatusHttpEvent(TdApi.File file, JsonObject fileUpdated) {
+        if (fileUpdated == null || fileUpdated.isEmpty()) return;
+        sendHttpEvent(EventPayload.build(EventPayload.TYPE_FILE_STATUS, new JsonObject()
+                .put("fileId", file.id)
+                .put("downloadStatus", fileUpdated.getString("downloadStatus"))
+                .put("localPath", fileUpdated.getString("localPath"))
+                .put("completionDate", fileUpdated.getLong("completionDate"))
+                .put("downloadedSize", file.local.downloadedSize)
+        ));
+    }
+
     private void handleAuthorizationResult(TdApi.Object object) {
         switch (object.getConstructor()) {
             case TdApi.Error.CONSTRUCTOR:
@@ -828,16 +850,7 @@ public class TelegramVerticle extends AbstractVerticle {
                             localPath,
                             downloadStatus,
                             completionDate)
-                    .onSuccess(r -> {
-                        if (r == null || r.isEmpty()) return;
-                        sendHttpEvent(EventPayload.build(EventPayload.TYPE_FILE_STATUS, new JsonObject()
-                                .put("fileId", file.id)
-                                .put("downloadStatus", r.getString("downloadStatus"))
-                                .put("localPath", r.getString("localPath"))
-                                .put("completionDate", r.getLong("completionDate"))
-                                .put("downloadedSize", downloadedSize)
-                        ));
-                    });
+                    .onSuccess(r -> sendFileStatusHttpEvent(file, r));
         }
         if (lastFileEventTime == 0 || System.currentTimeMillis() - lastFileEventTime > 1000) {
             sendHttpEvent(EventPayload.build(EventPayload.TYPE_FILE, updateFile));
