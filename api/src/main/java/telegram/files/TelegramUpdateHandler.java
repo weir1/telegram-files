@@ -17,6 +17,8 @@ public class TelegramUpdateHandler implements Client.ResultHandler {
 
     private Consumer<TdApi.UpdateFileDownloads> onFileDownloadsUpdated;
 
+    private Consumer<TdApi.Object> onChatUpdated;
+
     private Consumer<TdApi.Message> onMessageReceived;
 
     @Override
@@ -40,6 +42,15 @@ public class TelegramUpdateHandler implements Client.ResultHandler {
                 if (onMessageReceived != null) {
                     onMessageReceived.accept(((TdApi.UpdateNewMessage) object).message);
                 }
+            case TdApi.UpdateNewChat.CONSTRUCTOR:
+            case TdApi.UpdateChatTitle.CONSTRUCTOR:
+            case TdApi.UpdateChatPhoto.CONSTRUCTOR:
+            case TdApi.UpdateChatReadInbox.CONSTRUCTOR:
+            case TdApi.UpdateChatLastMessage.CONSTRUCTOR:
+            case TdApi.UpdateChatPosition.CONSTRUCTOR:
+                if (onChatUpdated != null) {
+                    onChatUpdated.accept(object);
+                }
             default:
                 log.trace("Unsupported telegram update: %s".formatted(object));
         }
@@ -55,6 +66,10 @@ public class TelegramUpdateHandler implements Client.ResultHandler {
 
     public void setOnFileDownloadsUpdated(Consumer<TdApi.UpdateFileDownloads> onFileDownloadsUpdated) {
         this.onFileDownloadsUpdated = onFileDownloadsUpdated;
+    }
+
+    public void setOnChatUpdated(Consumer<TdApi.Object> onChatUpdated) {
+        this.onChatUpdated = onChatUpdated;
     }
 
     public void setOnMessageReceived(Consumer<TdApi.Message> onMessageReceived) {

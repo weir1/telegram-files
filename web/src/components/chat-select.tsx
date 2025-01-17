@@ -37,7 +37,7 @@ export default function ChatSelect({ disabled }: { disabled: boolean }) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full md:w-[250px] justify-between"
+          className="w-full justify-between md:w-[250px]"
         >
           {selectedChat ? (
             <div className="flex items-center gap-2">
@@ -45,10 +45,15 @@ export default function ChatSelect({ disabled }: { disabled: boolean }) {
                 <AvatarImage
                   src={`data:image/png;base64,${selectedChat.avatar}`}
                 />
-                <AvatarFallback>{selectedChat.name[0]}</AvatarFallback>
+                <AvatarFallback>
+                  {" "}
+                  {selectedChat.name[0] ?? selectedChat.id[0]}
+                </AvatarFallback>
               </Avatar>
               <span className="max-w-[170px] overflow-hidden truncate">
-                {selectedChat.name}
+                {(selectedChat.name ?? "").length > 0
+                  ? selectedChat.name
+                  : selectedChat.id}
               </span>
             </div>
           ) : (
@@ -73,7 +78,9 @@ export default function ChatSelect({ disabled }: { disabled: boolean }) {
                 </div>
               </CommandLoading>
             )}
-            <CommandEmpty>{!isLoading && chats.length === 0 && "No chat found."}</CommandEmpty>
+            <CommandEmpty>
+              {!isLoading && chats.length === 0 && "No chat found."}
+            </CommandEmpty>
             <CommandGroup>
               {chats.map((chat) => (
                 <CommandItem
@@ -97,10 +104,14 @@ export default function ChatSelect({ disabled }: { disabled: boolean }) {
                       <AvatarImage
                         src={`data:image/png;base64,${chat.avatar}`}
                       />
-                      <AvatarFallback>{chat.name[0]}</AvatarFallback>
+                      <AvatarFallback>
+                        {chat.name[0] ?? chat.id[0]}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">
-                      <span className="font-medium">{chat.name}</span>
+                      <span className="font-medium">
+                        {(chat.name ?? "").length > 0 ? chat.name : chat.id}
+                      </span>
                       <span className="text-xs text-muted-foreground">
                         {chat.type} • {chat.unreadCount ?? 0} unread
                       </span>
