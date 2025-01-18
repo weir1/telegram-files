@@ -70,7 +70,9 @@ export default function AutoDownloadDialog() {
   });
 
   if (isLoading) {
-    return <div className="h-8 w-32 animate-pulse bg-gray-200 dark:bg-gray-700"></div>;
+    return (
+      <div className="h-8 w-32 animate-pulse bg-gray-200 dark:bg-gray-700"></div>
+    );
   }
 
   return (
@@ -102,12 +104,12 @@ export default function AutoDownloadDialog() {
             {chat.autoRule && (
               <div className="space-y-4">
                 <div className="flex items-center">
-                  <Label className="text-sm font-semibold text-gray-900">
+                  <Label className="text-sm font-semibold text-gray-900 dark:text-gray-300">
                     Current Rule
                   </Label>
                   <Badge
                     variant="outline"
-                    className="ml-2 border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-700"
+                    className="ml-2 border-none bg-green-500 px-2 py-0.5 text-xs text-white dark:bg-green-800 dark:text-green-200"
                   >
                     Active
                   </Badge>
@@ -115,19 +117,19 @@ export default function AutoDownloadDialog() {
 
                 <div className="space-y-3">
                   {/* Filter Keyword Section */}
-                  <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="rounded-lg bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
                     <div className="flex flex-col space-y-1">
                       <span className="text-xs font-medium text-gray-500">
                         Filter Keyword
                       </span>
-                      <span className="text-sm text-gray-900">
+                      <span className="text-sm text-gray-900 dark:text-gray-300">
                         {chat.autoRule.query || "No keyword specified"}
                       </span>
                     </div>
                   </div>
 
-                  <div className="rounded-lg bg-gray-50 p-3">
-                    <span className="text-xs font-medium text-gray-500">
+                  <div className="rounded-lg bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-300">
                       File Types
                     </span>
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -136,13 +138,13 @@ export default function AutoDownloadDialog() {
                           <Badge
                             key={type}
                             variant="secondary"
-                            className="flex items-center gap-1 border-gray-200 bg-white px-3 py-1 capitalize text-gray-700"
+                            className="flex items-center gap-1 border-gray-200 bg-white px-3 py-1 capitalize text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
                           >
                             {type}
                           </Badge>
                         ))
                       ) : (
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-gray-500 dark:text-gray-300">
                           No file types selected
                         </span>
                       )}
@@ -151,7 +153,7 @@ export default function AutoDownloadDialog() {
                 </div>
               </div>
             )}
-            <div className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4 dark:bg-gray-800 dark:border-gray-700">
+            <div className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
               <div className="flex items-start">
                 <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-yellow-400"></span>
                 <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
@@ -170,7 +172,7 @@ export default function AutoDownloadDialog() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4 dark:bg-gray-800 dark:border-gray-700">
+            <div className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
               <div className="flex items-start">
                 <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-cyan-400"></span>
                 <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
@@ -189,7 +191,7 @@ export default function AutoDownloadDialog() {
                 <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-cyan-400"></span>
                 <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
                   Download Order:
-                  <span className="ml-1 rounded bg-blue-100 px-2 dark:bg-blue-800 dark:text-blue-200 text-blue-700">
+                  <span className="ml-1 rounded bg-blue-100 px-2 text-blue-700 dark:bg-blue-800 dark:text-blue-200">
                     {"Photo -> Video -> Audio -> File"}
                   </span>
                 </p>
