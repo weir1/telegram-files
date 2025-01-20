@@ -743,7 +743,10 @@ public class TelegramVerticle extends AbstractVerticle {
                             .compose(user ->
                                     DataVerticle.telegramRepository.create(new TelegramRecord(user.id, user.firstName, this.rootPath, this.proxyName))
                             )
-                            .onSuccess(o -> log.info("[%s] %s Authorization Ready".formatted(getRootId(), this.telegramRecord.firstName())))
+                            .onSuccess(o -> {
+                                telegramRecord = o;
+                                log.info("[%s] %s Authorization Ready".formatted(getRootId(), this.telegramRecord.firstName()));
+                            })
                             .onFailure(e -> log.error("[%s] Authorization Ready, but failed to create telegram record: %s".formatted(getRootId(), e.getMessage())));
                 } else {
                     log.info("[%s] %s Authorization Ready".formatted(getRootId(), this.telegramRecord.firstName()));
