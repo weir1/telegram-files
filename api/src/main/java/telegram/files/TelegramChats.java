@@ -4,8 +4,12 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
 import org.drinkless.tdlib.TdApi;
+import org.jooq.lambda.tuple.Tuple;
 
-import java.util.*;
+import java.util.List;
+import java.util.NavigableSet;
+import java.util.Objects;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -19,14 +23,18 @@ public class TelegramChats {
 
     private final NavigableSet<OrderedChat> mainChatList = new TreeSet<>();
 
+    private final NavigableSet<OrderedChat> archivedChatList = new TreeSet<>();
+
     private boolean haveFullMainChatList = false;
+
+    private boolean haveFullArchivedChatList = false;
 
     public TelegramChats(TelegramClient client) {
         this.client = client;
     }
 
-    public List<TdApi.Chat> getMainChatList(Long activatedChatId, String query, int limit) {
-        List<TdApi.Chat> chatList = mainChatList.stream()
+    public List<TdApi.Chat> getChatList(Long activatedChatId, String query, int limit, boolean archived) {
+        List<TdApi.Chat> chatList = (archived ? archivedChatList : mainChatList).stream()
                 .map(OrderedChat::chatId)
                 .map(chats::get)
                 .filter(Objects::nonNull)
@@ -65,6 +73,27 @@ public class TelegramChats {
         }
     }
 
+    public void loadArchivedChatList() {
+        synchronized (archivedChatList) {
+            if (!haveFullArchivedChatList) {
+                // send LoadChats request if there are some unknown chats and have not enough known chats
+                client.execute(new TdApi.LoadChats(new TdApi.ChatListArchive(), 100))
+                        .onSuccess(object -> {
+                            // chats had already been received through updates, let's retry request
+                            loadArchivedChatList();
+                        })
+                        .onFailure(error -> {
+                            if (((TelegramRunException) error).getError().code == 404) {
+                                synchronized (archivedChatList) {
+                                    haveFullArchivedChatList = true;
+                                    log.debug("Archived chat list is loaded, size: %d".formatted(archivedChatList.size()));
+                                }
+                            }
+                        });
+            }
+        }
+    }
+
     public void onChatUpdated(TdApi.Object object) {
         switch (object.getConstructor()) {
             case TdApi.UpdateNewChat.CONSTRUCTOR: {
@@ -74,7 +103,6 @@ public class TelegramChats {
                     chats.put(chat.id, chat);
 
                     TdApi.ChatPosition[] positions = chat.positions;
-                    chat.positions = new TdApi.ChatPosition[0];
                     setChatPositions(chat, positions);
                 }
                 break;
@@ -115,7 +143,8 @@ public class TelegramChats {
             }
             case TdApi.UpdateChatPosition.CONSTRUCTOR: {
                 TdApi.UpdateChatPosition updateChat = (TdApi.UpdateChatPosition) object;
-                if (updateChat.position.list.getConstructor() != TdApi.ChatListMain.CONSTRUCTOR) {
+                if (updateChat.position.list.getConstructor() != TdApi.ChatListMain.CONSTRUCTOR
+                    && updateChat.position.list.getConstructor() != TdApi.ChatListArchive.CONSTRUCTOR) {
                     break;
                 }
 
@@ -123,7 +152,7 @@ public class TelegramChats {
                 synchronized (chat) {
                     int i;
                     for (i = 0; i < chat.positions.length; i++) {
-                        if (chat.positions[i].list.getConstructor() == TdApi.ChatListMain.CONSTRUCTOR) {
+                        if (chat.positions[i].list.getConstructor() == updateChat.position.list.getConstructor()) {
                             break;
                         }
                     }
@@ -147,12 +176,17 @@ public class TelegramChats {
     }
 
     private void setChatPositions(TdApi.Chat chat, TdApi.ChatPosition[] positions) {
-        synchronized (mainChatList) {
+        synchronized (Tuple.tuple(mainChatList, archivedChatList)) {
             synchronized (chat) {
                 for (TdApi.ChatPosition position : chat.positions) {
                     if (position.list.getConstructor() == TdApi.ChatListMain.CONSTRUCTOR) {
                         if (!mainChatList.remove(new OrderedChat(chat.id, position))) {
                             log.warn("Chat %d was not found in mainChatList".formatted(chat.id));
+                        }
+                    }
+                    if (position.list.getConstructor() == TdApi.ChatListArchive.CONSTRUCTOR) {
+                        if (!archivedChatList.remove(new OrderedChat(chat.id, position))) {
+                            log.warn("Chat %d was not found in archivedChatList".formatted(chat.id));
                         }
                     }
                 }
@@ -163,6 +197,11 @@ public class TelegramChats {
                     if (position.list.getConstructor() == TdApi.ChatListMain.CONSTRUCTOR) {
                         if (!mainChatList.add(new OrderedChat(chat.id, position))) {
                             log.warn("Chat %d was already in mainChatList".formatted(chat.id));
+                        }
+                    }
+                    if (position.list.getConstructor() == TdApi.ChatListArchive.CONSTRUCTOR) {
+                        if (!archivedChatList.add(new OrderedChat(chat.id, position))) {
+                            log.warn("Chat %d was already in archivedChatList".formatted(chat.id));
                         }
                     }
                 }

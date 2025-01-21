@@ -28,6 +28,10 @@ export const SWRProvider = ({ children }: { children: React.ReactNode }) => {
             message = err.message;
           }
 
+          if (key.startsWith("http")) {
+            key = new URL(key).pathname;
+          }
+
           toast({
             description: (
               <div className="w-full flex flex-col space-y-2 overflow-hidden">

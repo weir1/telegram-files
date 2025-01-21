@@ -380,9 +380,10 @@ public class HttpVerticle extends AbstractVerticle {
         }
         String query = ctx.request().getParam("query");
         String chatId = ctx.request().getParam("chatId");
+        String archived = ctx.request().getParam("archived");
         getTelegramVerticle(telegramId)
                 .ifPresentOrElse(telegramVerticle ->
-                        telegramVerticle.getChats(Convert.toLong(chatId), query)
+                        telegramVerticle.getChats(Convert.toLong(chatId), query, Convert.toBool(archived, false))
                                 .onSuccess(ctx::json)
                                 .onFailure(ctx::fail), () -> ctx.fail(404));
     }

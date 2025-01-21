@@ -171,8 +171,8 @@ public class TelegramVerticle extends AbstractVerticle {
         });
     }
 
-    public Future<JsonArray> getChats(Long activatedChatId, String query) {
-        return this.convertChat(telegramChats.getMainChatList(activatedChatId, query, 100));
+    public Future<JsonArray> getChats(Long activatedChatId, String query, boolean archived) {
+        return this.convertChat(telegramChats.getChatList(activatedChatId, query, 100, archived));
     }
 
     public Future<JsonObject> getChatFiles(long chatId, MultiMap filter) {
@@ -753,6 +753,7 @@ public class TelegramVerticle extends AbstractVerticle {
                 }
                 sendHttpEvent(EventPayload.build(EventPayload.TYPE_AUTHORIZATION, authorizationState));
                 telegramChats.loadMainChatList();
+                telegramChats.loadArchivedChatList();
                 break;
             case TdApi.AuthorizationStateLoggingOut.CONSTRUCTOR:
                 break;

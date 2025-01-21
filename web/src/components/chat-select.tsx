@@ -1,4 +1,4 @@
-import { Check, ChevronsUpDown, Ellipsis } from "lucide-react";
+import { Archive, Check, ChevronsUpDown, Ellipsis, List } from "lucide-react";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import {
@@ -14,21 +14,29 @@ import { useTelegramChat } from "@/hooks/use-telegram-chat";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { CommandLoading } from "cmdk";
+import { Toggle } from "./ui/toggle";
+import { TooltipWrapper } from "@/components/ui/tooltip";
 
 export default function ChatSelect({ disabled }: { disabled: boolean }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [archived, setArchived] = useState(false);
   const {
     isLoading,
     handleQueryChange,
     chats,
     chat: selectedChat,
     handleChatChange,
+    handleArchivedChange,
   } = useTelegramChat();
 
   useEffect(() => {
     handleQueryChange(search);
   }, [search, handleQueryChange]);
+
+  useEffect(() => {
+    handleArchivedChange(archived);
+  }, [archived, handleArchivedChange]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -64,12 +72,31 @@ export default function ChatSelect({ disabled }: { disabled: boolean }) {
       </PopoverTrigger>
       <PopoverContent className="w-[300px] p-0">
         <Command shouldFilter={false}>
-          <CommandInput
-            placeholder="Search chat..."
-            className="h-9"
-            value={search}
-            onValueChange={setSearch}
-          />
+          <div className="flex w-full border-b">
+            <TooltipWrapper
+              content={archived ? "Show main chats" : "Show archived chats"}
+            >
+              <Toggle
+                className="h-9 rounded-none border-r"
+                pressed={archived}
+                onPressedChange={setArchived}
+              >
+                {archived ? (
+                  <Archive className="h-5 w-5" />
+                ) : (
+                  <List className="h-5 w-5" />
+                )}
+              </Toggle>
+            </TooltipWrapper>
+            <div className="flex-1">
+              <CommandInput
+                placeholder="Search chat..."
+                className="h-9"
+                value={search}
+                onValueChange={setSearch}
+              />
+            </div>
+          </div>
           <CommandList className="relative">
             {isLoading && (
               <CommandLoading>

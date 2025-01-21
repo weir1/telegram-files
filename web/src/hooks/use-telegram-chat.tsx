@@ -14,8 +14,10 @@ interface TelegramChatContextType {
   chat?: TelegramChat;
   chats: TelegramChat[];
   query: string;
+  archived: boolean;
   handleChatChange: (chatId: string) => void;
   handleQueryChange: (search: string) => void;
+  handleArchivedChange: (archived: boolean) => void;
 }
 
 const TelegramChatContext = createContext<TelegramChatContextType | undefined>(
@@ -30,6 +32,7 @@ export const TelegramChatProvider: React.FC<TelegramChatProviderProps> = ({
   children,
 }) => {
   const [query, setQuery] = useState("");
+  const [archived, setArchived] = useState(false);
   const params = useParams<{ accountId: string; chatId: string }>();
   const router = useRouter();
   const { toast } = useToast();
@@ -44,7 +47,7 @@ export const TelegramChatProvider: React.FC<TelegramChatProviderProps> = ({
     isLoading,
     mutate,
   } = useSWR<TelegramChat[]>(
-    `/telegram/${accountId}/chats?query=${query}&chatId=${chatId ?? ""}`,
+    `/telegram/${accountId}/chats?query=${query}&archived=${archived}&chatId=${chatId ?? ""}`,
   );
 
   const chat = useMemo(
@@ -77,8 +80,10 @@ export const TelegramChatProvider: React.FC<TelegramChatProviderProps> = ({
         chat,
         chats: chats ?? [],
         query,
+        archived,
         handleChatChange,
         handleQueryChange: handleQueryChange,
+        handleArchivedChange: setArchived,
       }}
     >
       {children}
