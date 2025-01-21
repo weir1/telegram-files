@@ -1,5 +1,7 @@
 package telegram.files.repository;
 
+import telegram.files.Transfer;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -40,12 +42,38 @@ public class SettingAutoRecords {
 
         public List<String> fileTypes;
 
+        public TransferRule transferRule;
+
         public Rule() {
         }
 
-        public Rule(String query, List<String> fileTypes) {
+        public Rule(String query, List<String> fileTypes, TransferRule transferRule) {
             this.query = query;
             this.fileTypes = fileTypes;
+            this.transferRule = transferRule;
+        }
+    }
+
+    public static class TransferRule {
+        public boolean transferHistory;
+
+        public String destination;
+
+        public Transfer.TransferPolicy transferPolicy;
+
+        public Transfer.DuplicationPolicy duplicationPolicy;
+
+        public TransferRule() {
+        }
+
+        public TransferRule(boolean transferHistory,
+                            String destination,
+                            Transfer.TransferPolicy transferPolicy,
+                            Transfer.DuplicationPolicy duplicationPolicy) {
+            this.transferHistory = transferHistory;
+            this.destination = destination;
+            this.transferPolicy = transferPolicy;
+            this.duplicationPolicy = duplicationPolicy;
         }
     }
 
@@ -78,6 +106,13 @@ public class SettingAutoRecords {
         return items.stream()
                 .filter(item -> item.telegramId == telegramId)
                 .collect(Collectors.toMap(i -> i.chatId, Function.identity()));
+    }
+
+    public Item getItem(long telegramId, long chatId) {
+        return items.stream()
+                .filter(item -> item.telegramId == telegramId && item.chatId == chatId)
+                .findFirst()
+                .orElse(null);
     }
 
 }

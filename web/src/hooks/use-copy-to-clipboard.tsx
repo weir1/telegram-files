@@ -13,7 +13,7 @@ export function useCopyToClipboard(): [string | null, (value: string) => void] {
           toast({
             title: "Successfully copied to clipboard",
             description: (
-              <p className="overflow-hidden">
+              <p className="line-clamp-1">
                 <code className="text-xs">{value}</code>
               </p>
             ),
@@ -26,7 +26,12 @@ export function useCopyToClipboard(): [string | null, (value: string) => void] {
         oldSchoolCopy(value);
         setState(value);
         toast({
-          description: `Successfully copied to clipboard: ${value}`,
+          title: "Successfully copied to clipboard",
+          description: (
+            <p className="line-clamp-1">
+              <code className="text-xs">{value}</code>
+            </p>
+          ),
         });
       }
     };

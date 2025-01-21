@@ -16,7 +16,10 @@ import telegram.files.repository.FileRecord;
 import telegram.files.repository.SettingAutoRecords;
 import telegram.files.repository.SettingKey;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -40,9 +43,16 @@ public class AutoDownloadVerticle extends AbstractVerticle {
     // telegramId -> messages
     private final Map<Long, LinkedList<TdApi.Message>> waitingDownloadMessages = new ConcurrentHashMap<>();
 
-    private final SettingAutoRecords autoRecords = new SettingAutoRecords();
+    private final SettingAutoRecords autoRecords;
 
     private int limit = DEFAULT_LIMIT;
+
+    public AutoDownloadVerticle(AutoRecordsHolder autoRecordsHolder) {
+        this.autoRecords = autoRecordsHolder.autoRecords();
+        autoRecordsHolder.registerOnRemoveListener(removedItems -> removedItems.forEach(item ->
+                waitingDownloadMessages.getOrDefault(item.telegramId, new LinkedList<>())
+                        .removeIf(m -> m.chatId == item.chatId)));
+    }
 
     @Override
     public void start(Promise<Void> startPromise) {
@@ -77,37 +87,17 @@ public class AutoDownloadVerticle extends AbstractVerticle {
     }
 
     private Future<Void> initAutoDownload() {
-        return Future.all(
-                DataVerticle.settingRepository.<Integer>getByKey(SettingKey.autoDownloadLimit)
-                        .onSuccess(limit -> {
-                            if (limit != null) {
-                                this.limit = limit;
-                            }
-                        })
-                        .onFailure(e -> log.error("Get Auto download limit failed!", e)),
-                DataVerticle.settingRepository.<SettingAutoRecords>getByKey(SettingKey.autoDownload)
-                        .onSuccess(settingAutoRecords -> {
-                            if (settingAutoRecords == null) {
-                                return;
-                            }
-                            settingAutoRecords.items.forEach(item -> HttpVerticle.getTelegramVerticle(item.telegramId)
-                                    .ifPresentOrElse(telegramVerticle -> {
-                                        if (telegramVerticle.authorized) {
-                                            autoRecords.add(item);
-                                        } else {
-                                            log.warn("Init auto download fail. Telegram verticle not authorized: %s".formatted(item.telegramId));
-                                        }
-                                    }, () -> log.warn("Init auto download fail. Telegram verticle not found: %s".formatted(item.telegramId))));
-                        })
-                        .onFailure(e -> log.error("Init Auto download failed!", e))
-        ).mapEmpty();
+        return DataVerticle.settingRepository.<Integer>getByKey(SettingKey.autoDownloadLimit)
+                .onSuccess(limit -> {
+                    if (limit != null) {
+                        this.limit = limit;
+                    }
+                })
+                .onFailure(e -> log.error("Get Auto download limit failed!", e))
+                .mapEmpty();
     }
 
     private Future<Void> initEventConsumer() {
-        vertx.eventBus().consumer(EventEnum.AUTO_DOWNLOAD_UPDATE.address(), message -> {
-            log.debug("Auto download update: %s".formatted(message.body()));
-            this.onAutoRecordsUpdate(Json.decodeValue(message.body().toString(), SettingAutoRecords.class));
-        });
         vertx.eventBus().consumer(EventEnum.SETTING_UPDATE.address(SettingKey.autoDownloadLimit.name()), message -> {
             log.debug("Auto download limit update: %s".formatted(message.body()));
             this.limit = Convert.toInt(message.body(), DEFAULT_LIMIT);
@@ -250,7 +240,7 @@ public class AutoDownloadVerticle extends AbstractVerticle {
                 .toList();
         downloadMessages.forEach(message -> {
             Integer fileId = TdApiHelp.getFileId(message);
-            log.debug("Start process file: %s".formatted(fileId));
+            log.debug("Start download file: %s".formatted(fileId));
             telegramVerticle.startDownload(message.chatId, message.id, fileId)
                     .onSuccess(v -> log.info("Start download file success! ChatId: %d MessageId:%d FileId:%d"
                             .formatted(message.chatId, message.id, fileId))
@@ -264,37 +254,6 @@ public class AutoDownloadVerticle extends AbstractVerticle {
     private TelegramVerticle getTelegramVerticle(long telegramId) {
         return HttpVerticle.getTelegramVerticle(telegramId)
                 .orElseThrow(() -> new IllegalArgumentException("Telegram verticle not found: %s".formatted(telegramId)));
-    }
-
-    private void onAutoRecordsUpdate(SettingAutoRecords records) {
-        for (SettingAutoRecords.Item item : records.items) {
-            if (!autoRecords.exists(item.telegramId, item.chatId)) {
-                // new enabled
-                HttpVerticle.getTelegramVerticle(item.telegramId)
-                        .ifPresentOrElse(telegramVerticle -> {
-                            if (telegramVerticle.authorized) {
-                                autoRecords.add(item);
-                                log.info("Add auto download success: %s".formatted(item.uniqueKey()));
-                            } else {
-                                log.warn("Add auto download fail. Telegram verticle not authorized: %s".formatted(item.telegramId));
-                            }
-                        }, () -> log.warn("Add auto download fail. Telegram verticle not found: %s".formatted(item.telegramId)));
-            }
-        }
-        // remove disabled
-        List<SettingAutoRecords.Item> removedItems = new ArrayList<>();
-        autoRecords.items.removeIf(item -> {
-            if (records.exists(item.telegramId, item.chatId)) {
-                return false;
-            }
-            removedItems.add(item);
-            log.info("Remove auto download success: %s".formatted(item.uniqueKey()));
-            return true;
-        });
-        removedItems.forEach(item ->
-                waitingDownloadMessages.getOrDefault(item.telegramId, new LinkedList<>())
-                        .removeIf(message -> message.chatId == item.chatId)
-        );
     }
 
     private void onNewMessage(JsonObject jsonObject) {

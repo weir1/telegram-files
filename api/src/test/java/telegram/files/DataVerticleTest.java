@@ -82,7 +82,7 @@ public class DataVerticleTest {
     @DisplayName("Test Get file record by primary key")
     void getFileRecordByPrimaryKeyTest(Vertx vertx, VertxTestContext testContext) {
         FileRecord fileRecord = new FileRecord(
-                1, "unique_id", 1, 1, 1, 1, false, 1, 0, "type", "mime_type", "file_name", "thumbnail", "caption", "local_path", "download_status", 0, null
+                1, "unique_id", 1, 1, 1, 1, false, 1, 0, "type", "mime_type", "file_name", "thumbnail", "caption", "local_path", "download_status", "transfer_status", 0, null
         );
         DataVerticle.fileRepository.create(fileRecord)
                 .compose(r -> DataVerticle.fileRepository.getByPrimaryKey(r.id(), r.uniqueId()))
@@ -93,16 +93,16 @@ public class DataVerticleTest {
     }
 
     @Test
-    @DisplayName("Test update file status")
-    void updateFileStatusTest(Vertx vertx, VertxTestContext testContext) {
+    @DisplayName("Test update file download status")
+    void updateFileDownloadStatusTest(Vertx vertx, VertxTestContext testContext) {
         FileRecord fileRecord = new FileRecord(
-                1, "unique_id", 1, 1, 1, 1, false, 1, 0, "type", "mime_type", "file_name", "thumbnail", "caption", null, "download_status", 0, null
+                1, "unique_id", 1, 1, 1, 1, false, 1, 0, "type", "mime_type", "file_name", "thumbnail", "caption", null, FileRecord.DownloadStatus.idle.name(), FileRecord.TransferStatus.idle.name(), 0, null
         );
         String updateLocalPath = "local_path";
         Long completionDate = 1L;
         int newFileId = 2;
         DataVerticle.fileRepository.create(fileRecord)
-                .compose(r -> DataVerticle.fileRepository.updateStatus(newFileId, r.uniqueId(), updateLocalPath, FileRecord.DownloadStatus.downloading, completionDate))
+                .compose(r -> DataVerticle.fileRepository.updateDownloadStatus(newFileId, r.uniqueId(), updateLocalPath, FileRecord.DownloadStatus.downloading, completionDate))
                 .compose(r -> {
                     testContext.verify(() -> {
                         Assertions.assertEquals(updateLocalPath, r.getString("localPath"));
@@ -114,6 +114,29 @@ public class DataVerticleTest {
                 .onComplete(testContext.succeeding(r -> testContext.verify(() -> {
                     Assertions.assertEquals(newFileId, r.id());
                     Assertions.assertEquals(FileRecord.DownloadStatus.downloading.name(), r.downloadStatus());
+                    Assertions.assertEquals(updateLocalPath, r.localPath());
+                    testContext.completeNow();
+                })));
+    }
+
+    @Test
+    @DisplayName("Test update file transfer status")
+    void updateFileTransferStatusTest(Vertx vertx, VertxTestContext testContext) {
+        FileRecord fileRecord = new FileRecord(
+                1, "unique_id", 1, 1, 1, 1, false, 1, 0, "type", "mime_type", "file_name", "thumbnail", "caption", null, FileRecord.DownloadStatus.idle.name(), FileRecord.TransferStatus.idle.name(), 0, null
+        );
+        String updateLocalPath = "local_path";
+        DataVerticle.fileRepository.create(fileRecord)
+                .compose(r -> DataVerticle.fileRepository.updateTransferStatus(r.uniqueId(), FileRecord.TransferStatus.completed, updateLocalPath))
+                .compose(r -> {
+                    testContext.verify(() -> {
+                        Assertions.assertEquals(updateLocalPath, r.getString("localPath"));
+                        Assertions.assertEquals(FileRecord.TransferStatus.completed.name(), r.getString("transferStatus"));
+                    });
+                    return DataVerticle.fileRepository.getByUniqueId(fileRecord.uniqueId());
+                })
+                .onComplete(testContext.succeeding(r -> testContext.verify(() -> {
+                    Assertions.assertEquals(FileRecord.TransferStatus.completed.name(), r.transferStatus());
                     Assertions.assertEquals(updateLocalPath, r.localPath());
                     testContext.completeNow();
                 })));

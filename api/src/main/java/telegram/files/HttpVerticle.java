@@ -26,6 +26,7 @@ import io.vertx.ext.web.handler.SessionHandler;
 import io.vertx.ext.web.sstore.LocalSessionStore;
 import io.vertx.ext.web.sstore.SessionStore;
 import org.drinkless.tdlib.TdApi;
+import telegram.files.repository.SettingAutoRecords;
 import telegram.files.repository.SettingKey;
 import telegram.files.repository.SettingRecord;
 import telegram.files.repository.TelegramRecord;
@@ -47,7 +48,7 @@ public class HttpVerticle extends AbstractVerticle {
     // session id -> telegram verticle
     private final Map<String, TelegramVerticle> sessionTelegramVerticles = new ConcurrentHashMap<>();
 
-    private AutoDownloadVerticle autoDownloadVerticle;
+    private final AutoRecordsHolder autoRecordsHolder = new AutoRecordsHolder();
 
     private static final String SESSION_COOKIE_NAME = "tf";
 
@@ -55,7 +56,9 @@ public class HttpVerticle extends AbstractVerticle {
     public void start(Promise<Void> startPromise) {
         initHttpServer()
                 .compose(r -> initTelegramVerticles())
+                .compose(r -> autoRecordsHolder.init())
                 .compose(r -> initAutoDownloadVerticle())
+                .compose(r -> initTransferVerticle())
                 .compose(r -> initEventConsumer())
                 .onSuccess(startPromise::complete)
                 .onFailure(startPromise::fail);
@@ -212,12 +215,19 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     public Future<Void> initAutoDownloadVerticle() {
-        autoDownloadVerticle = new AutoDownloadVerticle();
-        return vertx.deployVerticle(autoDownloadVerticle, new DeploymentOptions()
+        return vertx.deployVerticle(new AutoDownloadVerticle(autoRecordsHolder), new DeploymentOptions()
                         .setThreadingModel(ThreadingModel.VIRTUAL_THREAD)
                 )
                 .mapEmpty();
     }
+
+    public Future<Void> initTransferVerticle() {
+        return vertx.deployVerticle(new TransferVerticle(autoRecordsHolder), new DeploymentOptions()
+                        .setThreadingModel(ThreadingModel.VIRTUAL_THREAD)
+                )
+                .mapEmpty();
+    }
+
 
     private Future<Void> initEventConsumer() {
         vertx.eventBus().consumer(EventEnum.TELEGRAM_EVENT.address(), message -> {
@@ -237,6 +247,10 @@ public class HttpVerticle extends AbstractVerticle {
                     });
         });
 
+        vertx.eventBus().consumer(EventEnum.AUTO_DOWNLOAD_UPDATE.address(), message -> {
+            log.debug("Auto download update: %s".formatted(message.body()));
+            autoRecordsHolder.onAutoRecordsUpdate(Json.decodeValue(message.body().toString(), SettingAutoRecords.class));
+        });
         return Future.succeededFuture();
     }
 

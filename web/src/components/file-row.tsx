@@ -16,7 +16,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import PhotoPreview from "@/components/photo-preview";
-import { env } from "@/env";
 import prettyBytes from "pretty-bytes";
 import FileStatus from "@/components/file-status";
 import FileExtra from "@/components/file-extra";
@@ -114,13 +113,13 @@ export default function FileRow({
     type: (
       <div className="flex flex-col items-center">
         <span className="capitalize">{file.type}</span>
-        {env.NEXT_PUBLIC_MOCK_DATA === true && (
+        {process.env.NODE_ENV === "development" && (
           <span className="text-xs">{file.id}</span>
         )}
       </div>
     ),
     size: <span>{prettyBytes(file.size)}</span>,
-    status: <FileStatus status={file.downloadStatus} />,
+    status: <FileStatus file={file} />,
     extra: <FileExtra file={file} rowHeight={rowHeight} />,
     actions: (
       <FileControl

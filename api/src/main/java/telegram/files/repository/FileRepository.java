@@ -1,7 +1,6 @@
 package telegram.files.repository;
 
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.jooq.lambda.tuple.Tuple3;
@@ -14,7 +13,7 @@ public interface FileRepository {
 
     Future<Map<Integer, FileRecord>> getFiles(long chatId, List<Integer> fileIds);
 
-    Future<Tuple3<List<FileRecord>, Long, Long>> getFiles(long chatId, MultiMap filter);
+    Future<Tuple3<List<FileRecord>, Long, Long>> getFiles(long chatId, Map<String, String> filter);
 
     Future<Map<String, FileRecord>> getFilesByUniqueId(List<String> uniqueIds);
 
@@ -28,11 +27,15 @@ public interface FileRepository {
 
     Future<Integer> countByStatus(long telegramId, FileRecord.DownloadStatus downloadStatus);
 
-    Future<JsonObject> updateStatus(int fileId,
-                                    String uniqueId,
-                                    String localPath,
-                                    FileRecord.DownloadStatus downloadStatus,
-                                    Long completionDate);
+    Future<JsonObject> updateDownloadStatus(int fileId,
+                                            String uniqueId,
+                                            String localPath,
+                                            FileRecord.DownloadStatus downloadStatus,
+                                            Long completionDate);
+
+    Future<JsonObject> updateTransferStatus(String uniqueId,
+                                            FileRecord.TransferStatus transferStatus,
+                                            String localPath);
 
     Future<Void> updateFileId(int fileId, String uniqueId);
 

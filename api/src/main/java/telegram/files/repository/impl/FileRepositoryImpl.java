@@ -10,7 +10,6 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.jdbcclient.JDBCPool;
@@ -42,9 +41,9 @@ public class FileRepositoryImpl implements FileRepository {
                         INSERT INTO file_record(id, unique_id, telegram_id, chat_id, message_id, date, has_sensitive_content, size, downloaded_size,
                                                 type, mime_type,
                                                 file_name, thumbnail, caption, local_path,
-                                                download_status, start_date)
+                                                download_status, start_date, transfer_status)
                         values (#{id}, #{unique_id}, #{telegram_id}, #{chat_id}, #{message_id}, #{date}, #{has_sensitive_content}, #{size}, #{downloaded_size}, #{type},
-                                #{mime_type}, #{file_name}, #{thumbnail}, #{caption}, #{local_path}, #{download_status}, #{start_date})
+                                #{mime_type}, #{file_name}, #{thumbnail}, #{caption}, #{local_path}, #{download_status}, #{start_date}, #{transfer_status})
                         """)
                 .mapFrom(FileRecord.PARAM_MAPPER)
                 .execute(fileRecord)
@@ -78,17 +77,24 @@ public class FileRepositoryImpl implements FileRepository {
     }
 
     @Override
-    public Future<Tuple3<List<FileRecord>, Long, Long>> getFiles(long chatId, MultiMap filter) {
+    public Future<Tuple3<List<FileRecord>, Long, Long>> getFiles(long chatId, Map<String, String> filter) {
         String status = filter.get("status");
+        String transferStatus = filter.get("transferStatus");
         String search = filter.get("search");
         Long fromMessageId = Convert.toLong(filter.get("fromMessageId"), 0L);
         String type = filter.get("type");
+        int limit = Convert.toInt(filter.get("limit"), 20);
 
         String whereClause = "chat_id = #{chatId}";
         Map<String, Object> params = MapUtil.of("chatId", chatId);
+        params.put("limit", limit);
         if (StrUtil.isNotBlank(status)) {
             whereClause += " AND download_status = #{status}";
             params.put("status", status);
+        }
+        if (StrUtil.isNotBlank(transferStatus)) {
+            whereClause += " AND transfer_status = #{transferStatus}";
+            params.put("transferStatus", transferStatus);
         }
         if (StrUtil.isNotBlank(search)) {
             whereClause += " AND (file_name LIKE #{search} OR caption LIKE #{search})";
@@ -110,7 +116,7 @@ public class FileRepositoryImpl implements FileRepository {
         return Future.all(
                 SqlTemplate
                         .forQuery(pool, """
-                                SELECT * FROM file_record WHERE %s ORDER BY message_id desc LIMIT 20
+                                SELECT * FROM file_record WHERE %s ORDER BY message_id desc LIMIT #{limit}
                                 """.formatted(whereClause))
                         .mapTo(FileRecord.ROW_MAPPER)
                         .execute(params)
@@ -293,21 +299,26 @@ public class FileRepositoryImpl implements FileRepository {
     }
 
     @Override
-    public Future<JsonObject> updateStatus(int fileId,
-                                           String uniqueId,
-                                           String localPath,
-                                           FileRecord.DownloadStatus downloadStatus,
-                                           Long completionDate) {
+    public Future<JsonObject> updateDownloadStatus(int fileId,
+                                                   String uniqueId,
+                                                   String localPath,
+                                                   FileRecord.DownloadStatus downloadStatus,
+                                                   Long completionDate) {
         if (StrUtil.isBlank(localPath) && downloadStatus == null) {
             return Future.succeededFuture(null);
         }
         return getByUniqueId(uniqueId)
                 .compose(record -> {
-                    if (record == null) {
+                    if (record == null
+                        // Because if file transfer is completed,
+                        // the telegram client will detect the file and change the download status to paused
+                        || (downloadStatus == FileRecord.DownloadStatus.paused
+                            && record.isTransferStatus(FileRecord.TransferStatus.completed))
+                    ) {
                         return Future.succeededFuture(null);
                     }
                     boolean pathUpdated = !Objects.equals(record.localPath(), localPath);
-                    boolean downloadStatusUpdated = !Objects.equals(record.downloadStatus(), downloadStatus.name());
+                    boolean downloadStatusUpdated = !record.isDownloadStatus(downloadStatus);
                     if (!pathUpdated && !downloadStatusUpdated) {
                         return Future.succeededFuture(null);
                     }
@@ -339,7 +350,54 @@ public class FileRepositoryImpl implements FileRepository {
                                     result.put("downloadStatus", downloadStatus.name());
                                 }
                                 log.debug("Successfully updated file record: %s, path: %s, status: %s, before: %s, %s"
-                                        .formatted(fileId, localPath, downloadStatus.name(), record.localPath(), record.downloadStatus()));
+                                        .formatted(uniqueId, localPath, downloadStatus.name(), record.localPath(), record.downloadStatus()));
+                                return result;
+                            });
+                });
+    }
+
+    @Override
+    public Future<JsonObject> updateTransferStatus(String uniqueId,
+                                                   FileRecord.TransferStatus transferStatus,
+                                                   String localPath) {
+        if (StrUtil.isBlank(localPath) && transferStatus == null) {
+            return Future.succeededFuture(null);
+        }
+        return getByUniqueId(uniqueId)
+                .compose(record -> {
+                    if (record == null) {
+                        return Future.succeededFuture(null);
+                    }
+                    boolean pathUpdated = StrUtil.isNotBlank(localPath) && !Objects.equals(record.localPath(), localPath);
+                    boolean transferStatusUpdated = !record.isTransferStatus(transferStatus);
+                    if (!pathUpdated && !transferStatusUpdated) {
+                        return Future.succeededFuture(null);
+                    }
+
+                    return SqlTemplate
+                            .forUpdate(pool, """
+                                    UPDATE file_record
+                                    SET transfer_status = #{transferStatus},
+                                        local_path = #{localPath}
+                                    WHERE unique_id = #{uniqueId}
+                                    """)
+                            .execute(MapUtil.ofEntries(MapUtil.entry("uniqueId", uniqueId),
+                                    MapUtil.entry("localPath", pathUpdated ? localPath : record.localPath()),
+                                    MapUtil.entry("transferStatus", transferStatusUpdated ? transferStatus.name() : record.transferStatus())
+                            ))
+                            .onFailure(err ->
+                                    log.error("Failed to update file record: %s".formatted(err.getMessage()))
+                            )
+                            .map(r -> {
+                                JsonObject result = JsonObject.of();
+                                if (pathUpdated) {
+                                    result.put("localPath", localPath);
+                                }
+                                if (transferStatusUpdated) {
+                                    result.put("transferStatus", transferStatus.name());
+                                }
+                                log.debug("Successfully updated file record: %s, path: %s, transfer status: %s, before: %s %s"
+                                        .formatted(uniqueId, localPath, transferStatus.name(), record.localPath(), record.transferStatus()));
                                 return result;
                             });
                 });

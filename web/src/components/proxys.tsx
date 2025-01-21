@@ -224,7 +224,7 @@ export default function Proxys({
         ))}
       </div>
       {enableSelect && (
-        <div className="w-full absolute bottom-0 justify-end flex items-center space-x-4">
+        <div className="absolute bottom-0 flex w-full items-center justify-end space-x-4">
           <Button
             className="w-full md:w-auto"
             disabled={isToggleProxyMutating}
@@ -350,7 +350,7 @@ export default function Proxys({
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleCloseDialog} variant="ghost">
+            <Button onClick={handleCloseDialog} variant="outline">
               Cancel
             </Button>
             <Button onClick={handleSaveProxy}>

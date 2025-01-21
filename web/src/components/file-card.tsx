@@ -55,7 +55,7 @@ export function FileCard({ file }: FileCardProps) {
                 <span>
                   {prettyBytes(file.size)} • {file.type}
                 </span>
-                <FileStatus status={file.downloadStatus} />
+                <FileStatus file={file} />
               </div>
               <div
                 className={cn(
@@ -66,7 +66,11 @@ export function FileCard({ file }: FileCardProps) {
                 <FileProgress file={file} downloadProgress={downloadProgress} />
               </div>
               <div className="flex items-center justify-end">
-                <FileControl file={file} downloadSpeed={downloadSpeed} isMobile={true}/>
+                <FileControl
+                  file={file}
+                  downloadSpeed={downloadSpeed}
+                  isMobile={true}
+                />
               </div>
             </div>
           </div>
@@ -154,7 +158,7 @@ function FileDrawer({
             <span className="max-w-64 truncate">{file.fileName}</span>
           </DrawerTitle>
           <div className="py-1">
-            <FileStatus status={file.downloadStatus} />
+            <FileStatus file={file} />
           </div>
           {file.caption && (
             <SpoiledWrapper hasSensitiveContent={file.hasSensitiveContent}>

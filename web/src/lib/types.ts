@@ -31,6 +31,8 @@ export type DownloadStatus =
   | "completed"
   | "error";
 
+export type TransferStatus = "idle" | "transferring" | "completed" | "error";
+
 export type TelegramFile = {
   id: number;
   uniqueId: string;
@@ -49,6 +51,7 @@ export type TelegramFile = {
   hasSensitiveContent: boolean;
   startDate: number;
   completionDate: number;
+  transferStatus?: TransferStatus;
 };
 
 export type TDFile = {
@@ -110,7 +113,25 @@ export type Proxy = {
   isEnabled?: boolean;
 };
 
+export const TransferPolices = ["GROUP_BY_CHAT", "GROUP_BY_TYPE"] as const;
+export type TransferPolicy = (typeof TransferPolices)[number];
+export const DuplicationPolicies = [
+  "OVERWRITE",
+  "RENAME",
+  "SKIP",
+  "HASH",
+] as const;
+export type DuplicationPolicy = (typeof DuplicationPolicies)[number];
+
+export type TransferRule = {
+  transferHistory: boolean;
+  destination: string;
+  transferPolicy: TransferPolicy;
+  duplicationPolicy: DuplicationPolicy;
+};
+
 export type AutoDownloadRule = {
   query: string;
   fileTypes: Array<Exclude<FileType, "media">>;
+  transferRule?: TransferRule;
 };

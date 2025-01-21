@@ -25,12 +25,17 @@ public record FileRecord(int id, //file id will change
                          String caption,
                          String localPath,
                          String downloadStatus, // 'idle' | 'downloading' | 'paused' | 'completed' | 'error'
+                         String transferStatus, // 'idle' | 'transferring' | 'completed' | 'error'
                          long startDate, // date when the file was started to download
                          Long completionDate // date when the file was downloaded
 ) {
 
     public enum DownloadStatus {
         idle, downloading, paused, completed, error
+    }
+
+    public enum TransferStatus {
+        idle, transferring, completed, error
     }
 
     public static final String SCHEME = """
@@ -52,6 +57,7 @@ public record FileRecord(int id, //file id will change
                 caption             VARCHAR(255),
                 local_path          VARCHAR(255),
                 download_status     VARCHAR(255),
+                transfer_status     VARCHAR(255),
                 start_date          BIGINT,
                 completion_date     BIGINT,
                 PRIMARY KEY (id, unique_id)
@@ -62,6 +68,9 @@ public record FileRecord(int id, //file id will change
             MapUtil.entry(new Version("0.1.7"), new String[]{
                     "ALTER TABLE file_record ADD COLUMN start_date BIGINT;",
                     "ALTER TABLE file_record ADD COLUMN completion_date BIGINT;",
+            }),
+            MapUtil.entry(new Version("0.1.12"), new String[]{
+                    "ALTER TABLE file_record ADD COLUMN transfer_status VARCHAR(255) DEFAULT 'idle';",
             })
     ));
 
@@ -94,6 +103,7 @@ public record FileRecord(int id, //file id will change
                     row.getString("caption"),
                     row.getString("local_path"),
                     row.getString("download_status"),
+                    row.getString("transfer_status"),
                     Objects.requireNonNullElse(row.getLong("start_date"), 0L),
                     row.getLong("completion_date")
             );
@@ -116,12 +126,27 @@ public record FileRecord(int id, //file id will change
                     MapUtil.entry("caption", r.caption()),
                     MapUtil.entry("local_path", r.localPath()),
                     MapUtil.entry("download_status", r.downloadStatus()),
+                    MapUtil.entry("transfer_status", r.transferStatus()),
                     MapUtil.entry("start_date", r.startDate()),
                     MapUtil.entry("completion_date", r.completionDate())
             ));
 
     public FileRecord withSourceField(int id, long downloadedSize) {
-        return new FileRecord(id, uniqueId, telegramId, chatId, messageId, date, hasSensitiveContent, size, downloadedSize, type, mimeType, fileName, thumbnail, caption, localPath, downloadStatus, startDate, completionDate);
+        return new FileRecord(id, uniqueId, telegramId, chatId, messageId, date, hasSensitiveContent, size, downloadedSize, type, mimeType, fileName, thumbnail, caption, localPath, downloadStatus, transferStatus, startDate, completionDate);
+    }
+
+    public boolean isDownloadStatus(DownloadStatus status) {
+        if (status == null && downloadStatus == null) {
+            return true;
+        }
+        return downloadStatus != null && DownloadStatus.valueOf(downloadStatus) == status;
+    }
+
+    public boolean isTransferStatus(TransferStatus status) {
+        if (status == null && transferStatus == null) {
+            return true;
+        }
+        return transferStatus != null && TransferStatus.valueOf(transferStatus) == status;
     }
 }
 

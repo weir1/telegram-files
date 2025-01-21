@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   type DownloadStatus,
   type FileFilter,
-  type TelegramFile,
+  type TelegramFile, type TransferStatus,
 } from "@/lib/types";
 import useSWRInfinite from "swr/infinite";
 import { useWebsocket } from "@/hooks/use-websocket";
@@ -26,12 +26,14 @@ export function useFiles(accountId: string, chatId: string) {
   const { lastJsonMessage } = useWebsocket();
   const [latestFilesStatus, setLatestFileStatus] = useState<
     Record<
-      number,
+      string,
       {
+        fileId: number;
         downloadStatus: DownloadStatus;
         localPath: string;
         completionDate: number;
         downloadedSize: number;
+        transferStatus?: TransferStatus;
       }
     >
   >({});
@@ -74,22 +76,27 @@ export function useFiles(accountId: string, chatId: string) {
     }
     const data = lastJsonMessage.data as {
       fileId: number;
+      uniqueId: string;
       downloadStatus: DownloadStatus;
       localPath: string;
       completionDate: number;
       downloadedSize: number;
+      transferStatus?: TransferStatus;
     };
 
     setLatestFileStatus((prev) => ({
       ...prev,
-      [data.fileId]: {
+      [data.uniqueId]: {
+        fileId: data.fileId,
         downloadStatus:
-          data.downloadStatus ?? prev[data.fileId]?.downloadStatus,
-        localPath: data.localPath ?? prev[data.fileId]?.localPath,
+          data.downloadStatus ?? prev[data.uniqueId]?.downloadStatus,
+        localPath: data.localPath ?? prev[data.uniqueId]?.localPath,
         completionDate:
-          data.completionDate ?? prev[data.fileId]?.completionDate,
+          data.completionDate ?? prev[data.uniqueId]?.completionDate,
         downloadedSize:
-          data.downloadedSize ?? prev[data.fileId]?.downloadedSize,
+          data.downloadedSize ?? prev[data.uniqueId]?.downloadedSize,
+        transferStatus:
+          data.transferStatus ?? prev[data.uniqueId]?.transferStatus,
       },
     }));
   }, [lastJsonMessage]);
@@ -101,13 +108,16 @@ export function useFiles(accountId: string, chatId: string) {
       page.files.forEach((file) => {
         files.push({
           ...file,
+          id: latestFilesStatus[file.uniqueId]?.fileId ?? file.id,
           downloadStatus:
-            latestFilesStatus[file.id]?.downloadStatus ?? file.downloadStatus,
-          localPath: latestFilesStatus[file.id]?.localPath ?? file.localPath,
+            latestFilesStatus[file.uniqueId]?.downloadStatus ?? file.downloadStatus,
+          localPath: latestFilesStatus[file.uniqueId]?.localPath ?? file.localPath,
           completionDate:
-            latestFilesStatus[file.id]?.completionDate ?? file.completionDate,
+            latestFilesStatus[file.uniqueId]?.completionDate ?? file.completionDate,
           downloadedSize:
-            latestFilesStatus[file.id]?.downloadedSize ?? file.downloadedSize,
+            latestFilesStatus[file.uniqueId]?.downloadedSize ?? file.downloadedSize,
+          transferStatus:
+            latestFilesStatus[file.uniqueId]?.transferStatus ?? file.transferStatus,
         });
       });
     });

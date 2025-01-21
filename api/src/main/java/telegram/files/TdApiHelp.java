@@ -8,13 +8,11 @@ import cn.hutool.core.convert.Convert;
 import cn.hutool.core.convert.TypeConverter;
 import cn.hutool.core.util.ClassUtil;
 import cn.hutool.core.util.ReflectUtil;
-import io.vertx.core.Future;
 import io.vertx.core.impl.NoStackTraceException;
 import org.drinkless.tdlib.TdApi;
 import org.jooq.lambda.tuple.Tuple;
 import org.jooq.lambda.tuple.Tuple1;
 import telegram.files.repository.FileRecord;
-import telegram.files.repository.SettingKey;
 
 import java.util.*;
 
@@ -283,6 +281,7 @@ public class TdApiHelp {
                     content.caption.text,
                     null,
                     "idle",
+                    "idle",
                     System.currentTimeMillis(),
                     null
             );
@@ -343,6 +342,7 @@ public class TdApiHelp {
                     content.caption.text,
                     null,
                     "idle",
+                    "idle",
                     System.currentTimeMillis(),
                     null
             );
@@ -390,6 +390,7 @@ public class TdApiHelp {
                     content.caption.text,
                     null,
                     "idle",
+                    "idle",
                     System.currentTimeMillis(),
                     null
             );
@@ -436,6 +437,7 @@ public class TdApiHelp {
                     Base64.encode((byte[]) BeanUtil.getProperty(content, "document.minithumbnail.data")),
                     content.caption.text,
                     null,
+                    "idle",
                     "idle",
                     System.currentTimeMillis(),
                     null

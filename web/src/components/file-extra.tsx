@@ -95,7 +95,7 @@ function FilePath({ file }: { file: TelegramFile }) {
         </div>
       </TooltipTrigger>
       <TooltipContent>
-        <div className="max-w-80 text-wrap rounded p-2">{file.localPath}</div>
+        <div className="max-w-80 text-wrap rounded overflow-y-scroll">{file.localPath}</div>
       </TooltipContent>
     </Tooltip>
   );
