@@ -26,33 +26,46 @@ export function getWsUrl(): string {
 }
 
 /* eslint-disable */
-export async function request(
+export async function request<T = any>(
   api: string,
   requestInit?: RequestInit,
-): Promise<any> {
-  return fetch(`${getApiUrl()}${api}`, {
-    credentials: "include",
+): Promise<T> {
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+  };
+
+  const response = await fetch(`${getApiUrl()}${api}`, {
+    credentials: 'include',
     headers: {
-      "Content-Type": "application/json",
+      ...defaultHeaders,
+      ...requestInit?.headers,
     },
     ...requestInit,
-  }).then(async (res) => {
-    let responseText = "Failed to fetch";
-    try {
-      responseText = await res.text();
-      if (!responseText || responseText === "") {
-        return;
-      }
-      const data = JSON.parse(responseText);
-      if (res.ok) {
-        return data;
-      }
-      throw new Error(data.error ?? responseText);
-    } catch (err: Error | any) {
-      toast({ title: "Error", description: err.message });
-      throw err;
-    }
   });
+  const responseText = await response.text();
+  if (!responseText) {
+    return undefined as T;
+  }
+  let data;
+  try {
+    data = JSON.parse(responseText);
+  } catch (e) {
+    throw new RequestParsedError(responseText);
+  }
+  if (!response.ok) {
+    throw new Error(data.error ?? `Request failed with status ${response.status}`);
+  }
+
+  return data as T;
+}
+
+export class RequestParsedError extends Error {
+  responseText: string;
+
+  constructor(responseText: string) {
+    super('Parse JSON Error');
+    this.responseText = responseText;
+  }
 }
 
 export function localStorageProvider() {

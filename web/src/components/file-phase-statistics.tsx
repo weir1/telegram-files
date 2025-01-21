@@ -20,7 +20,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { request } from "@/lib/api";
 import prettyBytes from "pretty-bytes";
 
 // Type definitions
@@ -92,7 +91,6 @@ const TelegramStats: React.FC<TelegramStatsProps> = ({ telegramId }) => {
 
   const { data, error, isLoading } = useSWR<ApiResponse, Error>(
     `/telegram/${telegramId}/download-statistics?type=phase&timeRange=${timeRange}`,
-    request,
   );
 
   if (error) {

@@ -8,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { request } from "@/lib/api";
 import Link from "next/link";
 import TGDuck16HeyOut from "@/components/animations/tg-duck16_hey_out.json";
 import dynamic from "next/dynamic";
@@ -27,7 +26,6 @@ const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 export default function About() {
   const { data: apiData, error: apiError } = useSWR<VersionData, Error>(
     "/version",
-    request,
   );
   const { data: githubData, error: githubError } = useSWR<
     GitHubReleaseData,

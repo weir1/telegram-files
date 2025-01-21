@@ -32,7 +32,7 @@ export default function ProxyPing({ accountId }: { accountId: string }) {
             {isLoading && (
               <div className="h-6 w-16 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
             )}
-            {!isLoading && error && <span>Connection error</span>}
+            {!isLoading && error && <span>Failed</span>}
             {!isLoading && data && (
               <div className="flex h-6 items-center space-x-2">
                 <span className="text-sm">

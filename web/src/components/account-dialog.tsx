@@ -38,7 +38,7 @@ export function AccountDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent
         aria-describedby={undefined}
-        className="h-full w-full pb-16 md:h-auto md:min-h-40 md:min-w-[550px]"
+        className="h-full w-full md:h-auto md:min-h-40 md:min-w-[550px]"
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -50,20 +50,22 @@ export function AccountDialog({
             )}
           </DialogTitle>
         </DialogHeader>
-        <div className="relative h-full w-full">
+        <div className="flex flex-col">
           <AccountCreator
             isAdd={isAdd}
             proxyName={proxyName}
             onCreated={setNewAccountId}
             onLoginSuccess={() => setOpen(false)}
           />
-          <ProxysDialog
-            telegramId={newAccountId}
-            proxyName={proxyName}
-            onProxyNameChange={setProxyName}
-            enableSelect={true}
-            className="absolute bottom-1 right-1 md:-bottom-14 md:-right-4"
-          />
+          <div className="flex justify-end">
+            <ProxysDialog
+              telegramId={account ? account.id : newAccountId}
+              proxyName={proxyName}
+              onProxyNameChange={setProxyName}
+              enableSelect={true}
+              className="mt-3"
+            />
+          </div>
         </div>
       </DialogContent>
     </Dialog>

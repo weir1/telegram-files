@@ -144,6 +144,7 @@ public class HttpVerticle extends AbstractVerticle {
         router.post("/telegrams/change").handler(this::handleTelegramChange);
         router.post("/telegram/:telegramId/toggle-proxy").handler(this::handleTelegramToggleProxy);
         router.get("/telegram/:telegramId/ping").handler(this::handleTelegramPing);
+        router.get("/telegram/:telegramId/test-network").handler(this::handleTelegramTestNetwork);
 
         router.get("/file/preview").handler(this::handleFilePreview);
         router.post("/file/start-download").handler(this::handleFileStartDownload);
@@ -490,6 +491,21 @@ public class HttpVerticle extends AbstractVerticle {
                         telegramVerticle.ping()
                                 .onSuccess(r -> ctx.json(JsonObject.of("ping", r)))
                                 .onFailure(ctx::fail), () -> ctx.fail(404)
+                );
+    }
+
+    private void handleTelegramTestNetwork(RoutingContext ctx) {
+        String telegramId = ctx.pathParam("telegramId");
+        if (StrUtil.isBlank(telegramId)) {
+            ctx.fail(400);
+            return;
+        }
+        getTelegramVerticle(telegramId)
+                .ifPresentOrElse(telegramVerticle ->
+                                telegramVerticle.client.execute(new TdApi.TestNetwork())
+                                        .onComplete(r ->
+                                                ctx.json(JsonObject.of("success", r.succeeded()))),
+                        () -> ctx.fail(404)
                 );
     }
 

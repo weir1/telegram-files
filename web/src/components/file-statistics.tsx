@@ -19,7 +19,7 @@ import {
   Upload,
   Video,
 } from "lucide-react";
-import { request, telegramApi, type TelegramApiArg } from "@/lib/api";
+import { telegramApi, type TelegramApiArg } from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import useSWRMutation from "swr/mutation";
@@ -60,7 +60,6 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
   // Use SWR for data fetching and caching
   const { data, error, mutate } = useSWR<StatisticsData, Error>(
     `/telegram/${telegramId}/download-statistics`,
-    request,
   );
 
   const { trigger: triggerReset, isMutating: isResetMutating } = useSWRMutation<
@@ -248,8 +247,7 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
           {avgStatFields.map((stat, index) => (
             <div
               key={index}
-              className="flex flex-col space-y-3 rounded-xl border border-gray-100 p-4 transition-colors hover:border-gray-200 dark:border-gray-700
-              dark:hover:border-gray-600"
+              className="flex flex-col space-y-3 rounded-xl border border-gray-100 p-4 transition-colors hover:border-gray-200 dark:border-gray-700 dark:hover:border-gray-600"
             >
               <div className="flex items-center space-x-2">
                 <div className={`rounded-lg p-2 ${stat.bgColor}`}>

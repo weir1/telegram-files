@@ -6,7 +6,6 @@ import { AccountDialog } from "@/components/account-dialog";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { BorderBeam } from "@/components/ui/border-beam";
-import ProxysDialog from "@/components/proxys-dialog";
 
 interface EmptyStateProps {
   isLoadingAccount?: boolean;

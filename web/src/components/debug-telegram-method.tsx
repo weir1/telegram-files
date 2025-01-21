@@ -59,7 +59,7 @@ export default function DebugTelegramMethod() {
   const { data: methodData, isLoading: isMethodsLoading } = useSWR<
     TelegramMethodData,
     Error
-  >("/telegram/api/methods", request, {
+  >("/telegram/api/methods", {
     // 添加缓存以提升性能
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
