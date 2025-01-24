@@ -546,11 +546,11 @@ const PolicyLegends: Record<
   },
   OVERWRITE: {
     title: "Overwrite",
-    description: "This will overwrite the existing file if it already exists.",
+    description: "If destination exists same name file, move and overwrite the file.",
   },
   SKIP: {
     title: "Skip",
-    description: "This will skip the file if it already exists.",
+    description: "If destination exists same name file, skip the file, nothing to do.",
   },
   RENAME: {
     title: "Rename",

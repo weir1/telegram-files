@@ -172,3 +172,12 @@ Cookie: {{tf}}
     "@type": 1352130963
   }
 }
+
+### Telegram RequestQrCodeAuthentication
+POST http://{{server}}/telegram/api/RequestQrCodeAuthentication
+Content-Type: application/json
+Cookie: {{tf}}
+
+{
+  "otherUserIds": null
+}

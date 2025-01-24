@@ -68,6 +68,7 @@ public abstract class Transfer {
             }
 
             FileUtil.move(Path.of(fileRecord.localPath()), Path.of(transferPath), isOverwrite);
+            log.info("Transfer file {} to {}, duplication policy: {} overwrite: {}", fileRecord.id(), transferPath, duplicationPolicy, isOverwrite);
 
             transferStatusUpdated.accept(new TransferStatusUpdated(fileRecord, FileRecord.TransferStatus.completed, transferPath));
         } catch (Exception e) {

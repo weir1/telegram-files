@@ -3,7 +3,13 @@ import useSWRMutation from "swr/mutation";
 import { request } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useSWRConfig } from "swr";
-import React, { type FormEvent, useCallback, useEffect, useState } from "react";
+import React, {
+  type FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useDebounce } from "use-debounce";
 import { Ellipsis, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +29,9 @@ import {
 import { useWebsocket } from "@/hooks/use-websocket";
 import { useTelegramAccount } from "@/hooks/use-telegram-account";
 import TGDuck16Plane from "@/components/animations/tg-duck16_plane.json";
+import TGQRPlane from "@/components/animations/tg-qr-plane.json";
 import dynamic from "next/dynamic";
+import QRCodeStyling, { Options } from "qr-code-styling";
 
 interface AccountCreatorProps {
   isAdd?: boolean;
@@ -47,6 +55,7 @@ export default function AccountCreator({
   const { account, resetAccount } = useTelegramAccount();
   const [initSuccessfully, setInitSuccessfully] = useState(false);
   const [authState, setAuthState] = useState<number | undefined>(undefined);
+  const [qrCodeLink, setQrCodeLink] = useState<string | undefined>(undefined);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
@@ -83,6 +92,10 @@ export default function AccountCreator({
         case TelegramConstructor.WAIT_CODE:
         case TelegramConstructor.WAIT_PASSWORD:
           setAuthState(state.constructor);
+          break;
+        case TelegramConstructor.WAIT_OTHER_DEVICE_CONFIRMATION:
+          setAuthState(state.constructor);
+          setQrCodeLink(state.link as string);
           break;
         case TelegramConstructor.STATE_READY:
           toast({
@@ -204,6 +217,9 @@ export default function AccountCreator({
         />
       </div>
     ),
+    [TelegramConstructor.WAIT_OTHER_DEVICE_CONFIRMATION]: (
+      <QRCode link={qrCodeLink} />
+    ),
     [TelegramConstructor.WAIT_CODE]: (
       <div className="space-y-2">
         <Label htmlFor="code">Authentication Code</Label>
@@ -273,24 +289,123 @@ export default function AccountCreator({
     }
   };
 
+  const handleRequestQrCodeAuthentication = async () => {
+    await triggerMethod({
+      data: {
+        otherUserIds: null,
+      },
+      method: "RequestQrCodeAuthentication",
+    });
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {authState && (
         <>
           {authStateFormFields[authState]}
-          <Button
-            type="submit"
-            className={cn("w-full", isMethodExecuting ? "opacity-50" : "")}
-            disabled={isMethodExecuting}
-          >
-            {isMethodExecuting ? (
-              <LoaderCircle className="h-4 w-4 animate-spin" />
-            ) : (
-              "🚀 Submit"
-            )}
-          </Button>
+          {authState !== TelegramConstructor.WAIT_OTHER_DEVICE_CONFIRMATION && (
+            <Button
+              type="submit"
+              className={cn("w-full", isMethodExecuting ? "opacity-50" : "")}
+              disabled={isMethodExecuting}
+            >
+              {isMethodExecuting ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                "🚀 Submit"
+              )}
+            </Button>
+          )}
+          {authState === TelegramConstructor.WAIT_PHONE_NUMBER && (
+            <Button
+              variant="outline"
+              className={cn("w-full", isMethodExecuting ? "opacity-50" : "")}
+              disabled={isMethodExecuting}
+              onClick={handleRequestQrCodeAuthentication}
+            >
+              {isMethodExecuting ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                "LOG IN BY QR CODE"
+              )}
+            </Button>
+          )}
         </>
       )}
     </form>
+  );
+}
+
+const options: Options = {
+  width: 280,
+  height: 280,
+  type: "svg",
+  image: "blank.png",
+  margin: 10,
+  qrOptions: {
+    errorCorrectionLevel: "M",
+  },
+  cornersSquareOptions: {
+    type: "extra-rounded",
+  },
+  imageOptions: {
+    imageSize: 0.4,
+    margin: 8,
+  },
+  dotsOptions: {
+    type: "rounded",
+  },
+};
+
+function QRCode({ link }: { link?: string }) {
+  const [qrCode, setQrCode] = useState<QRCodeStyling>();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      qrCode?.append(ref.current);
+    }
+  }, [qrCode, ref]);
+
+  useEffect(() => {
+    if (link) {
+      if (!qrCode) {
+        const qrCode = new QRCodeStyling({
+          ...options,
+          data: link,
+        });
+        setQrCode(qrCode);
+      } else {
+        qrCode.update({
+          data: link,
+        });
+      }
+    }
+  }, [link, qrCode]);
+
+  if (!link) {
+    return (
+      <div className="flex items-center justify-center">
+        <LoaderCircle className="h-14 w-14 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center space-y-2">
+      <div className="relative flex items-center justify-center">
+        <div className="overflow-hidden rounded-3xl bg-white" ref={ref} />
+        <Lottie
+          className="absolute left-1/2 top-1/2 z-10 h-14 w-14 -translate-x-1/2 -translate-y-1/2 transform rounded-full bg-gray-800"
+          animationData={TGQRPlane}
+          loop={true}
+        />
+      </div>
+      <div className="rounded-lg bg-white bg-opacity-80 p-1 dark:bg-gray-800">
+        <p className="text-center text-xs text-gray-500 dark:text-gray-400">
+          Scan the QR code with your telegram app to log in.
+        </p>
+      </div>
+    </div>
   );
 }
