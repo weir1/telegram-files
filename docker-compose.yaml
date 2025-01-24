@@ -18,3 +18,4 @@ services:
       - "6543:80"
     volumes:
       - ./data:/app/data
+    # - ./other-files-for-transfer:/app/other-files-for-transfer
