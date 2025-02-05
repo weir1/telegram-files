@@ -1,5 +1,7 @@
 package telegram.files;
 
+import io.vertx.core.Future;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.MappedByteBuffer;
@@ -60,5 +62,17 @@ public class MessyUtils {
         String md5File2 = md5Task2.join();
 
         return md5File1.equals(md5File2);
+    }
+
+    public static <T> T await(Future<T> future) {
+        CompletableFuture<T> completableFuture = new CompletableFuture<>();
+        future.onComplete(result -> {
+            if (result.succeeded()) {
+                completableFuture.complete(result.result());
+            } else {
+                completableFuture.completeExceptionally(result.cause());
+            }
+        });
+        return completableFuture.join();
     }
 }
