@@ -274,7 +274,7 @@ export default function AutoDownloadDialog() {
           </Button>
           <Button
             onClick={() => {
-              const folderPathRegex = /^([\/\\])?([^<>:"|?*]+([\/\\])?)+$/;
+              const folderPathRegex = /^[\/\\]?(?:[^<>:"|?*\/\\]+[\/\\]?)*$/;
               if (
                 rule.transferRule &&
                 !folderPathRegex.test(rule.transferRule.destination)
