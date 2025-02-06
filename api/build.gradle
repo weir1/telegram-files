@@ -12,6 +12,8 @@ repositories {
 }
 
 dependencies {
+    def osName = System.getProperty("os.name").toLowerCase()
+
     implementation 'io.vertx:vertx-core:4.5.11'
     implementation 'io.vertx:vertx-web:4.5.11'
     implementation 'io.vertx:vertx-jdbc-client:4.5.11'
@@ -24,6 +26,16 @@ dependencies {
     implementation 'cn.hutool:hutool-log:5.8.34'
     implementation 'org.jooq:jool:0.9.15'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.3'
+    // only for macos
+    if (osName.contains("mac")) {
+        implementation('io.netty:netty-resolver-dns-native-macos:4.1.115.Final') {
+            artifact {
+                name = 'netty-resolver-dns-native-macos'
+                type = 'jar'
+                classifier = System.getProperty("os.arch").contains("aarch64") ? "osx-aarch_64" : "osx-x86_64"
+            }
+        }
+    }
 
     testImplementation 'io.vertx:vertx-junit5:4.5.11'
     testImplementation platform('org.junit:junit-bom:5.10.0')
