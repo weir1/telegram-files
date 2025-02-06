@@ -38,9 +38,12 @@ public class DataVerticle extends AbstractVerticle {
     public void start(Promise<Void> stopPromise) {
         pool = JDBCPool.pool(vertx,
                 new JDBCConnectOptions()
-                        .setJdbcUrl("jdbc:sqlite:%s".formatted(getDataPath()))
-                ,
-                new PoolOptions().setMaxSize(16).setName("pool-tf")
+                        .setJdbcUrl("jdbc:sqlite:%s?journal_mode=WAL&busy_timeout=30000&synchronous=NORMAL&cache_size=-2000".formatted(getDataPath())),
+                new PoolOptions()
+                        .setMaxSize(8)
+                        .setName("pool-tf")
+                        .setIdleTimeout(300000)
+                        .setPoolCleanerPeriod(300000)
         );
         settingRepository = new SettingRepositoryImpl(pool);
         telegramRepository = new TelegramRepositoryImpl(pool);
