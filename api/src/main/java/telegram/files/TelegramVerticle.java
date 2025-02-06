@@ -175,12 +175,10 @@ public class TelegramVerticle extends AbstractVerticle {
         return this.convertChat(telegramChats.getChatList(activatedChatId, query, 100, archived));
     }
 
-    public Future<JsonObject> getChatFiles(long chatId, MultiMap filter) {
+    public Future<JsonObject> getChatFiles(long chatId, Map<String, String> filter) {
         String status = filter.get("status");
         if (Arrays.asList("downloading", "paused", "completed", "error").contains(status)) {
-            Map<String, String> filterMap = new HashMap<>();
-            filter.forEach(filterMap::put);
-            return DataVerticle.fileRepository.getFiles(chatId, filterMap)
+            return DataVerticle.fileRepository.getFiles(chatId, filter)
                     .compose(r -> {
                         long[] messageIds = r.v1.stream().mapToLong(FileRecord::messageId).toArray();
                         return client.execute(new TdApi.GetMessages(chatId, messageIds))

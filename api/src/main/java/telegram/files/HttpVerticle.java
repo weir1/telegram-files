@@ -5,6 +5,7 @@ import cn.hutool.core.convert.Convert;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.core.util.URLUtil;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
 import io.vertx.core.*;
@@ -413,10 +414,14 @@ public class HttpVerticle extends AbstractVerticle {
             ctx.fail(400);
             return;
         }
+        Map<String, String> filter = new HashMap<>();
+        ctx.request().params().forEach(filter::put);
+        filter.put("search", URLUtil.decode(filter.get("search")));
+
         long chatId = Convert.toLong(chatIdStr);
         getTelegramVerticle(telegramId)
                 .ifPresentOrElse(telegramVerticle ->
-                                telegramVerticle.getChatFiles(chatId, ctx.request().params())
+                                telegramVerticle.getChatFiles(chatId, filter)
                                         .onSuccess(ctx::json)
                                         .onFailure(ctx::fail),
                         () -> ctx.fail(404));

@@ -42,15 +42,22 @@ export function useFiles(accountId: string, chatId: string) {
     DEFAULT_FILTERS,
   );
   const getKey = (page: number, previousPageData: FileResponse) => {
+    const params = new URLSearchParams({
+      ...(filters.search && { search: window.encodeURIComponent(filters.search) }),
+      ...(filters.type && { type: filters.type }),
+      ...(filters.status && { status: filters.status })
+    });
+
     if (page === 0) {
-      return `/telegram/${accountId}/chat/${chatId}/files?search=${filters.search}&type=${filters.type}&status=${filters.status}`;
+      return `/telegram/${accountId}/chat/${chatId}/files?${params.toString()}`;
     }
 
     if (!previousPageData) {
       return null;
     }
 
-    return `/telegram/${accountId}/chat/${chatId}/files?search=${filters.search}&type=${filters.type}&status=${filters.status}&fromMessageId=${previousPageData.nextFromMessageId}`;
+    params.set("fromMessageId", previousPageData.nextFromMessageId.toString());
+    return `/telegram/${accountId}/chat/${chatId}/files?${params.toString()}`;
   };
 
   const {

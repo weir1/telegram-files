@@ -13,6 +13,10 @@ import TableColumnFilter, {
 import { type RowHeight } from "@/components/table-row-height-switch";
 import FileTypeFilter from "@/components/file-type-filter";
 import dynamic from "next/dynamic";
+import { useDebouncedCallback } from "use-debounce";
+import { useEffect, useState } from "react";
+import { X } from "lucide-react";
+import { Button } from "./ui/button";
 
 interface FileFiltersProps {
   telegramId: string;
@@ -43,17 +47,37 @@ export function FileFilters({
   rowHeight,
   setRowHeight,
 }: FileFiltersProps) {
+  const [search, setSearch] = useState(filters.search);
+
+  const handleSearchChange = useDebouncedCallback((search: string) => {
+    onFiltersChange({ ...filters, search });
+  }, 500);
+
+  useEffect(() => {
+    handleSearchChange(search);
+  }, [search, handleSearchChange]);
+
   return (
     <div className="mb-6 flex flex-col justify-between md:flex-row">
       <div className="grid grid-cols-2 gap-4 md:flex md:flex-row">
-        <Input
-          placeholder="Search files..."
-          value={filters.search}
-          onChange={(e) =>
-            onFiltersChange({ ...filters, search: e.target.value })
-          }
-          className="col-span-2 md:w-[300px]"
-        />
+        <div className="relative">
+          <Input
+            placeholder="Search files..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="relative col-span-2 md:w-[300px]"
+          />
+          {search && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full text-gray-500 transition-all duration-200 hover:scale-110 hover:bg-gray-100 hover:text-gray-800"
+              onClick={() => setSearch("")}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
 
         <FileTypeFilter
           telegramId={telegramId}
