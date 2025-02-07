@@ -95,7 +95,9 @@ function FilePath({ file }: { file: TelegramFile }) {
         </div>
       </TooltipTrigger>
       <TooltipContent>
-        <div className="max-w-80 text-wrap rounded overflow-y-scroll">{file.localPath}</div>
+        <div className="max-w-80 overflow-y-scroll text-wrap rounded">
+          {file.localPath}
+        </div>
       </TooltipContent>
     </Tooltip>
   );
@@ -148,7 +150,11 @@ export default function FileExtra({ file, rowHeight }: FileExtraProps) {
   if (rowHeight === "s") {
     return (
       <TooltipProvider>
-        {file.fileName ? <FileName file={file} /> : <FileTime file={file} />}
+        {file.fileName ? (
+          <FileName file={file} />
+        ) : (
+          <FileCaption file={file} rowHeight={rowHeight} />
+        )}
       </TooltipProvider>
     );
   }
