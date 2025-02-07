@@ -146,17 +146,31 @@ function FileTime({ file }: { file: TelegramFile }) {
   );
 }
 
+function hasValue(value: string | null | undefined): boolean {
+  return value !== null && value !== undefined && value.trim() !== "";
+}
+
 export default function FileExtra({ file, rowHeight }: FileExtraProps) {
   if (rowHeight === "s") {
-    return (
-      <TooltipProvider>
-        {file.fileName ? (
-          <FileName file={file} />
-        ) : (
-          <FileCaption file={file} rowHeight={rowHeight} />
-        )}
-      </TooltipProvider>
-    );
+    const renderOrder = [
+      { key: "fileName", Component: FileName },
+      { key: "caption", Component: FileCaption },
+      { key: "localPath", Component: FilePath },
+      { key: "default", Component: FileTime },
+    ];
+
+    for (const item of renderOrder) {
+      if (
+        item.key === "default" ||
+        hasValue(file[item.key as keyof typeof file] as string)
+      ) {
+        return (
+          <TooltipProvider>
+            <item.Component file={file} rowHeight={rowHeight} />
+          </TooltipProvider>
+        );
+      }
+    }
   }
 
   return (
