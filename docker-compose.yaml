@@ -3,12 +3,14 @@ services:
     container_name: telegram-files
     image: ghcr.io/jarvis2f/telegram-files:latest
     restart: always
+    # Default use 1000:1000 for user:group. If you want to use root, uncomment the line below.
+    # user: "root"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://127.0.0.1/api/health" ]
       interval: 30s
       retries: 3
       timeout: 10s
-      start_period: 30s
+      start_period: 10s
     environment:
       APP_ENV: "prod"
       APP_ROOT: "/app/data"

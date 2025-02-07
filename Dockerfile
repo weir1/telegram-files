@@ -51,7 +51,8 @@ WORKDIR /app
 
 ARG LIB_PATH=/app/tdlib
 ENV JAVA_HOME=/jre \
-    PATH="/jre/bin:$PATH"
+    PATH="/jre/bin:$PATH" \
+    LANG=C.UTF-8
 
 RUN npm install -g pm2 && \
     apt-get update && \
@@ -74,18 +75,21 @@ RUN npm install -g pm2 && \
         exit 1; \
     fi && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ./libs.zip
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ./libs.zip && \
+    touch /run/nginx.pid && \
+    chown -R 1000:1000 /app /etc/nginx /var/lib/nginx /var/log/nginx /run/nginx.pid
 
-COPY --from=runtime-builder /custom-jre/jre /jre
-COPY --from=api-builder /app/api.jar /app/api.jar
-COPY --from=web-builder /web/public /app/web/public
-COPY --from=web-builder /web/.next/standalone /app/web/
-COPY --from=web-builder /web/.next/static /app/web/.next/static
+COPY --from=runtime-builder --chown=1000:1000 /custom-jre/jre /jre
+COPY --from=api-builder --chown=1000:1000 /app/api.jar /app/api.jar
+COPY --from=web-builder --chown=1000:1000 /web/public /app/web/public
+COPY --from=web-builder --chown=1000:1000 /web/.next/standalone /app/web/
+COPY --from=web-builder --chown=1000:1000 /web/.next/static /app/web/.next/static
 
-COPY ./web/pm2.json /app/web/
-COPY ./entrypoint.sh .
-COPY ./nginx.conf /etc/nginx/nginx.conf
+COPY --chown=1000:1000 ./web/pm2.json /app/web/
+COPY --chown=1000:1000 ./entrypoint.sh .
+COPY --chown=1000:1000 ./nginx.conf /etc/nginx/nginx.conf
 
+USER 1000
 EXPOSE 80
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
