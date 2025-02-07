@@ -82,12 +82,12 @@ public class DataVerticle extends AbstractVerticle {
     public void stop(Promise<Void> stopPromise) throws Exception {
         if (pool != null) {
             pool.close().onComplete(r -> {
-                stopPromise.complete();
                 if (r.succeeded()) {
                     log.debug("Data verticle stopped!");
                 } else {
                     log.error("Failed to close data verticle: %s".formatted(r.cause().getMessage()));
                 }
+                stopPromise.complete();
             });
         }
     }

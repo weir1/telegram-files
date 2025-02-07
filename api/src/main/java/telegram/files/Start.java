@@ -64,6 +64,7 @@ public class Start {
             return;
         }
         vertx.undeploy(httpVerticle.deploymentID())
+                .compose(r -> vertx.undeploy(dataVerticle.deploymentID()))
                 .onComplete(res -> {
                     if (res.succeeded()) {
                         log.info("👋 Shutdown success");
