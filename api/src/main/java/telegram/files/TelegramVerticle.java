@@ -439,6 +439,13 @@ public class TelegramVerticle extends AbstractVerticle {
                     if (!isPaused && file.local.isDownloadingActive) {
                         return Future.failedFuture("File is downloading");
                     }
+                    if (!isPaused && !file.local.canBeDeleted) {
+                        // Maybe the file is not exist, so we need to redownload it
+                        return DataVerticle.fileRepository.getByUniqueId(file.remote.uniqueId)
+                                .compose(fileRecord ->
+                                        client.execute(new TdApi.AddFileToDownloads(fileId, fileRecord.chatId(), fileRecord.messageId(), 32)))
+                                .mapEmpty();
+                    }
 
                     return client.execute(new TdApi.ToggleDownloadIsPaused(fileId, isPaused));
                 })
