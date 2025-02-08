@@ -7,19 +7,22 @@ const heightOptions = [
   {
     id: "s",
     label: "Small",
-    value: "h-6",
+    value: "h-12",
+    px: 48,
     icon: <Rows4 className="h-4 w-4" />,
   },
   {
     id: "m",
     label: "Medium",
     value: "h-24",
+    px: 96,
     icon: <Rows3 className="h-4 w-4" />,
   },
   {
     id: "l",
     label: "Large",
     value: "h-64",
+    px: 256,
     icon: <Rows2 className="h-4 w-4" />,
   },
 ] as const;
@@ -27,7 +30,10 @@ const heightOptions = [
 export type RowHeight = (typeof heightOptions)[number]["id"];
 
 export const getRowHeightTailwindClass = (rowHeight: RowHeight | undefined) =>
-  heightOptions.find((h) => h.id === rowHeight)?.value;
+  heightOptions.find((h) => h.id === rowHeight)?.value ?? heightOptions[1].value;
+
+export const getRowHeightPX = (rowHeight: RowHeight | undefined) =>
+  heightOptions.find((h) => h.id === rowHeight)?.px ?? heightOptions[1].px;
 
 export function useRowHeightLocalStorage(
   tableName: string,

@@ -2,8 +2,6 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { closestCenter, DndContext, type DragEndEvent } from "@dnd-kit/core";
@@ -14,7 +12,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { ChevronDown, Columns, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -84,9 +82,7 @@ export default function TableColumnFilter({
   onColumnConfigChange,
 }: TableColumnFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [columnConfig, setColumnConfig] = useState<Column[]>(
-    columns.map((col) => ({ id: col.id, label: col.label, isVisible: true })),
-  );
+  const [columnConfig, setColumnConfig] = useState<Column[]>(columns);
 
   const handleToggleVisibility = (id: string) => {
     setColumnConfig((prev) =>
@@ -107,10 +103,9 @@ export default function TableColumnFilter({
     }
   };
 
-  const applyChanges = () => {
-    const visibleColumns = columnConfig.filter((col) => col.isVisible);
-    onColumnConfigChange(visibleColumns);
-  };
+  useEffect(() => {
+    onColumnConfigChange(columnConfig);
+  }, [columnConfig, onColumnConfigChange]);
 
   return (
     <DropdownMenu open={isOpen}>
@@ -151,10 +146,6 @@ export default function TableColumnFilter({
             ))}
           </SortableContext>
         </DndContext>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={applyChanges}>
-          Apply Changes
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

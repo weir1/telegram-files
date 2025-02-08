@@ -1,20 +1,15 @@
 "use client";
 import { FileCard } from "./file-card";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Download, LoaderCircle, LoaderPinwheel } from "lucide-react";
 import { useFiles } from "@/hooks/use-files";
 import { FileFilters } from "@/components/file-filters";
-import { useRowHeightLocalStorage } from "@/components/table-row-height-switch";
+import {
+  getRowHeightPX,
+  useRowHeightLocalStorage,
+} from "@/components/table-row-height-switch";
 import { type Column } from "@/components/table-column-filter";
 import { cn } from "@/lib/utils";
 import FileNotFount from "@/components/file-not-found";
@@ -22,6 +17,7 @@ import useIsMobile from "@/hooks/use-is-mobile";
 import useSWRMutation from "swr/mutation";
 import { POST } from "@/lib/api";
 import FileRow from "@/components/file-row";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 interface FileListProps {
   accountId: string;
@@ -29,21 +25,26 @@ interface FileListProps {
 }
 
 const COLUMNS: Column[] = [
-  { id: "content", label: "Content", isVisible: true },
+  {
+    id: "content",
+    label: "Content",
+    isVisible: true,
+    className: "text-center",
+  },
   { id: "type", label: "Type", isVisible: true, className: "w-16 text-center" },
   {
     id: "size",
     label: "Size",
     isVisible: true,
-    className: "w-20 max-w-20 text-center",
+    className: "w-20 text-center",
   },
   {
     id: "status",
     label: "Status",
     isVisible: true,
-    className: "w-16 text-center",
+    className: "w-32 text-center",
   },
-  { id: "extra", label: "Extra", isVisible: true },
+  { id: "extra", label: "Extra", isVisible: true, className: "flex-1" },
   {
     id: "actions",
     label: "Actions",
@@ -56,6 +57,7 @@ export function FileList({ accountId, chatId }: FileListProps) {
   const isMobile = useIsMobile();
   const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
   const observerTarget = useRef(null);
+  const tableParentRef = useRef(null);
   const [columns, setColumns] = useState<Column[]>(COLUMNS);
   const [rowHeight, setRowHeight] = useRowHeightLocalStorage(
     "telegramFileList",
@@ -85,6 +87,42 @@ export function FileList({ accountId, chatId }: FileListProps) {
       },
     },
   );
+  const rowVirtual = useVirtualizer({
+    count: files.length,
+    getScrollElement: () => tableParentRef.current,
+    estimateSize: (index) => {
+      const file = files[index]!;
+      const height = getRowHeightPX(rowHeight);
+
+      if (
+        file.downloadStatus === "idle" ||
+        file.downloadStatus === "completed" ||
+        file.size === 0
+      ) {
+        return height;
+      }
+      return height + 8;
+    },
+    paddingStart: 1,
+    paddingEnd: 1,
+    overscan: 20,
+  });
+
+  useEffect(() => {
+    rowVirtual.measure();
+  }, [rowHeight, rowVirtual]);
+
+  useEffect(() => {
+    const [lastItem] = [...rowVirtual.getVirtualItems()].reverse();
+    if (!lastItem) {
+      return;
+    }
+
+    if (lastItem.index >= files.length - 1) {
+      void handleLoadMore();
+    }
+    //eslint-disable-next-line
+  }, [files.length, handleLoadMore, rowVirtual.getVirtualItems()]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -108,7 +146,7 @@ export function FileList({ accountId, chatId }: FileListProps) {
       case "s":
         return {
           content: "h-6 w-6",
-          contentCell: "w-4",
+          contentCell: "w-16",
         };
       case "m":
         return {
@@ -194,7 +232,7 @@ export function FileList({ accountId, chatId }: FileListProps) {
         rowHeight={rowHeight}
         setRowHeight={setRowHeight}
       />
-      <div className="space-y-4">
+      <div className="h-[calc(100vh-13rem)] space-y-4 overflow-hidden">
         {selectedFiles.size > 0 && (
           <div className="flex items-center justify-between rounded-lg bg-muted/50 p-4">
             <span className="text-sm">
@@ -234,61 +272,75 @@ export function FileList({ accountId, chatId }: FileListProps) {
           </div>
         )}
 
-        <div className="relative min-h-[calc(100vh-14rem)] rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[30px] text-center">
-                  <Checkbox
-                    checked={selectedFiles.size === files.length}
-                    onCheckedChange={handleSelectAll}
-                  />
-                </TableHead>
-                {columns.map((col) =>
-                  col.isVisible ? (
-                    <TableHead
-                      key={col.id}
-                      suppressHydrationWarning
-                      className={cn(
-                        col.className ?? "",
-                        col.id === "content" ? dynamicClass.contentCell : "",
-                      )}
-                    >
-                      {col.label}
-                    </TableHead>
-                  ) : null,
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody className="[&_tr:last-child]:border-b">
-              {files.map((file, index) => (
-                <FileRow
-                  file={file}
-                  checked={selectedFiles.has(file.id)}
-                  onCheckedChange={() => handleSelectFile(file.id)}
-                  properties={{ rowHeight, dynamicClass, columns }}
-                  key={`${file.messageId}-${file.uniqueId}-${index}`}
-                />
-              ))}
-              {!isLoading && files.length === 0 && (
-                <TableRow className="border-b-0">
-                  <TableCell colSpan={columns.length + 1}>
-                    <FileNotFount />
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-          {isLoading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-accent bg-opacity-90">
+        <div
+          className="relative h-full overflow-auto rounded-md border"
+          ref={tableParentRef}
+        >
+          <div className="sticky top-0 z-20 flex h-10 items-center border-b bg-background/90 text-sm text-muted-foreground backdrop-blur-sm">
+            <div className="w-[30px] text-center">
+              <Checkbox
+                checked={selectedFiles.size === files.length}
+                onCheckedChange={handleSelectAll}
+              />
+            </div>
+            {columns.map((col) =>
+              col.isVisible ? (
+                <div
+                  key={col.id}
+                  suppressHydrationWarning
+                  className={cn(
+                    col.className ?? "",
+                    col.id === "content" ? dynamicClass.contentCell : "",
+                  )}
+                >
+                  {col.label}
+                </div>
+              ) : null,
+            )}
+          </div>
+          {files.length === 0 && isLoading && (
+            <div className="sticky left-1/2 top-0 z-10 flex h-full w-full items-center justify-center bg-accent">
               <LoaderPinwheel
                 className="h-8 w-8 animate-spin"
                 style={{ strokeWidth: "0.8px" }}
               />
             </div>
           )}
+          <div className="h-full">
+            <div
+              className={cn("relative w-full")}
+              style={{ height: `${rowVirtual.getTotalSize()}px` }}
+            >
+              {files.length !== 0 &&
+                rowVirtual.getVirtualItems().map((virtualRow) => {
+                  const file = files[virtualRow.index]!;
+                  return (
+                    <FileRow
+                      index={virtualRow.index}
+                      className={cn(
+                        "absolute left-0 top-0 flex w-full items-center",
+                      )}
+                      style={{
+                        height: `${virtualRow.size}px`,
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                      ref={rowVirtual.measureElement}
+                      file={file}
+                      checked={selectedFiles.has(file.id)}
+                      onCheckedChange={() => handleSelectFile(file.id)}
+                      properties={{
+                        rowHeight: rowHeight,
+                        dynamicClass,
+                        columns,
+                      }}
+                      key={`${file.messageId}-${file.uniqueId}-${virtualRow.index}`}
+                    />
+                  );
+                })}
+            </div>
+            {!isLoading && files.length === 0 && <FileNotFount />}
+          </div>
         </div>
-        <div ref={observerTarget} className="h-4"></div>
       </div>
     </>
   );

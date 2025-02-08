@@ -1,9 +1,5 @@
-import { TableCell, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import {
-  getRowHeightTailwindClass,
-  type RowHeight,
-} from "@/components/table-row-height-switch";
+import { type RowHeight } from "@/components/table-row-height-switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import FileProgress from "@/components/file-progress";
 import React, { memo, type ReactNode, useState } from "react";
@@ -26,6 +22,10 @@ import { type Column } from "./table-column-filter";
 import { useFileSpeed } from "@/hooks/use-file-speed";
 
 interface FileRowProps {
+  index: number;
+  className?: string;
+  style?: React.CSSProperties;
+  ref?: React.Ref<HTMLTableRowElement>;
   file: TelegramFile;
   checked: boolean;
   properties: {
@@ -40,6 +40,10 @@ interface FileRowProps {
 }
 
 export default function FileRow({
+  index,
+  className,
+  style,
+  ref,
   file,
   checked,
   properties,
@@ -112,13 +116,13 @@ export default function FileRow({
     ),
     type: (
       <div className="flex flex-col items-center">
-        <span className="capitalize">{file.type}</span>
+        <span className="text-sm capitalize">{file.type}</span>
         {process.env.NODE_ENV === "development" && (
           <span className="text-xs">{file.id}</span>
         )}
       </div>
     ),
-    size: <span>{prettyBytes(file.size)}</span>,
+    size: <span className="text-sm">{prettyBytes(file.size)}</span>,
     status: <FileStatus file={file} />,
     extra: <FileExtra file={file} rowHeight={rowHeight} />,
     actions: (
@@ -131,22 +135,25 @@ export default function FileRow({
   };
 
   return (
-    <React.Fragment>
-      <TableRow
-        className={cn(getRowHeightTailwindClass(rowHeight), "border-b-0")}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-      >
-        <TableCell className="text-center">
+    <div
+      data-index={index}
+      className={cn("flex w-full flex-col border-b", className)}
+      style={style}
+      ref={ref}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <div className="flex w-full flex-1 items-center hover:bg-accent">
+        <div className="w-[30px] text-center">
           <Checkbox
             checked={checked}
             onCheckedChange={onCheckedChange}
             disabled={file.downloadStatus !== "idle"}
           />
-        </TableCell>
+        </div>
         {columns.map((col) =>
           col.isVisible ? (
-            <TableCell
+            <div
               key={col.id}
               className={cn(
                 col.className ?? "",
@@ -154,16 +161,14 @@ export default function FileRow({
               )}
             >
               {columnRenders[col.id]}
-            </TableCell>
+            </div>
           ) : null,
         )}
-      </TableRow>
-      <TableRow>
-        <TableCell colSpan={columns.length + 1} className="h-px p-0">
-          <FileProgress file={file} downloadProgress={downloadProgress} />
-        </TableCell>
-      </TableRow>
-    </React.Fragment>
+      </div>
+      <div className="w-full">
+        <FileProgress file={file} downloadProgress={downloadProgress} />
+      </div>
+    </div>
   );
 }
 
