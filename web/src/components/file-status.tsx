@@ -4,50 +4,60 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { TooltipWrapper } from "@/components/ui/tooltip";
 import { AnimatePresence, motion } from "framer-motion";
+import {CheckCircle2, Clock, Download, FolderSync, Pause, XCircle} from "lucide-react";
+
+export const DOWNLOAD_STATUS = {
+  idle: {
+    icon: Clock,
+    className: "bg-gray-100 text-gray-600",
+    text: "Idle",
+  },
+  downloading: {
+    icon: Download,
+    className: "bg-blue-100 text-blue-600",
+    text: "Downloading",
+  },
+  paused: {
+    icon: Pause,
+    className: "bg-yellow-100 text-yellow-600",
+    text: "Paused",
+  },
+  completed: {
+    icon: CheckCircle2,
+    className: "bg-green-100 text-green-600",
+    text: "Completed",
+  },
+  error: {
+    icon: XCircle,
+    className: "bg-red-100 text-red-600",
+    text: "Error",
+  },
+};
+
+export const TRANSFER_STATUS = {
+  idle: {
+    icon: Clock,
+    className: "bg-gray-100 text-gray-600",
+    text: "Idle",
+  },
+  transferring: {
+    icon: FolderSync,
+    className: "bg-blue-100 text-blue-600",
+    text: "Transferring",
+  },
+  completed: {
+    icon: CheckCircle2,
+    className: "bg-green-100 text-green-600",
+    text: "Transferred",
+  },
+  error: {
+    icon: XCircle,
+    className: "bg-red-100 text-red-600",
+    text: "Transfer Error",
+  },
+};
 
 export default function FileStatus({ file }: { file: TelegramFile }) {
-  const DOWNLOAD_STATUS = {
-    idle: {
-      className: "bg-gray-100 text-gray-600",
-      text: "Idle",
-    },
-    downloading: {
-      className: "bg-blue-100 text-blue-600",
-      text: "Downloading",
-    },
-    paused: {
-      className: "bg-yellow-100 text-yellow-600",
-      text: "Paused",
-    },
-    completed: {
-      className: "bg-green-100 text-green-600",
-      text: "Completed",
-    },
-    error: {
-      className: "bg-red-100 text-red-600",
-      text: "Error",
-    },
-  };
-
-  const TRANSFER_STATUS = {
-    idle: {
-      className: "bg-gray-100 text-gray-600",
-      text: "Idle",
-    },
-    transferring: {
-      className: "bg-blue-100 text-blue-600",
-      text: "Transferring",
-    },
-    completed: {
-      className: "bg-green-100 text-green-600",
-      text: "Transferred",
-    },
-    error: {
-      className: "bg-red-100 text-red-600",
-      text: "Transfer Error",
-    },
-  };
-
   const badgeVariants = {
     initial: { opacity: 0, scale: 0.9 },
     animate: {

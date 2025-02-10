@@ -78,7 +78,7 @@ public class FileRepositoryImpl implements FileRepository {
 
     @Override
     public Future<Tuple3<List<FileRecord>, Long, Long>> getFiles(long chatId, Map<String, String> filter) {
-        String status = filter.get("status");
+        String downloadStatus = filter.get("downloadStatus");
         String transferStatus = filter.get("transferStatus");
         String search = filter.get("search");
         Long fromMessageId = Convert.toLong(filter.get("fromMessageId"), 0L);
@@ -88,9 +88,9 @@ public class FileRepositoryImpl implements FileRepository {
         String whereClause = "chat_id = #{chatId}";
         Map<String, Object> params = MapUtil.of("chatId", chatId);
         params.put("limit", limit);
-        if (StrUtil.isNotBlank(status)) {
-            whereClause += " AND download_status = #{status}";
-            params.put("status", status);
+        if (StrUtil.isNotBlank(downloadStatus)) {
+            whereClause += " AND download_status = #{downloadStatus}";
+            params.put("downloadStatus", downloadStatus);
         }
         if (StrUtil.isNotBlank(transferStatus)) {
             whereClause += " AND transfer_status = #{transferStatus}";

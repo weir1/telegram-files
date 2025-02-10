@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   type DownloadStatus,
   type FileFilter,
-  type TelegramFile, type TransferStatus,
+  type TelegramFile,
+  type TransferStatus,
 } from "@/lib/types";
 import useSWRInfinite from "swr/infinite";
 import { useWebsocket } from "@/hooks/use-websocket";
@@ -13,7 +14,8 @@ import { useDebounce } from "use-debounce";
 const DEFAULT_FILTERS: FileFilter = {
   search: "",
   type: "media",
-  status: "all",
+  downloadStatus: undefined,
+  transferStatus: undefined,
 };
 
 type FileResponse = {
@@ -43,9 +45,12 @@ export function useFiles(accountId: string, chatId: string) {
   );
   const getKey = (page: number, previousPageData: FileResponse) => {
     const params = new URLSearchParams({
-      ...(filters.search && { search: window.encodeURIComponent(filters.search) }),
+      ...(filters.search && {
+        search: window.encodeURIComponent(filters.search),
+      }),
       ...(filters.type && { type: filters.type }),
-      ...(filters.status && { status: filters.status })
+      ...(filters.downloadStatus && { downloadStatus: filters.downloadStatus }),
+      ...(filters.transferStatus && { transferStatus: filters.transferStatus }),
     });
 
     if (page === 0) {
@@ -133,14 +138,19 @@ export function useFiles(accountId: string, chatId: string) {
           ...file,
           id: latestFilesStatus[file.uniqueId]?.fileId ?? file.id,
           downloadStatus:
-            latestFilesStatus[file.uniqueId]?.downloadStatus ?? file.downloadStatus,
-          localPath: latestFilesStatus[file.uniqueId]?.localPath ?? file.localPath,
+            latestFilesStatus[file.uniqueId]?.downloadStatus ??
+            file.downloadStatus,
+          localPath:
+            latestFilesStatus[file.uniqueId]?.localPath ?? file.localPath,
           completionDate:
-            latestFilesStatus[file.uniqueId]?.completionDate ?? file.completionDate,
+            latestFilesStatus[file.uniqueId]?.completionDate ??
+            file.completionDate,
           downloadedSize:
-            latestFilesStatus[file.uniqueId]?.downloadedSize ?? file.downloadedSize,
+            latestFilesStatus[file.uniqueId]?.downloadedSize ??
+            file.downloadedSize,
           transferStatus:
-            latestFilesStatus[file.uniqueId]?.transferStatus ?? file.transferStatus,
+            latestFilesStatus[file.uniqueId]?.transferStatus ??
+            file.transferStatus,
         });
       });
     });
@@ -169,7 +179,8 @@ export function useFiles(accountId: string, chatId: string) {
     if (
       newFilters.search === filters.search &&
       newFilters.type === filters.type &&
-      newFilters.status === filters.status
+      newFilters.downloadStatus === filters.downloadStatus &&
+      newFilters.transferStatus === filters.transferStatus
     ) {
       return;
     }

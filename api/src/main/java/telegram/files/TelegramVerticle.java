@@ -175,8 +175,8 @@ public class TelegramVerticle extends AbstractVerticle {
     }
 
     public Future<JsonObject> getChatFiles(long chatId, Map<String, String> filter) {
-        String status = filter.get("status");
-        if (Arrays.asList("downloading", "paused", "completed", "error").contains(status)) {
+        String downloadStatus = filter.get("downloadStatus");
+        if (Arrays.asList("downloading", "paused", "completed", "error").contains(downloadStatus)) {
             return DataVerticle.fileRepository.getFiles(chatId, filter)
                     .compose(r -> {
                         long[] messageIds = r.v1.stream().mapToLong(FileRecord::messageId).toArray();
@@ -215,7 +215,7 @@ public class TelegramVerticle extends AbstractVerticle {
             searchChatMessages.limit = Convert.toInt(filter.get("limit"), 20);
             searchChatMessages.filter = TdApiHelp.getSearchMessagesFilter(filter.get("type"));
 
-            return (Objects.equals(filter.get("status"), FileRecord.DownloadStatus.idle.name()) ?
+            return (Objects.equals(filter.get("downloadStatus"), FileRecord.DownloadStatus.idle.name()) ?
                     this.getIdleChatFiles(searchChatMessages, 0) :
                     client.execute(searchChatMessages))
                     .compose(foundChatMessages ->

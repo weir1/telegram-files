@@ -80,7 +80,8 @@ export type TDFile = {
 export type FileFilter = {
   search: string;
   type: FileType;
-  status: DownloadStatus | "all";
+  downloadStatus?: DownloadStatus;
+  transferStatus?: TransferStatus;
 };
 
 export type TelegramApiResult = {
