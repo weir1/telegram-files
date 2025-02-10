@@ -3,8 +3,6 @@ services:
     container_name: telegram-files
     image: ghcr.io/jarvis2f/telegram-files:latest
     restart: always
-    # Default use 1000:1000 for user:group. If you want to use root, uncomment the line below.
-    # user: "root"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://127.0.0.1/api/health" ]
       interval: 30s
@@ -12,6 +10,9 @@ services:
       timeout: 10s
       start_period: 10s
     environment:
+      # PUID and PGID are the user id and group id of the user who owns the files in the mounted volume.
+      # PUID: 1000
+      # PGID: 1000
       APP_ENV: "prod"
       APP_ROOT: "/app/data"
       TELEGRAM_API_ID: ${TELEGRAM_API_ID}
