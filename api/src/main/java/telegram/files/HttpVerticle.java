@@ -155,6 +155,7 @@ public class HttpVerticle extends AbstractVerticle {
         router.post("/file/start-download-multiple").handler(this::handleFileStartDownloadMultiple);
         router.post("/file/cancel-download").handler(this::handleFileCancelDownload);
         router.post("/file/toggle-pause-download").handler(this::handleFileTogglePauseDownload);
+        router.post("/file/remove").handler(this::handleFileRemove);
         router.post("/file/auto-download").handler(this::handleAutoDownload);
 
         router.route()
@@ -669,6 +670,24 @@ public class HttpVerticle extends AbstractVerticle {
         }
 
         telegramVerticle.togglePauseDownload(fileId, isPaused)
+                .onSuccess(r -> ctx.end())
+                .onFailure(ctx::fail);
+    }
+
+    private void handleFileRemove(RoutingContext ctx) {
+        TelegramVerticle telegramVerticle = getTelegramVerticle(ctx);
+        if (telegramVerticle == null) {
+            return;
+        }
+
+        JsonObject jsonObject = ctx.body().asJsonObject();
+        Integer fileId = jsonObject.getInteger("fileId");
+        if (fileId == null) {
+            ctx.fail(400);
+            return;
+        }
+
+        telegramVerticle.removeFile(fileId)
                 .onSuccess(r -> ctx.end())
                 .onFailure(ctx::fail);
     }

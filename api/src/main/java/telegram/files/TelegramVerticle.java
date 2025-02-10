@@ -17,7 +17,6 @@ import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
-import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.impl.NoStackTraceException;
 import io.vertx.core.json.Json;
@@ -449,6 +448,40 @@ public class TelegramVerticle extends AbstractVerticle {
 
                     return client.execute(new TdApi.ToggleDownloadIsPaused(fileId, isPaused));
                 })
+                .mapEmpty();
+    }
+
+    public Future<Void> removeFile(Integer fileId) {
+        return client.execute(new TdApi.GetFile(fileId))
+                .compose(file -> DataVerticle.fileRepository
+                        .getByUniqueId(file.remote.uniqueId)
+                        .map(fileRecord -> Tuple.tuple(file, fileRecord))
+                )
+                .compose(tuple2 -> {
+                    TdApi.File file = tuple2.v1;
+                    FileRecord fileRecord = tuple2.v2;
+                    if (fileRecord == null) {
+                        return Future.failedFuture("File not found");
+                    }
+
+                    if (fileRecord.isTransferStatus(FileRecord.TransferStatus.completed)) {
+                        if (FileUtil.del(fileRecord.localPath())) {
+                            log.debug("[%s] Remove file success: %s".formatted(this.getRootId(), fileRecord.localPath()));
+                        }
+                    }
+
+                    if (file.local != null && StrUtil.isNotBlank(file.local.path)) {
+                        return client.execute(new TdApi.DeleteFile(fileId))
+                                .map(file);
+                    }
+                    return Future.succeededFuture(file);
+                })
+                .compose(file -> DataVerticle.fileRepository.deleteByUniqueId(file.remote.uniqueId).map(file))
+                .onSuccess(file -> sendEvent(EventPayload.build(EventPayload.TYPE_FILE_STATUS, new JsonObject()
+                        .put("fileId", fileId)
+                        .put("uniqueId", file.remote.uniqueId)
+                        .put("removed", true)
+                )))
                 .mapEmpty();
     }
 

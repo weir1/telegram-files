@@ -1,7 +1,7 @@
 import { type DownloadStatus, type TelegramFile } from "@/lib/types";
 import { useFileControl } from "@/hooks/use-file-control";
 import { Button } from "@/components/ui/button";
-import { ArrowDown, Loader2, Pause, SquareX, StepForward } from "lucide-react";
+import {ArrowDown, FileX, Loader2, Pause, SquareX, StepForward} from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -52,12 +52,8 @@ export default function FileControl({
     !hovered &&
     (file.downloadStatus === "downloading" || file.downloadStatus === "paused");
 
-  const { start, starting, togglePause, togglingPause, cancel, cancelling } =
+  const { start, starting, togglePause, togglingPause, cancel, cancelling, remove, removing } =
     useFileControl(file);
-
-  if (file.downloadStatus === "completed") {
-    return null;
-  }
 
   const statusMapping: Record<DownloadStatus, ActionButtonProps[]> = {
     idle: [
@@ -104,7 +100,14 @@ export default function FileControl({
         loading: cancelling,
       },
     ],
-    completed: [],
+    completed: [
+      {
+        onClick: () => remove(file.id),
+        tooltipText: "Remove",
+        icon: <FileX className="h-4 w-4" />,
+        loading: removing,
+      },
+    ],
   };
 
   const actionButtons = (

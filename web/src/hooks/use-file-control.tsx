@@ -21,6 +21,10 @@ export function useFileControl(file: TelegramFile) {
       (key, { arg }: { arg: { fileId: number; isPaused: boolean } }) =>
         POST(key, arg),
     );
+  const { trigger: removeFile, isMutating: removing } = useSWRMutation(
+    "/file/remove",
+    (key, { arg }: { arg: { fileId: number } }) => POST(key, arg),
+  );
 
   const downloadControl = {
     cancel: (fileId: number) => {
@@ -59,9 +63,15 @@ export function useFileControl(file: TelegramFile) {
         });
       }
     },
+    remove: (fileId: number) => {
+      if (file && file.downloadStatus === "completed") {
+        void removeFile({ fileId });
+      }
+    },
     cancelling,
     starting,
     togglingPause,
+    removing,
   };
 
   return {

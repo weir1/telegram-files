@@ -30,8 +30,8 @@ export function useFiles(accountId: string, chatId: string) {
       {
         fileId: number;
         downloadStatus: DownloadStatus;
-        localPath: string;
-        completionDate: number;
+        localPath?: string;
+        completionDate?: number;
         downloadedSize: number;
         transferStatus?: TransferStatus;
       }
@@ -89,7 +89,23 @@ export function useFiles(accountId: string, chatId: string) {
       completionDate: number;
       downloadedSize: number;
       transferStatus?: TransferStatus;
+      removed?: boolean;
     };
+
+    if (data.removed) {
+      setLatestFileStatus((prev) => ({
+        ...prev,
+        [data.uniqueId]: {
+          fileId: data.fileId,
+          downloadStatus: "idle",
+          localPath: undefined,
+          completionDate: undefined,
+          downloadedSize: 0,
+          transferStatus: "idle",
+        },
+      }));
+      return;
+    }
 
     setLatestFileStatus((prev) => ({
       ...prev,
