@@ -65,10 +65,6 @@ export const TelegramChatProvider: React.FC<TelegramChatProviderProps> = ({
       return;
     }
     router.push(`/account/${accountId}/${newChatId}`);
-    toast({
-      title: "Chat Selected",
-      description: `Viewing files from ${chat.name}`,
-    });
   };
 
   return (

@@ -119,11 +119,11 @@ export function Header() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground max-w-20 overflow-hidden">
+                    <span className="flex-1 text-nowrap">
                       {`${prettyBytes(accountDownloadSpeed, { bits: true })}/s`}
                     </span>
-                    <CloudDownloadIcon className="h-4 w-4" />
+                    <CloudDownloadIcon className="flex-shrink-0 h-4 w-4" />
                   </div>
                 </TooltipTrigger>
                 <TooltipContent>

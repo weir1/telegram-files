@@ -5,24 +5,24 @@ import { toast } from "@/hooks/use-toast";
 
 export function useFileControl(file: TelegramFile) {
   const { trigger: startDownload, isMutating: starting } = useSWRMutation(
-    "/file/start-download",
+    `/${file.telegramId}/file/start-download`,
     (
       key,
       { arg }: { arg: { chatId: number; messageId: number; fileId: number } },
     ) => POST(key, arg),
   );
   const { trigger: cancelDownload, isMutating: cancelling } = useSWRMutation(
-    "/file/cancel-download",
+    `/${file.telegramId}/file/cancel-download`,
     (key, { arg }: { arg: { fileId: number } }) => POST(key, arg),
   );
   const { trigger: togglePauseDownload, isMutating: togglingPause } =
     useSWRMutation(
-      "/file/toggle-pause-download",
+      `/${file.telegramId}/file/toggle-pause-download`,
       (key, { arg }: { arg: { fileId: number; isPaused: boolean } }) =>
         POST(key, arg),
     );
   const { trigger: removeFile, isMutating: removing } = useSWRMutation(
-    "/file/remove",
+    `/${file.telegramId}/file/remove`,
     (key, { arg }: { arg: { fileId: number } }) => POST(key, arg),
   );
 

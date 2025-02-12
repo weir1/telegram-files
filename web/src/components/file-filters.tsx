@@ -26,16 +26,17 @@ import { Button } from "./ui/button";
 import { DOWNLOAD_STATUS, TRANSFER_STATUS } from "@/components/file-status";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { cn } from "@/lib/utils";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 interface FileFiltersProps {
   telegramId: string;
   chatId: string;
   filters: FileFilter;
   onFiltersChange: (filters: FileFilter) => void;
-  columns: Column[];
-  onColumnConfigChange: (config: Column[]) => void;
-  rowHeight: RowHeight;
-  setRowHeight: (e: RowHeight) => void;
+  columns?: Column[];
+  onColumnConfigChange?: (config: Column[]) => void;
+  rowHeight?: RowHeight;
+  setRowHeight?: (e: RowHeight) => void;
 }
 
 const TableRowHeightSwitch = dynamic(
@@ -62,11 +63,12 @@ export function FileFilters({
   chatId,
   filters,
   onFiltersChange,
-  columns,
-  onColumnConfigChange,
-  rowHeight,
-  setRowHeight,
+  columns = [],
+  onColumnConfigChange = () => void 0,
+  rowHeight = "m",
+  setRowHeight = () => void 0,
 }: FileFiltersProps) {
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState(filters.search);
 
   const handleSearchChange = useDebouncedCallback((search: string) => {
@@ -97,7 +99,6 @@ export function FileFilters({
 
   const statusDisplayValue = useMemo(() => {
     if (!filters.downloadStatus && !filters.transferStatus) {
-      console.log("no status filter");
       return "Filter Status";
     }
     const downloadStatus =
@@ -174,7 +175,8 @@ export function FileFilters({
                     key={`${groupKey}||${statusKey}`}
                     value={`${groupKey}||${statusKey}`}
                     className={cn(
-                      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+                      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+                      !isMobile && "focus:bg-accent focus:text-accent-foreground"
                     )}
                   >
                     {filters[groupKey as keyof FileFilter] === statusKey && (
@@ -196,16 +198,18 @@ export function FileFilters({
         </Select>
       </div>
 
-      <div className="hidden gap-4 md:flex">
-        <TableColumnFilter
-          columns={columns}
-          onColumnConfigChange={onColumnConfigChange}
-        />
-        <TableRowHeightSwitch
-          rowHeight={rowHeight}
-          setRowHeightAction={setRowHeight}
-        />
-      </div>
+      {!isMobile && (
+        <div className="hidden gap-4 md:flex">
+          <TableColumnFilter
+            columns={columns}
+            onColumnConfigChange={onColumnConfigChange}
+          />
+          <TableRowHeightSwitch
+            rowHeight={rowHeight}
+            setRowHeightAction={setRowHeight}
+          />
+        </div>
+      )}
     </div>
   );
 }

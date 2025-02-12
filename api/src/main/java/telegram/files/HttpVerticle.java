@@ -14,6 +14,7 @@ import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.impl.NoStackTraceException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -50,6 +51,8 @@ public class HttpVerticle extends AbstractVerticle {
     private final Map<String, TelegramVerticle> sessionTelegramVerticles = new ConcurrentHashMap<>();
 
     private final AutoRecordsHolder autoRecordsHolder = new AutoRecordsHolder();
+
+    private final FileRouteHandler fileRouteHandler = new FileRouteHandler();
 
     private static final String SESSION_COOKIE_NAME = "tf";
 
@@ -150,13 +153,13 @@ public class HttpVerticle extends AbstractVerticle {
         router.get("/telegram/:telegramId/ping").handler(this::handleTelegramPing);
         router.get("/telegram/:telegramId/test-network").handler(this::handleTelegramTestNetwork);
 
-        router.get("/file/preview").handler(this::handleFilePreview);
-        router.post("/file/start-download").handler(this::handleFileStartDownload);
-        router.post("/file/start-download-multiple").handler(this::handleFileStartDownloadMultiple);
-        router.post("/file/cancel-download").handler(this::handleFileCancelDownload);
-        router.post("/file/toggle-pause-download").handler(this::handleFileTogglePauseDownload);
-        router.post("/file/remove").handler(this::handleFileRemove);
-        router.post("/file/auto-download").handler(this::handleAutoDownload);
+        router.get("/:telegramId/file/:uniqueId").handler(this::handleFilePreview);
+        router.post("/:telegramId/file/start-download").handler(this::handleFileStartDownload);
+        router.post("/:telegramId/file/start-download-multiple").handler(this::handleFileStartDownloadMultiple);
+        router.post("/:telegramId/file/cancel-download").handler(this::handleFileCancelDownload);
+        router.post("/:telegramId/file/toggle-pause-download").handler(this::handleFileTogglePauseDownload);
+        router.post("/:telegramId/file/remove").handler(this::handleFileRemove);
+        router.post("/:telegramId/file/auto-download").handler(this::handleAutoDownload);
 
         router.route()
                 .failureHandler(ctx -> {
@@ -557,41 +560,32 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleFilePreview(RoutingContext ctx) {
-        TelegramVerticle telegramVerticle = getTelegramVerticle(ctx);
-        if (telegramVerticle == null) {
+        Optional<TelegramVerticle> telegramVerticleOptional = getTelegramVerticle(ctx.pathParam("telegramId"));
+        if (telegramVerticleOptional.isEmpty()) {
+            ctx.fail(404);
             return;
         }
-        String chatId = ctx.request().getParam("chatId");
-        String messageId = ctx.request().getParam("messageId");
-        if (StrUtil.isBlank(chatId) || StrUtil.isBlank(messageId)) {
-            ctx.fail(400);
+        TelegramVerticle telegramVerticle = telegramVerticleOptional.get();
+        String uniqueId = ctx.pathParam("uniqueId");
+        if (StrUtil.isBlank(uniqueId)) {
+            ctx.fail(404);
             return;
         }
 
-        telegramVerticle.loadPreview(Convert.toLong(chatId), Convert.toLong(messageId))
-                .onSuccess(fileIdOrPath -> {
-                    if (fileIdOrPath == null) {
-                        ctx.end();
-                        return;
+        telegramVerticle.loadPreview(uniqueId)
+                .onSuccess(tuple -> {
+                    String mimeType = tuple.v2;
+                    if (StrUtil.isBlank(mimeType)) {
+                        mimeType = FileUtil.getMimeType(tuple.v1);
                     }
-                    if (fileIdOrPath instanceof Integer fileId) {
-                        ctx.json(JsonObject.of("fileId", fileId));
-                        return;
-                    }
-                    String path = (String) fileIdOrPath;
 
-                    ctx.response()
-                            .putHeader("Content-Type", FileUtil.getMimeType(path))
-                            .end(Buffer.buffer(FileUtil.readBytes(path)));
+                    fileRouteHandler.handle(ctx, tuple.v1, mimeType);
                 })
                 .onFailure(ctx::fail);
     }
 
     private void handleFileStartDownload(RoutingContext ctx) {
-        TelegramVerticle telegramVerticle = getTelegramVerticle(ctx);
-        if (telegramVerticle == null) {
-            return;
-        }
+        TelegramVerticle telegramVerticle = getTelegramVerticleThrow(ctx.pathParam("telegramId"));
 
         JsonObject jsonObject = ctx.body().asJsonObject();
         Long chatId = jsonObject.getLong("chatId");
@@ -608,10 +602,7 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleFileStartDownloadMultiple(RoutingContext ctx) {
-        TelegramVerticle telegramVerticle = getTelegramVerticle(ctx);
-        if (telegramVerticle == null) {
-            return;
-        }
+        TelegramVerticle telegramVerticle = getTelegramVerticleThrow(ctx.pathParam("telegramId"));
 
         JsonObject jsonObject = ctx.body().asJsonObject();
         Long chatId = jsonObject.getLong("chatId");
@@ -638,10 +629,7 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleFileCancelDownload(RoutingContext ctx) {
-        TelegramVerticle telegramVerticle = getTelegramVerticle(ctx);
-        if (telegramVerticle == null) {
-            return;
-        }
+        TelegramVerticle telegramVerticle = getTelegramVerticleThrow(ctx.pathParam("telegramId"));
 
         JsonObject jsonObject = ctx.body().asJsonObject();
         Integer fileId = jsonObject.getInteger("fileId");
@@ -656,10 +644,7 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleFileTogglePauseDownload(RoutingContext ctx) {
-        TelegramVerticle telegramVerticle = getTelegramVerticle(ctx);
-        if (telegramVerticle == null) {
-            return;
-        }
+        TelegramVerticle telegramVerticle = getTelegramVerticleThrow(ctx.pathParam("telegramId"));
 
         JsonObject jsonObject = ctx.body().asJsonObject();
         Integer fileId = jsonObject.getInteger("fileId");
@@ -675,7 +660,7 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleFileRemove(RoutingContext ctx) {
-        TelegramVerticle telegramVerticle = getTelegramVerticle(ctx);
+        TelegramVerticle telegramVerticle = getTelegramVerticleThrow(ctx.pathParam("telegramId"));
         if (telegramVerticle == null) {
             return;
         }
@@ -693,10 +678,8 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleAutoDownload(RoutingContext ctx) {
-        TelegramVerticle telegramVerticle = getTelegramVerticle(ctx);
-        if (telegramVerticle == null) {
-            return;
-        }
+        TelegramVerticle telegramVerticle = getTelegramVerticleThrow(ctx.pathParam("telegramId"));
+
         String chatId = ctx.request().getParam("chatId");
         if (StrUtil.isBlank(chatId)) {
             ctx.fail(400);
@@ -713,6 +696,14 @@ public class HttpVerticle extends AbstractVerticle {
         return telegramVerticles.stream()
                 .filter(t -> Objects.equals(t.getId(), id))
                 .findFirst();
+    }
+
+    public static TelegramVerticle getTelegramVerticleThrow(String telegramId) {
+        Object id = NumberUtil.isNumber(telegramId) ? Convert.toLong(telegramId) : telegramId;
+        return telegramVerticles.stream()
+                .filter(t -> Objects.equals(t.getId(), id))
+                .findFirst()
+                .orElseThrow(() -> new NoStackTraceException("Telegram account not found!"));
     }
 
     public static Optional<TelegramVerticle> getTelegramVerticle(long telegramId) {

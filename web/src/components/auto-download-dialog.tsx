@@ -62,7 +62,7 @@ export default function AutoDownloadDialog() {
   const { trigger: triggerAuto, isMutating: isAutoMutating } = useSWRMutation(
     !accountId || !chat
       ? undefined
-      : `/file/auto-download?telegramId=${accountId}&chatId=${chat?.id}`,
+      : `/${accountId}/file/auto-download?telegramId=${accountId}&chatId=${chat?.id}`,
     (key, { arg }: { arg: { rule: AutoDownloadRule } }) => {
       return POST(key, arg);
     },

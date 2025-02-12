@@ -19,6 +19,7 @@ import { type RowHeight } from "@/components/table-row-height-switch";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 interface FileExtraProps {
   file: TelegramFile;
@@ -76,6 +77,7 @@ function FileCaption({ file, rowHeight }: FileExtraProps) {
 
 function FilePath({ file }: { file: TelegramFile }) {
   const [, copyToClipboard] = useCopyToClipboard();
+  const isMobile = useIsMobile();
 
   if (!file.localPath) {
     return null;
@@ -86,8 +88,11 @@ function FilePath({ file }: { file: TelegramFile }) {
         <div className="flex items-center gap-2 text-sm">
           <FileCheck className="h-4 w-4 flex-shrink-0" />
           <p
-            className="group line-clamp-1 cursor-pointer overflow-hidden truncate text-ellipsis text-wrap rounded px-1 hover:bg-gray-100 dark:hover:bg-gray-800"
-            onClick={() => copyToClipboard(file.localPath)}
+            className={cn(
+              "group line-clamp-1 cursor-pointer overflow-hidden truncate text-ellipsis text-wrap rounded px-1 hover:bg-gray-100 dark:hover:bg-gray-800",
+              isMobile && "px-0",
+            )}
+            onClick={() => !isMobile && copyToClipboard(file.localPath)}
           >
             {file.localPath.split("/").pop()}
             <Copy className="ml-1 inline-flex h-4 w-4 opacity-0 group-hover:opacity-100" />
