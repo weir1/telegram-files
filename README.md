@@ -35,6 +35,7 @@
 * Support for downloading files from telegram channels and groups.
 * Support multiple telegram accounts for downloading files.
 * Support suspending and resuming downloads, and auto transfer files to other destinations.
+* Preview of downloaded videos and pictures.
 * Responsive design supports mobile access.
 
 ---
@@ -51,6 +52,10 @@
 <div align="center">
     <img src="./misc/screenshot-3.png" align="center" style="width: 300px; height: 500px;">
     <img src="./misc/screenshot-4.png" align="center" style="width: 300px; height: 500px;">
+</div>
+<div align="center">
+    <img src="./misc/preview-files-pc.gif" width="70%">
+    <img src="./misc/preview-files-mobile.gif" width="18%">
 </div>
 </details>
 
@@ -150,8 +155,8 @@ docker build -t jarvis2f/telegram-files .
 - ✅ **`Task 2`**: Download statistics and reports.
 - ✅ **`Task 3`**: Improve Telegram’s login functionality.
 - ✅ **`Task 4`**: Support auto transfer files to other destinations.
-- ☑️ **`Task 5`**: File table is optimized using virtual lists, and API service using GraalVM.
-- ☑️ **`Task 6`**: File downloads in comments under channel messages.
+- ✅ **`Task 5`**: File table is optimized using virtual lists.
+- ☑️ **`Task 6`**: Preload file information to support responsible searches.
 
 ---
 
