@@ -7,6 +7,10 @@ import io.vertx.core.Vertx;
 import java.util.concurrent.CountDownLatch;
 
 public class Start {
+    static {
+        LogFactory.setCurrentLogFactory(new Config.JDKLogFactory());
+    }
+
     private static final Log log = LogFactory.get();
 
     public static final String VERSION = "0.1.14";

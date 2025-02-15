@@ -9,7 +9,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.net.impl.URIDecoder;
 import io.vertx.ext.web.RoutingContext;
 
 import java.nio.charset.Charset;
@@ -33,17 +32,9 @@ public class FileRouteHandler {
             if (!request.isEnded()) {
                 request.pause();
             }
-            // decode URL path
-            String uriDecodedPath = URIDecoder.decodeURIComponent(context.normalizedPath(), false);
-            // if the normalized path is null it cannot be resolved
-            if (uriDecodedPath == null) {
-                LOG.warn("Invalid path: " + context.request().path());
-                context.next();
-                return;
-            }
+
             // Access fileSystem once here to be safe
             FileSystem fs = context.vertx().fileSystem();
-
             sendStatic(context, fs, path, mimeType);
         }
     }
@@ -87,7 +78,9 @@ public class FileRouteHandler {
                             if (!context.request().isEnded()) {
                                 context.request().resume();
                             }
-                            context.fail(res.cause());
+                            if (LOG.isTraceEnabled()) {
+                                LOG.trace("Failed to read file properties", res.cause());
+                            }
                         }
                     });
                 });
@@ -173,7 +166,9 @@ public class FileRouteHandler {
                         if (!context.request().isEnded()) {
                             context.request().resume();
                         }
-                        context.fail(res2.cause());
+                        if (LOG.isTraceEnabled()) {
+                            LOG.trace("Failed to send file", res2.cause());
+                        }
                     }
                 });
             } else {
@@ -191,7 +186,9 @@ public class FileRouteHandler {
                         if (!context.request().isEnded()) {
                             context.request().resume();
                         }
-                        context.fail(res2.cause());
+                        if (LOG.isTraceEnabled()) {
+                            LOG.trace("Failed to send file", res2.cause());
+                        }
                     }
                 });
             }

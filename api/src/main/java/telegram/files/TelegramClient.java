@@ -9,6 +9,7 @@ import org.drinkless.tdlib.TdApi;
 
 import java.io.IOError;
 import java.io.IOException;
+import java.nio.file.Path;
 
 public class TelegramClient {
     private static final Log log = LogFactory.get();
@@ -22,7 +23,8 @@ public class TelegramClient {
 
         try {
             Client.execute(new TdApi.SetLogVerbosityLevel(Config.TELEGRAM_LOG_LEVEL));
-            Client.execute(new TdApi.SetLogStream(new TdApi.LogStreamFile("tdlib.log", 1 << 27, false)));
+            Client.execute(new TdApi.SetLogStream(new TdApi.LogStreamFile(Path.of(Config.LOG_PATH, "tdlib.log").toString(),
+                    1 << 27, false)));
         } catch (Client.ExecutionException error) {
             throw new IOError(new IOException("Write access to the current directory is required"));
         }
