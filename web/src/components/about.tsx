@@ -50,7 +50,8 @@ export default function About() {
         <CardHeader>
           <CardTitle className="text-white">About This Project</CardTitle>
           <CardDescription className="text-white">
-            A simple telegram file downloader.
+            A self-hosted Telegram file downloader for continuous, stable, and
+            unattended downloads.
           </CardDescription>
         </CardHeader>
         <CardContent className="relative">

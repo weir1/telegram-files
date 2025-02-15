@@ -30,7 +30,9 @@ export default function ProxyPing({ accountId }: { accountId: string }) {
           >
             <ChevronsLeftRightEllipsis className="h-4 w-4 text-gray-500" />
             {isLoading && (
-              <div className="h-6 w-16 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></div>
+              <div className="h-6 w-14 animate-pulse rounded bg-gray-200 dark:bg-gray-700">
+                testing
+              </div>
             )}
             {!isLoading && error && <span>Failed</span>}
             {!isLoading && data && (

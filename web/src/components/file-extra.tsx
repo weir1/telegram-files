@@ -33,8 +33,8 @@ function FileName({ file }: { file: TelegramFile }) {
   return (
     <SpoiledWrapper hasSensitiveContent={file.hasSensitiveContent}>
       <p className="flex items-center gap-2">
-        <Mountain className="h-4 w-4" />
-        <span className="rounded px-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
+        <Mountain className="h-4 w-4 flex-shrink-0" />
+        <span className="overflow-hidden truncate text-ellipsis rounded px-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
           {file.fileName}
         </span>
       </p>
@@ -109,13 +109,14 @@ function FilePath({ file }: { file: TelegramFile }) {
 }
 
 function FileTime({ file }: { file: TelegramFile }) {
+  const isMobile = useIsMobile();
   return (
     <div className="flex items-center gap-2">
       <Tooltip>
         <TooltipTrigger asChild>
           <p className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            <span className="rounded px-1 text-sm text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800">
+            <Clock className="h-4 w-4 flex-shrink-0" />
+            <span className="rounded px-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
               {formatDistanceToNow(new Date(file.date * 1000), {
                 addSuffix: true,
               })}
@@ -128,7 +129,7 @@ function FileTime({ file }: { file: TelegramFile }) {
           </div>
         </TooltipContent>
       </Tooltip>
-      {file.completionDate && (
+      {!isMobile && file.completionDate && (
         <Tooltip>
           <TooltipTrigger asChild>
             <p className="flex items-center gap-2">

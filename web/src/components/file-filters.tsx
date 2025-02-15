@@ -129,7 +129,7 @@ export function FileFilters({
   }, [search, handleSearchChange]);
 
   return (
-    <div className="mb-6 flex flex-col justify-between md:flex-row">
+    <div className="mb-6 flex flex-col flex-wrap gap-2 justify-between md:flex-row">
       <div className="grid grid-cols-3 gap-4 md:flex md:flex-row">
         <div className="relative col-span-3">
           <Input

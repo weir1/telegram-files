@@ -47,7 +47,7 @@ export const SettingsDialog: React.FC = () => {
           defaultValue="general"
           className="mt-3 flex h-full flex-col overflow-hidden"
         >
-          <TabsList className="justify-start">
+          <TabsList className="justify-start overflow-auto">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="statistics">Statistics</TabsTrigger>
             <TabsTrigger value="proxys">Proxys</TabsTrigger>

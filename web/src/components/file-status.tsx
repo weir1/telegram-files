@@ -12,6 +12,7 @@ import {
   Pause,
   XCircle,
 } from "lucide-react";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 export const DOWNLOAD_STATUS = {
   idle: {
@@ -80,6 +81,7 @@ export default function FileStatus({
     },
     exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } },
   };
+  const isMobile = useIsMobile();
 
   return (
     <div
@@ -99,6 +101,7 @@ export default function FileStatus({
                 className={cn(
                   "text-xs hover:bg-gray-200",
                   DOWNLOAD_STATUS[file.downloadStatus].className,
+                  isMobile && "shadow-none",
                 )}
               >
                 {DOWNLOAD_STATUS[file.downloadStatus].text}

@@ -9,12 +9,14 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast";
+import useIsMobile from "@/hooks/use-is-mobile";
 
 export function Toaster() {
   const { toasts } = useToast();
+  const isMobile = useIsMobile();
 
   return (
-    <ToastProvider>
+    <ToastProvider duration={isMobile ? 1000 : 5000}>
       {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>

@@ -235,7 +235,7 @@ const FileStatistics: React.FC<FileStatisticsProps> = ({ telegramId }) => {
 
       <div className="flex-1 rounded-lg bg-white p-4 shadow-md dark:bg-gray-900">
         <div className="flex items-center space-x-3 border-gray-200 dark:border-gray-700">
-          <h3 className="text-md flex items-center space-x-2 font-semibold text-gray-700 dark:text-gray-200">
+          <h3 className="text-md text-nowrap flex items-center space-x-2 font-semibold text-gray-700 dark:text-gray-200">
             <Clock className="h-5 w-5 text-yellow-500" />
             <span>Speed Statistics</span>
             <span className="text-sm font-medium text-gray-500 dark:text-gray-400">

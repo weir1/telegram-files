@@ -47,7 +47,7 @@ export function Header() {
   return (
     <Card className="mb-6">
       <CardContent className="p-4">
-        <div className="relative flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <div className="relative flex flex-col flex-wrap items-start justify-between gap-4 md:flex-row md:items-center">
           <div className="flex w-full flex-1 flex-col gap-4 md:flex-row md:items-center">
             <Link href={"/"} className="hidden md:inline-flex">
               <TelegramIcon className="h-6 w-6" />
