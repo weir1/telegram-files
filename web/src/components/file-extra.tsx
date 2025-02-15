@@ -24,9 +24,10 @@ import useIsMobile from "@/hooks/use-is-mobile";
 interface FileExtraProps {
   file: TelegramFile;
   rowHeight: RowHeight;
+  ellipsis?: boolean;
 }
 
-function FileName({ file }: { file: TelegramFile }) {
+function FileName({ file, ellipsis }: FileExtraProps) {
   if (!file.fileName) {
     return null;
   }
@@ -34,7 +35,12 @@ function FileName({ file }: { file: TelegramFile }) {
     <SpoiledWrapper hasSensitiveContent={file.hasSensitiveContent}>
       <p className="flex items-center gap-2">
         <Mountain className="h-4 w-4 flex-shrink-0" />
-        <span className="overflow-hidden truncate text-ellipsis rounded px-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
+        <span
+          className={cn(
+            "overflow-hidden rounded px-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-800",
+            ellipsis && "line-clamp-1",
+          )}
+        >
           {file.fileName}
         </span>
       </p>
@@ -42,7 +48,7 @@ function FileName({ file }: { file: TelegramFile }) {
   );
 }
 
-function FileCaption({ file, rowHeight }: FileExtraProps) {
+function FileCaption({ file, rowHeight, ellipsis }: FileExtraProps) {
   if (!file.caption) {
     return null;
   }
@@ -54,8 +60,8 @@ function FileCaption({ file, rowHeight }: FileExtraProps) {
             <Captions className="h-4 w-4 flex-shrink-0" />
             <p
               className={cn(
-                rowHeight !== "l" && "line-clamp-1",
-                "overflow-hidden truncate text-ellipsis text-wrap text-start text-sm",
+                (rowHeight !== "l" || ellipsis) && "line-clamp-1",
+                "overflow-hidden text-wrap text-start text-sm",
               )}
             >
               {file.caption}
@@ -75,7 +81,7 @@ function FileCaption({ file, rowHeight }: FileExtraProps) {
   );
 }
 
-function FilePath({ file }: { file: TelegramFile }) {
+function FilePath({ file, ellipsis }: FileExtraProps) {
   const [, copyToClipboard] = useCopyToClipboard();
   const isMobile = useIsMobile();
 
@@ -89,7 +95,8 @@ function FilePath({ file }: { file: TelegramFile }) {
           <FileCheck className="h-4 w-4 flex-shrink-0" />
           <p
             className={cn(
-              "group line-clamp-1 cursor-pointer overflow-hidden truncate text-ellipsis text-wrap rounded px-1 hover:bg-gray-100 dark:hover:bg-gray-800",
+              "group cursor-pointer overflow-hidden text-wrap rounded px-1 hover:bg-gray-100 dark:hover:bg-gray-800",
+              ellipsis && "line-clamp-1",
               isMobile && "px-0",
             )}
             onClick={() => !isMobile && copyToClipboard(file.localPath)}
@@ -108,7 +115,7 @@ function FilePath({ file }: { file: TelegramFile }) {
   );
 }
 
-function FileTime({ file }: { file: TelegramFile }) {
+function FileTime({ file }: FileExtraProps) {
   const isMobile = useIsMobile();
   return (
     <div className="flex items-center gap-2">
@@ -134,7 +141,7 @@ function FileTime({ file }: { file: TelegramFile }) {
           <TooltipTrigger asChild>
             <p className="flex items-center gap-2">
               <ClockArrowDown className="h-4 w-4" />
-              <span className="rounded px-1 text-sm text-muted-foreground hover:bg-gray-100 dark:hover:bg-gray-800">
+              <span className="rounded px-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
                 {formatDistanceToNow(new Date(file.completionDate), {
                   addSuffix: true,
                 })}
@@ -156,7 +163,8 @@ function hasValue(value: string | null | undefined): boolean {
   return value !== null && value !== undefined && value.trim() !== "";
 }
 
-export default function FileExtra({ file, rowHeight }: FileExtraProps) {
+export default function FileExtra(fileExtraProps: FileExtraProps) {
+  const { file, rowHeight } = fileExtraProps;
   if (rowHeight === "s") {
     const renderOrder = [
       { key: "fileName", Component: FileName },
@@ -172,7 +180,7 @@ export default function FileExtra({ file, rowHeight }: FileExtraProps) {
       ) {
         return (
           <TooltipProvider>
-            <item.Component file={file} rowHeight={rowHeight} />
+            <item.Component {...fileExtraProps} />
           </TooltipProvider>
         );
       }
@@ -182,10 +190,10 @@ export default function FileExtra({ file, rowHeight }: FileExtraProps) {
   return (
     <div className="relative flex flex-col space-y-1 overflow-hidden">
       <TooltipProvider>
-        <FileName file={file} />
-        <FileCaption file={file} rowHeight={rowHeight} />
-        <FilePath file={file} />
-        <FileTime file={file} />
+        <FileName {...fileExtraProps} />
+        <FileCaption {...fileExtraProps} />
+        <FilePath {...fileExtraProps} />
+        <FileTime {...fileExtraProps} />
       </TooltipProvider>
     </div>
   );

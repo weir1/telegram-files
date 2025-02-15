@@ -50,7 +50,7 @@ export function FileCard({
         <div className="flex items-center gap-4">
           <FileAvatar file={file} className="h-16 w-16 min-w-16" />
           <div className="flex-1 overflow-hidden">
-            <FileExtra file={file} rowHeight="s" />
+            <FileExtra file={file} rowHeight="s" ellipsis={true}/>
             <div className="flex items-center justify-between">
               <div className="flex flex-col justify-start gap-0.5">
                 <span className="text-xs text-muted-foreground">
