@@ -21,6 +21,8 @@ public interface FileRepository {
 
     Future<FileRecord> getByUniqueId(String uniqueId);
 
+    Future<String> getCaptionByMediaAlbumId(long mediaAlbumId);
+
     Future<JsonObject> getDownloadStatistics(long telegramId);
 
     Future<JsonArray> getCompletedRangeStatistics(long id, long startTime, long endTime, int timeRange);
@@ -38,6 +40,8 @@ public interface FileRepository {
                                             String localPath);
 
     Future<Void> updateFileId(int fileId, String uniqueId);
+
+    Future<Integer> updateCaptionByMediaAlbumId(long mediaAlbumId, String caption);
 
     Future<Void> deleteByUniqueId(String uniqueId);
 }

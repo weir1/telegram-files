@@ -35,7 +35,7 @@ public class AutoRecordsHolder {
                     if (settingAutoRecords == null) {
                         return;
                     }
-                    settingAutoRecords.items.forEach(item -> HttpVerticle.getTelegramVerticle(item.telegramId)
+                    settingAutoRecords.items.forEach(item -> TelegramVerticles.get(item.telegramId)
                             .ifPresentOrElse(telegramVerticle -> {
                                 if (telegramVerticle.authorized) {
                                     autoRecords.add(item);
@@ -52,7 +52,7 @@ public class AutoRecordsHolder {
         for (SettingAutoRecords.Item item : records.items) {
             if (!autoRecords.exists(item.telegramId, item.chatId)) {
                 // new enabled
-                HttpVerticle.getTelegramVerticle(item.telegramId)
+                TelegramVerticles.get(item.telegramId)
                         .ifPresentOrElse(telegramVerticle -> {
                             if (telegramVerticle.authorized) {
                                 autoRecords.add(item);

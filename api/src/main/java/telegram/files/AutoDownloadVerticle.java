@@ -130,7 +130,7 @@ public class AutoDownloadVerticle extends AbstractVerticle {
         }
         Tuple2<String, List<String>> rule = handleRule(auto);
 
-        TelegramVerticle telegramVerticle = this.getTelegramVerticle(auto.telegramId);
+        TelegramVerticle telegramVerticle = TelegramVerticles.getOrElseThrow(auto.telegramId);
         TdApi.SearchChatMessages searchChatMessages = new TdApi.SearchChatMessages();
         searchChatMessages.query = rule.v1;
         searchChatMessages.chatId = auto.chatId;
@@ -229,7 +229,7 @@ public class AutoDownloadVerticle extends AbstractVerticle {
             return;
         }
         log.debug("Download start! TelegramId: %d size: %d".formatted(telegramId, messages.size()));
-        TelegramVerticle telegramVerticle = this.getTelegramVerticle(telegramId);
+        TelegramVerticle telegramVerticle = TelegramVerticles.getOrElseThrow(telegramId);
         int surplusSize = getSurplusSize(telegramId);
         if (surplusSize <= 0) {
             return;
@@ -251,11 +251,6 @@ public class AutoDownloadVerticle extends AbstractVerticle {
         log.debug("Remaining download messages: %d".formatted(messages.size()));
     }
 
-    private TelegramVerticle getTelegramVerticle(long telegramId) {
-        return HttpVerticle.getTelegramVerticle(telegramId)
-                .orElseThrow(() -> new IllegalArgumentException("Telegram verticle not found: %s".formatted(telegramId)));
-    }
-
     private void onNewMessage(JsonObject jsonObject) {
         long telegramId = jsonObject.getLong("telegramId");
         long chatId = jsonObject.getLong("chatId");
@@ -263,7 +258,7 @@ public class AutoDownloadVerticle extends AbstractVerticle {
         autoRecords.items.stream()
                 .filter(item -> item.telegramId == telegramId && item.chatId == chatId)
                 .findFirst()
-                .flatMap(item -> HttpVerticle.getTelegramVerticle(telegramId))
+                .flatMap(item -> TelegramVerticles.get(telegramId))
                 .ifPresent(telegramVerticle -> {
                     if (telegramVerticle.authorized) {
                         telegramVerticle.client.execute(new TdApi.GetMessage(chatId, messageId))

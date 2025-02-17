@@ -222,3 +222,24 @@ manually.~~
 Open the `chrome://flags` page, search for `Insecure origins treated as secure`, and add the address of the web page to
 the list.
 </details>
+
+**Q.** How to use the telegram-files maintenance tool?
+
+**A.** You can use the following command to run the maintenance tool(**before running the command, you should stop telegram-files container**):
+<details closed>
+<summary>Command</summary>
+
+```shell
+docker run --rm \
+  --entrypoint /bin/bash \
+  -v $(pwd)/data:/app/data \
+  -e APP_ROOT=${APP_ROOT:-/app/data} \
+  -e TELEGRAM_API_ID=${TELEGRAM_API_ID} \
+  -e TELEGRAM_API_HASH=${TELEGRAM_API_HASH} \
+  ghcr.io/jarvis2f/telegram-files:latest tfm ${Maintenance Command}
+```
+
+**Maintenance Command:**
+
+- `album-caption`: Fixed issue with missing caption for album messages before `0.1.15`.
+</details>

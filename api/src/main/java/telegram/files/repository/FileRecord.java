@@ -14,6 +14,7 @@ public record FileRecord(int id, //file id will change
                          long telegramId,
                          long chatId,
                          long messageId,
+                         long mediaAlbumId,
                          int date, // date when the file was uploaded
                          boolean hasSensitiveContent,
                          long size, // file size in bytes
@@ -46,6 +47,7 @@ public record FileRecord(int id, //file id will change
                 telegram_id         BIGINT,
                 chat_id             BIGINT,
                 message_id          BIGINT,
+                media_album_id      BIGINT,
                 date                INT,
                 has_sensitive_content BOOLEAN,
                 size                BIGINT,
@@ -71,6 +73,9 @@ public record FileRecord(int id, //file id will change
             }),
             MapUtil.entry(new Version("0.1.12"), new String[]{
                     "ALTER TABLE file_record ADD COLUMN transfer_status VARCHAR(255) DEFAULT 'idle';",
+            }),
+            MapUtil.entry(new Version("0.1.15"), new String[]{
+                    "ALTER TABLE file_record ADD COLUMN media_album_id BIGINT;",
             })
     ));
 
@@ -92,6 +97,7 @@ public record FileRecord(int id, //file id will change
                     row.getLong("telegram_id"),
                     row.getLong("chat_id"),
                     row.getLong("message_id"),
+                    Objects.requireNonNullElse(row.getLong("media_album_id"), 0L),
                     row.getInteger("date"),
                     Convert.toBool(row.getInteger("has_sensitive_content")),
                     row.getLong("size"),
@@ -115,6 +121,7 @@ public record FileRecord(int id, //file id will change
                     MapUtil.entry("telegram_id", r.telegramId()),
                     MapUtil.entry("chat_id", r.chatId()),
                     MapUtil.entry("message_id", r.messageId()),
+                    MapUtil.entry("media_album_id", r.mediaAlbumId()),
                     MapUtil.entry("date", r.date()),
                     MapUtil.entry("has_sensitive_content", r.hasSensitiveContent()),
                     MapUtil.entry("size", r.size()),
@@ -132,7 +139,7 @@ public record FileRecord(int id, //file id will change
             ));
 
     public FileRecord withSourceField(int id, long downloadedSize) {
-        return new FileRecord(id, uniqueId, telegramId, chatId, messageId, date, hasSensitiveContent, size, downloadedSize, type, mimeType, fileName, thumbnail, caption, localPath, downloadStatus, transferStatus, startDate, completionDate);
+        return new FileRecord(id, uniqueId, telegramId, chatId, messageId, mediaAlbumId, date, hasSensitiveContent, size, downloadedSize, type, mimeType, fileName, thumbnail, caption, localPath, downloadStatus, transferStatus, startDate, completionDate);
     }
 
     public boolean isDownloadStatus(DownloadStatus status) {

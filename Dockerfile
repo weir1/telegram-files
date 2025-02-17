@@ -77,7 +77,9 @@ RUN npm install -g pm2 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* ./libs.zip && \
     touch /run/nginx.pid && \
-    chown -R 1000:1000 /app /etc/nginx /var/lib/nginx /var/log/nginx /run/nginx.pid
+    chown -R 1000:1000 /app /etc/nginx /var/lib/nginx /var/log/nginx /run/nginx.pid && \
+    echo '#!/bin/sh\njava -Djava.library.path=/app/tdlib -cp /app/api.jar telegram.files.Maintain "$@"' > /usr/bin/tfm && \
+    chmod +x /usr/bin/tfm
 
 COPY --from=runtime-builder --chown=1000:1000 /custom-jre/jre /jre
 COPY --from=api-builder --chown=1000:1000 /app/api.jar /app/api.jar

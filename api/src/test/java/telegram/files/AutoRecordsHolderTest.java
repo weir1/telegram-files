@@ -20,7 +20,7 @@ import static org.mockito.Mockito.*;
 public class AutoRecordsHolderTest {
     private AutoRecordsHolder autoRecordsHolder;
 
-    private MockedStatic<HttpVerticle> httpVerticleMockedStatic;
+    private MockedStatic<TelegramVerticles> telegramVerticlesMockedStatic;
 
     private SettingAutoRecords settingAutoRecords1;
 
@@ -29,7 +29,7 @@ public class AutoRecordsHolderTest {
     @BeforeEach
     public void setUp() {
         autoRecordsHolder = new AutoRecordsHolder();
-        httpVerticleMockedStatic = mockStatic(HttpVerticle.class);
+        telegramVerticlesMockedStatic = mockStatic(TelegramVerticles.class);
 
         // Prepare test data
         settingAutoRecords1 = new SettingAutoRecords();
@@ -41,13 +41,13 @@ public class AutoRecordsHolderTest {
         // Mock dependencies
         TelegramVerticle mockTelegramVerticle = mock(TelegramVerticle.class);
         mockTelegramVerticle.authorized = true;
-        when(HttpVerticle.getTelegramVerticle(item1.telegramId))
+        when(TelegramVerticles.get(item1.telegramId))
                 .thenReturn(Optional.of(mockTelegramVerticle));
     }
 
     @AfterEach
     public void tearDown() {
-        httpVerticleMockedStatic.close();
+        telegramVerticlesMockedStatic.close();
     }
 
     @Test

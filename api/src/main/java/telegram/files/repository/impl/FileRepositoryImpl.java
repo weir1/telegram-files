@@ -13,6 +13,7 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.jdbcclient.JDBCPool;
+import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import org.jooq.lambda.tuple.Tuple;
 import org.jooq.lambda.tuple.Tuple3;
@@ -38,16 +39,20 @@ public class FileRepositoryImpl implements FileRepository {
     public Future<FileRecord> create(FileRecord fileRecord) {
         return SqlTemplate
                 .forUpdate(pool, """
-                        INSERT INTO file_record(id, unique_id, telegram_id, chat_id, message_id, date, has_sensitive_content, size, downloaded_size,
+                        INSERT INTO file_record(id, unique_id, telegram_id, chat_id, message_id, media_album_id, date, has_sensitive_content,
+                                                size, downloaded_size,
                                                 type, mime_type,
                                                 file_name, thumbnail, caption, local_path,
                                                 download_status, start_date, transfer_status)
-                        values (#{id}, #{unique_id}, #{telegram_id}, #{chat_id}, #{message_id}, #{date}, #{has_sensitive_content}, #{size}, #{downloaded_size}, #{type},
-                                #{mime_type}, #{file_name}, #{thumbnail}, #{caption}, #{local_path}, #{download_status}, #{start_date}, #{transfer_status})
+                        values (#{id}, #{unique_id}, #{telegram_id}, #{chat_id}, #{message_id}, #{media_album_id}, #{date},
+                                #{has_sensitive_content}, #{size}, #{downloaded_size}, #{type},
+                                #{mime_type}, #{file_name}, #{thumbnail}, #{caption}, #{local_path}, #{download_status}, #{start_date},
+                                #{transfer_status})
                         """)
                 .mapFrom(FileRecord.PARAM_MAPPER)
                 .execute(fileRecord)
                 .map(r -> fileRecord)
+                .compose(r -> this.updateCaptionByMediaAlbumId(fileRecord.mediaAlbumId(), fileRecord.caption()).map(r))
                 .onSuccess(r -> log.trace("Successfully created file record: %s".formatted(fileRecord.id()))
                 )
                 .onFailure(
@@ -193,6 +198,21 @@ public class FileRepositoryImpl implements FileRepository {
                 .onFailure(err -> log.error("Failed to get file record: %s".formatted(err.getMessage()))
                 )
                 .map(rs -> rs.size() > 0 ? rs.iterator().next() : null);
+    }
+
+    @Override
+    public Future<String> getCaptionByMediaAlbumId(long mediaAlbumId) {
+        if (mediaAlbumId <= 0) {
+            return Future.succeededFuture(null);
+        }
+        return SqlTemplate
+                .forQuery(pool, """
+                        SELECT caption FROM file_record WHERE media_album_id = #{mediaAlbumId} LIMIT 1
+                        """)
+                .mapTo(row -> row.getString("caption"))
+                .execute(Map.of("mediaAlbumId", mediaAlbumId))
+                .map(rs -> rs.size() > 0 ? rs.iterator().next() : null)
+                .onFailure(err -> log.error("Failed to get caption: %s".formatted(err.getMessage())));
     }
 
     @Override
@@ -423,6 +443,34 @@ public class FileRepositoryImpl implements FileRepository {
                             )
                             .mapEmpty();
                 });
+    }
+
+    @Override
+    public Future<Integer> updateCaptionByMediaAlbumId(long mediaAlbumId, String caption) {
+        if (mediaAlbumId <= 0) {
+            return Future.succeededFuture(0);
+        }
+
+        return Future.<String>future(promise -> {
+            if (StrUtil.isBlank(caption)) {
+                this.getCaptionByMediaAlbumId(mediaAlbumId)
+                        .onSuccess(promise::complete);
+            } else {
+                promise.complete(caption);
+            }
+        }).compose(theCaption -> {
+            if (StrUtil.isBlank(theCaption)) {
+                return Future.succeededFuture(0);
+            }
+            return SqlTemplate
+                    .forUpdate(pool, """
+                            UPDATE file_record SET caption = #{caption} WHERE media_album_id = #{mediaAlbumId}
+                            """)
+                    .execute(Map.of("mediaAlbumId", mediaAlbumId, "caption", theCaption))
+                    .onFailure(err -> log.error("Failed to update file record: %s".formatted(err.getMessage()))
+                    )
+                    .map(SqlResult::rowCount);
+        });
     }
 
     @Override

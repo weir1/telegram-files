@@ -3,7 +3,6 @@ package telegram.files;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.convert.Convert;
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
 import cn.hutool.log.Log;
@@ -14,7 +13,6 @@ import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.impl.NoStackTraceException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -31,9 +29,7 @@ import org.drinkless.tdlib.TdApi;
 import telegram.files.repository.SettingAutoRecords;
 import telegram.files.repository.SettingKey;
 import telegram.files.repository.SettingRecord;
-import telegram.files.repository.TelegramRecord;
 
-import java.io.File;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -44,8 +40,6 @@ public class HttpVerticle extends AbstractVerticle {
 
     // session id -> ws handler id
     private static final Map<String, String> clients = new ConcurrentHashMap<>();
-
-    private static final List<TelegramVerticle> telegramVerticles = new ArrayList<>();
 
     // session id -> telegram verticle
     private final Map<String, TelegramVerticle> sessionTelegramVerticles = new ConcurrentHashMap<>();
@@ -184,52 +178,16 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     public Future<Void> initTelegramVerticles() {
-        return DataVerticle.telegramRepository.getAll()
-                .compose(telegramRecords -> {
-                    List<String> verifiedPath = telegramRecords.stream().map(TelegramRecord::rootPath).toList();
-                    File telegramRoot = FileUtil.file(Config.TELEGRAM_ROOT);
-                    List<String> uncertifiedPaths = FileUtil.loopFiles(telegramRoot, 1, null)
-                            .stream()
-                            .filter(f -> f.isDirectory() && !verifiedPath.contains(f.getAbsolutePath()))
-                            .map(File::getAbsolutePath)
-                            .toList();
-                    List<Future<String>> futures = new ArrayList<>();
-                    for (TelegramRecord telegramRecord : telegramRecords) {
-                        TelegramVerticle telegramVerticle = new TelegramVerticle(telegramRecord);
-                        if (!telegramVerticle.check()) {
-                            continue;
-                        }
-                        telegramVerticles.add(telegramVerticle);
-                        futures.add(vertx.deployVerticle(telegramVerticle));
-                    }
-                    if (CollUtil.isNotEmpty(uncertifiedPaths)) {
-                        for (String uncertifiedPath : uncertifiedPaths) {
-                            TelegramVerticle telegramVerticle = new TelegramVerticle(uncertifiedPath);
-                            if (!telegramVerticle.check()) {
-                                continue;
-                            }
-                            telegramVerticles.add(telegramVerticle);
-                            futures.add(vertx.deployVerticle(telegramVerticle));
-                        }
-                    }
-                    return Future.all(futures);
-                })
-                .onSuccess(r -> log.info("Successfully deployed %d telegram verticles".formatted(r.size())))
-                .onFailure(err -> log.error("Failed to deploy telegram verticles: %s".formatted(err.getMessage())))
-                .mapEmpty();
+        return TelegramVerticles.initTelegramVerticles(vertx);
     }
 
     public Future<Void> initAutoDownloadVerticle() {
-        return vertx.deployVerticle(new AutoDownloadVerticle(autoRecordsHolder), new DeploymentOptions()
-                        .setThreadingModel(ThreadingModel.VIRTUAL_THREAD)
-                )
+        return vertx.deployVerticle(new AutoDownloadVerticle(autoRecordsHolder), Config.VIRTUAL_THREAD_DEPLOYMENT_OPTIONS)
                 .mapEmpty();
     }
 
     public Future<Void> initTransferVerticle() {
-        return vertx.deployVerticle(new TransferVerticle(autoRecordsHolder), new DeploymentOptions()
-                        .setThreadingModel(ThreadingModel.VIRTUAL_THREAD)
-                )
+        return vertx.deployVerticle(new TransferVerticle(autoRecordsHolder), Config.VIRTUAL_THREAD_DEPLOYMENT_OPTIONS)
                 .mapEmpty();
     }
 
@@ -350,7 +308,7 @@ public class HttpVerticle extends AbstractVerticle {
         TelegramVerticle newTelegramVerticle = new TelegramVerticle(DataVerticle.telegramRepository.getRootPath());
         newTelegramVerticle.setProxy(proxyName);
         sessionTelegramVerticles.put(sessionId, newTelegramVerticle);
-        telegramVerticles.add(newTelegramVerticle);
+        TelegramVerticles.add(newTelegramVerticle);
         vertx.deployVerticle(newTelegramVerticle)
                 .onSuccess(id -> ctx.json(new JsonObject()
                         .put("id", newTelegramVerticle.getId())
@@ -360,20 +318,13 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleTelegramDelete(RoutingContext ctx) {
-        String telegramId = ctx.pathParam("telegramId");
-        if (StrUtil.isBlank(telegramId)) {
-            ctx.fail(400);
+        TelegramVerticle telegramVerticle = getTelegramVerticleByPath(ctx);
+        if (telegramVerticle == null) {
             return;
         }
-        Optional<TelegramVerticle> telegramVerticleOptional = getTelegramVerticle(telegramId);
-        if (telegramVerticleOptional.isEmpty()) {
-            ctx.fail(404);
-            return;
-        }
-        TelegramVerticle telegramVerticle = telegramVerticleOptional.get();
         telegramVerticle.close(true)
                 .onSuccess(r -> {
-                    telegramVerticles.remove(telegramVerticle);
+                    TelegramVerticles.remove(telegramVerticle);
                     sessionTelegramVerticles.entrySet().removeIf(e -> e.getValue().equals(telegramVerticle));
                     ctx.end();
                 });
@@ -381,7 +332,7 @@ public class HttpVerticle extends AbstractVerticle {
 
     private void handleTelegrams(RoutingContext ctx) {
         Boolean authorized = Convert.toBool(ctx.request().getParam("authorized"));
-        Future.all(telegramVerticles.stream()
+        Future.all(TelegramVerticles.getAll().stream()
                         .filter(c -> authorized == null || c.authorized == authorized)
                         .map(TelegramVerticle::getTelegramAccount)
                         .toList()
@@ -392,29 +343,25 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleTelegramChats(RoutingContext ctx) {
-        String telegramId = ctx.pathParam("telegramId");
-        if (StrUtil.isBlank(telegramId)) {
-            ctx.fail(400);
+        TelegramVerticle telegramVerticle = getTelegramVerticleByPath(ctx);
+        if (telegramVerticle == null) {
             return;
         }
         String query = ctx.request().getParam("query");
         String chatId = ctx.request().getParam("chatId");
         String archived = ctx.request().getParam("archived");
-        getTelegramVerticle(telegramId)
-                .ifPresentOrElse(telegramVerticle ->
-                        telegramVerticle.getChats(Convert.toLong(chatId), query, Convert.toBool(archived, false))
-                                .onSuccess(ctx::json)
-                                .onFailure(ctx::fail), () -> ctx.fail(404));
+        telegramVerticle.getChats(Convert.toLong(chatId), query, Convert.toBool(archived, false))
+                .onSuccess(ctx::json)
+                .onFailure(ctx::fail);
     }
 
     private void handleTelegramFiles(RoutingContext ctx) {
-        String telegramId = ctx.pathParam("telegramId");
-        if (StrUtil.isBlank(telegramId)) {
-            ctx.fail(400);
+        TelegramVerticle telegramVerticle = getTelegramVerticleByPath(ctx);
+        if (telegramVerticle == null) {
             return;
         }
-        String chatIdStr = ctx.pathParam("chatId");
-        if (StrUtil.isBlank(chatIdStr)) {
+        String chatId = ctx.pathParam("chatId");
+        if (StrUtil.isBlank(chatId)) {
             ctx.fail(400);
             return;
         }
@@ -422,19 +369,14 @@ public class HttpVerticle extends AbstractVerticle {
         ctx.request().params().forEach(filter::put);
         filter.put("search", URLUtil.decode(filter.get("search")));
 
-        long chatId = Convert.toLong(chatIdStr);
-        getTelegramVerticle(telegramId)
-                .ifPresentOrElse(telegramVerticle ->
-                                telegramVerticle.getChatFiles(chatId, filter)
-                                        .onSuccess(ctx::json)
-                                        .onFailure(ctx::fail),
-                        () -> ctx.fail(404));
+        telegramVerticle.getChatFiles(Convert.toLong(chatId), filter)
+                .onSuccess(ctx::json)
+                .onFailure(ctx::fail);
     }
 
     private void handleTelegramFilesCount(RoutingContext ctx) {
-        String telegramId = ctx.pathParam("telegramId");
-        if (StrUtil.isBlank(telegramId)) {
-            ctx.fail(400);
+        TelegramVerticle telegramVerticle = getTelegramVerticleByPath(ctx);
+        if (telegramVerticle == null) {
             return;
         }
         String chatIdStr = ctx.pathParam("chatId");
@@ -443,26 +385,16 @@ public class HttpVerticle extends AbstractVerticle {
             return;
         }
         long chatId = Convert.toLong(chatIdStr);
-        getTelegramVerticle(telegramId)
-                .ifPresentOrElse(telegramVerticle ->
-                                telegramVerticle.getChatFilesCount(chatId)
-                                        .onSuccess(ctx::json)
-                                        .onFailure(ctx::fail),
-                        () -> ctx.fail(404));
+        telegramVerticle.getChatFilesCount(chatId)
+                .onSuccess(ctx::json)
+                .onFailure(ctx::fail);
     }
 
     private void handleTelegramDownloadStatistics(RoutingContext ctx) {
-        String telegramId = ctx.pathParam("telegramId");
-        if (StrUtil.isBlank(telegramId)) {
-            ctx.fail(400);
+        TelegramVerticle telegramVerticle = getTelegramVerticleByPath(ctx);
+        if (telegramVerticle == null) {
             return;
         }
-        Optional<TelegramVerticle> telegramVerticleOptional = getTelegramVerticle(telegramId);
-        if (telegramVerticleOptional.isEmpty()) {
-            ctx.fail(404);
-            return;
-        }
-        TelegramVerticle telegramVerticle = telegramVerticleOptional.get();
 
         String type = ctx.request().getParam("type");
         String timeRange = ctx.request().getParam("timeRange");
@@ -487,7 +419,7 @@ public class HttpVerticle extends AbstractVerticle {
             sessionTelegramVerticles.remove(sessionId);
             return true;
         }
-        Optional<TelegramVerticle> optionalTelegramVerticle = getTelegramVerticle(telegramId);
+        Optional<TelegramVerticle> optionalTelegramVerticle = TelegramVerticles.get(telegramId);
         if (optionalTelegramVerticle.isEmpty()) {
             return false;
         }
@@ -497,7 +429,7 @@ public class HttpVerticle extends AbstractVerticle {
 
     private void handleTelegramToggleProxy(RoutingContext ctx) {
         String telegramId = ctx.request().getParam("telegramId");
-        getTelegramVerticle(telegramId)
+        TelegramVerticles.get(telegramId)
                 .ifPresentOrElse(telegramVerticle ->
                         telegramVerticle.toggleProxy(ctx.body().asJsonObject())
                                 .onSuccess(r -> ctx.json(JsonObject.of("proxy", r)))
@@ -510,7 +442,7 @@ public class HttpVerticle extends AbstractVerticle {
             ctx.fail(400);
             return;
         }
-        getTelegramVerticle(telegramId)
+        TelegramVerticles.get(telegramId)
                 .ifPresentOrElse(telegramVerticle ->
                         telegramVerticle.ping()
                                 .onSuccess(r -> ctx.json(JsonObject.of("ping", r)))
@@ -524,7 +456,7 @@ public class HttpVerticle extends AbstractVerticle {
             ctx.fail(400);
             return;
         }
-        getTelegramVerticle(telegramId)
+        TelegramVerticles.get(telegramId)
                 .ifPresentOrElse(telegramVerticle ->
                                 telegramVerticle.client.execute(new TdApi.TestNetwork())
                                         .onComplete(r ->
@@ -549,7 +481,7 @@ public class HttpVerticle extends AbstractVerticle {
             ctx.fail(400);
             return;
         }
-        TelegramVerticle telegramVerticle = getTelegramVerticle(ctx);
+        TelegramVerticle telegramVerticle = getTelegramVerticleBySession(ctx);
         if (telegramVerticle == null) {
             return;
         }
@@ -560,12 +492,10 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleFilePreview(RoutingContext ctx) {
-        Optional<TelegramVerticle> telegramVerticleOptional = getTelegramVerticle(ctx.pathParam("telegramId"));
-        if (telegramVerticleOptional.isEmpty()) {
-            ctx.fail(404);
+        TelegramVerticle telegramVerticle = getTelegramVerticleByPath(ctx);
+        if (telegramVerticle == null) {
             return;
         }
-        TelegramVerticle telegramVerticle = telegramVerticleOptional.get();
         String uniqueId = ctx.pathParam("uniqueId");
         if (StrUtil.isBlank(uniqueId)) {
             ctx.fail(404);
@@ -585,7 +515,7 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleFileStartDownload(RoutingContext ctx) {
-        TelegramVerticle telegramVerticle = getTelegramVerticleThrow(ctx.pathParam("telegramId"));
+        TelegramVerticle telegramVerticle = TelegramVerticles.getOrElseThrow(ctx.pathParam("telegramId"));
 
         JsonObject jsonObject = ctx.body().asJsonObject();
         Long chatId = jsonObject.getLong("chatId");
@@ -602,7 +532,7 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleFileStartDownloadMultiple(RoutingContext ctx) {
-        TelegramVerticle telegramVerticle = getTelegramVerticleThrow(ctx.pathParam("telegramId"));
+        TelegramVerticle telegramVerticle = TelegramVerticles.getOrElseThrow(ctx.pathParam("telegramId"));
 
         JsonObject jsonObject = ctx.body().asJsonObject();
         Long chatId = jsonObject.getLong("chatId");
@@ -629,7 +559,7 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleFileCancelDownload(RoutingContext ctx) {
-        TelegramVerticle telegramVerticle = getTelegramVerticleThrow(ctx.pathParam("telegramId"));
+        TelegramVerticle telegramVerticle = TelegramVerticles.getOrElseThrow(ctx.pathParam("telegramId"));
 
         JsonObject jsonObject = ctx.body().asJsonObject();
         Integer fileId = jsonObject.getInteger("fileId");
@@ -644,7 +574,7 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleFileTogglePauseDownload(RoutingContext ctx) {
-        TelegramVerticle telegramVerticle = getTelegramVerticleThrow(ctx.pathParam("telegramId"));
+        TelegramVerticle telegramVerticle = TelegramVerticles.getOrElseThrow(ctx.pathParam("telegramId"));
 
         JsonObject jsonObject = ctx.body().asJsonObject();
         Integer fileId = jsonObject.getInteger("fileId");
@@ -660,7 +590,7 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleFileRemove(RoutingContext ctx) {
-        TelegramVerticle telegramVerticle = getTelegramVerticleThrow(ctx.pathParam("telegramId"));
+        TelegramVerticle telegramVerticle = TelegramVerticles.getOrElseThrow(ctx.pathParam("telegramId"));
         if (telegramVerticle == null) {
             return;
         }
@@ -678,7 +608,7 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     private void handleAutoDownload(RoutingContext ctx) {
-        TelegramVerticle telegramVerticle = getTelegramVerticleThrow(ctx.pathParam("telegramId"));
+        TelegramVerticle telegramVerticle = TelegramVerticles.getOrElseThrow(ctx.pathParam("telegramId"));
 
         String chatId = ctx.request().getParam("chatId");
         if (StrUtil.isBlank(chatId)) {
@@ -691,28 +621,7 @@ public class HttpVerticle extends AbstractVerticle {
                 .onFailure(ctx::fail);
     }
 
-    public static Optional<TelegramVerticle> getTelegramVerticle(String telegramId) {
-        Object id = NumberUtil.isNumber(telegramId) ? Convert.toLong(telegramId) : telegramId;
-        return telegramVerticles.stream()
-                .filter(t -> Objects.equals(t.getId(), id))
-                .findFirst();
-    }
-
-    public static TelegramVerticle getTelegramVerticleThrow(String telegramId) {
-        Object id = NumberUtil.isNumber(telegramId) ? Convert.toLong(telegramId) : telegramId;
-        return telegramVerticles.stream()
-                .filter(t -> Objects.equals(t.getId(), id))
-                .findFirst()
-                .orElseThrow(() -> new NoStackTraceException("Telegram account not found!"));
-    }
-
-    public static Optional<TelegramVerticle> getTelegramVerticle(long telegramId) {
-        return telegramVerticles.stream()
-                .filter(t -> t.telegramRecord != null && t.telegramRecord.id() == telegramId)
-                .findFirst();
-    }
-
-    private TelegramVerticle getTelegramVerticle(RoutingContext ctx) {
+    private TelegramVerticle getTelegramVerticleBySession(RoutingContext ctx) {
         String sessionId = ctx.session().id();
         TelegramVerticle telegramVerticle = sessionTelegramVerticles.get(sessionId);
         if (telegramVerticle == null) {
@@ -721,5 +630,19 @@ public class HttpVerticle extends AbstractVerticle {
             return null;
         }
         return telegramVerticle;
+    }
+
+    private TelegramVerticle getTelegramVerticleByPath(RoutingContext ctx) {
+        String telegramId = ctx.pathParam("telegramId");
+        if (StrUtil.isBlank(telegramId)) {
+            ctx.fail(400);
+            return null;
+        }
+        Optional<TelegramVerticle> telegramVerticleOptional = TelegramVerticles.get(telegramId);
+        if (telegramVerticleOptional.isEmpty()) {
+            ctx.fail(404);
+            return null;
+        }
+        return telegramVerticleOptional.get();
     }
 }

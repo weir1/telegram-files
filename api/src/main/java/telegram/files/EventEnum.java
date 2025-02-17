@@ -31,6 +31,12 @@ public enum EventEnum {
      * @see telegram.files.EventPayload
      */
     TELEGRAM_EVENT,
+
+    /**
+     * suffix = null <br>
+     * body = JSONObject with "success", "message"
+     */
+    MAINTAIN,
     ;
 
     public String address() {
