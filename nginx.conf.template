@@ -7,7 +7,7 @@ events {
 http {
     # 定义 server 块
     server {
-        listen 80;
+        listen ${NGINX_PORT};
 
         # 定义 WS 的代理规则
         location /ws {

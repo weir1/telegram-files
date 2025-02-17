@@ -72,6 +72,9 @@ start_services() {
 # Set up signal handlers
 trap cleanup TERM INT
 
+# Replace nginx.conf.template with environment variables
+envsubst '$NGINX_PORT' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf
+
 # Set up permissions
 setup_permissions
 

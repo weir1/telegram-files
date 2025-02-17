@@ -52,11 +52,12 @@ WORKDIR /app
 ARG LIB_PATH=/app/tdlib
 ENV JAVA_HOME=/jre \
     PATH="/jre/bin:$PATH" \
-    LANG=C.UTF-8
+    LANG=C.UTF-8 \
+    NGINX_PORT=80
 
 RUN npm install -g pm2 && \
     apt-get update && \
-    apt-get install -y --no-install-recommends nginx wget curl unzip tini gosu && \
+    apt-get install -y --no-install-recommends nginx wget curl unzip tini gosu gettext && \
     mkdir -p $LIB_PATH && \
     wget --no-check-certificate -q -O libs.zip https://github.com/p-vorobyev/spring-boot-starter-telegram/releases/download/1.15.0/libs.zip && \
     unzip -q libs.zip -d /tmp/tdlib && \
@@ -89,7 +90,7 @@ COPY --from=web-builder --chown=1000:1000 /web/.next/static /app/web/.next/stati
 
 COPY --chown=1000:1000 ./web/pm2.json /app/web/
 COPY --chown=1000:1000 ./entrypoint.sh .
-COPY --chown=1000:1000 ./nginx.conf /etc/nginx/nginx.conf
+COPY --chown=1000:1000 ./nginx.conf.template /etc/nginx/nginx.conf.template
 
 EXPOSE 80
 
