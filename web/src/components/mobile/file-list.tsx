@@ -1,4 +1,3 @@
-import { FileFilters } from "@/components/file-filters";
 import { LoaderPinwheel } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useFiles } from "@/hooks/use-files";
@@ -8,6 +7,8 @@ import { cn } from "@/lib/utils";
 import FileDrawer from "@/components/mobile/file-drawer";
 import type { TelegramFile } from "@/lib/types";
 import { isEqual } from "lodash";
+import FileFilters from "@/components/file-filters";
+import DraggableElement from "@/components/ui/draggable-element";
 
 interface FileListProps {
   accountId: string;
@@ -24,6 +25,7 @@ export default function FileList({ accountId, chatId }: FileListProps) {
   const {
     filters,
     handleFilterChange,
+    clearFilters,
     isLoading,
     files,
     hasMore,
@@ -67,12 +69,15 @@ export default function FileList({ accountId, chatId }: FileListProps) {
 
   return (
     <div className="space-y-4">
-      <FileFilters
-        telegramId={accountId}
-        chatId={chatId}
-        filters={filters}
-        onFiltersChange={handleFilterChange}
-      />
+      <DraggableElement>
+        <FileFilters
+          telegramId={accountId}
+          chatId={chatId}
+          filters={filters}
+          onFiltersChange={handleFilterChange}
+          clearFilters={clearFilters}
+        />
+      </DraggableElement>
       {currentViewFile && (
         <FileDrawer
           open={isDrawerOpen}

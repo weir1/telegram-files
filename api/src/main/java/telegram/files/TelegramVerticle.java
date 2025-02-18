@@ -175,8 +175,8 @@ public class TelegramVerticle extends AbstractVerticle {
     }
 
     public Future<JsonObject> getChatFiles(long chatId, Map<String, String> filter) {
-        String downloadStatus = filter.get("downloadStatus");
-        if (Arrays.asList("downloading", "paused", "completed", "error").contains(downloadStatus)) {
+        boolean offline = Convert.toBool(filter.get("offline"), false);
+        if (offline) {
             return DataVerticle.fileRepository.getFiles(chatId, filter)
                     .compose(r -> {
                         long[] messageIds = r.v1.stream().mapToLong(FileRecord::messageId).toArray();

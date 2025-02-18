@@ -16,6 +16,7 @@ const DEFAULT_FILTERS: FileFilter = {
   type: "media",
   downloadStatus: undefined,
   transferStatus: undefined,
+  offline: false,
 };
 
 type FileResponse = {
@@ -51,6 +52,13 @@ export function useFiles(accountId: string, chatId: string) {
       ...(filters.type && { type: filters.type }),
       ...(filters.downloadStatus && { downloadStatus: filters.downloadStatus }),
       ...(filters.transferStatus && { transferStatus: filters.transferStatus }),
+      ...(filters.offline && { offline: "true" }),
+      ...(filters.dateType && { dateType: filters.dateType }),
+      ...(filters.dateRange && { dateRange: filters.dateRange.join(",") }),
+      ...(filters.sizeRange && { sizeRange: filters.sizeRange.join(",") }),
+      ...(filters.sizeUnit && { sizeUnit: filters.sizeUnit }),
+      ...(filters.sort && { sort: filters.sort }),
+      ...(filters.order && { order: filters.order }),
     });
 
     if (page === 0) {
@@ -181,10 +189,11 @@ export function useFiles(accountId: string, chatId: string) {
 
   const handleFilterChange = async (newFilters: FileFilter) => {
     if (
-      newFilters.search === filters.search &&
-      newFilters.type === filters.type &&
-      newFilters.downloadStatus === filters.downloadStatus &&
-      newFilters.transferStatus === filters.transferStatus
+      Object.keys(newFilters).every(
+        (key) =>
+          newFilters[key as keyof FileFilter] ===
+          filters[key as keyof FileFilter],
+      )
     ) {
       return;
     }
@@ -197,6 +206,7 @@ export function useFiles(accountId: string, chatId: string) {
     filters,
     isLoading: debounceLoading,
     handleFilterChange,
+    clearFilters,
     handleLoadMore,
     hasMore,
   };

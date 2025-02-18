@@ -21,6 +21,10 @@ import telegram.files.MessyUtils;
 import telegram.files.repository.FileRecord;
 import telegram.files.repository.FileRepository;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -83,16 +87,35 @@ public class FileRepositoryImpl implements FileRepository {
 
     @Override
     public Future<Tuple3<List<FileRecord>, Long, Long>> getFiles(long chatId, Map<String, String> filter) {
+        String search = filter.get("search");
+        String type = filter.get("type");
         String downloadStatus = filter.get("downloadStatus");
         String transferStatus = filter.get("transferStatus");
-        String search = filter.get("search");
+        String dateType = filter.get("dateType");
+        String dateRange = filter.get("dateRange");
+        String sizeRange = filter.get("sizeRange");
+        String sizeUnit = filter.get("sizeUnit");
+        String sort = filter.get("sort");
+        String order = filter.get("order");
+
         Long fromMessageId = Convert.toLong(filter.get("fromMessageId"), 0L);
-        String type = filter.get("type");
         int limit = Convert.toInt(filter.get("limit"), 20);
 
         String whereClause = "chat_id = #{chatId}";
         Map<String, Object> params = MapUtil.of("chatId", chatId);
         params.put("limit", limit);
+        if (StrUtil.isNotBlank(search)) {
+            whereClause += " AND (file_name LIKE #{search} OR caption LIKE #{search})";
+            params.put("search", "%%" + search + "%%");
+        }
+        if (StrUtil.isNotBlank(type) && !Objects.equals(type, "all")) {
+            if (Objects.equals(type, "media")) {
+                whereClause += " AND type IN ('photo', 'video')";
+            } else {
+                whereClause += " AND type = #{type}";
+                params.put("type", type);
+            }
+        }
         if (StrUtil.isNotBlank(downloadStatus)) {
             whereClause += " AND download_status = #{downloadStatus}";
             params.put("downloadStatus", downloadStatus);
@@ -101,16 +124,34 @@ public class FileRepositoryImpl implements FileRepository {
             whereClause += " AND transfer_status = #{transferStatus}";
             params.put("transferStatus", transferStatus);
         }
-        if (StrUtil.isNotBlank(search)) {
-            whereClause += " AND (file_name LIKE #{search} OR caption LIKE #{search})";
-            params.put("search", "%%" + search + "%%");
+        if (StrUtil.isNotBlank(dateType) && StrUtil.isNotBlank(dateRange)) {
+            String[] dates = dateRange.split(",");
+            if (dates.length == 2) {
+                long startTime = LocalDate.parse(dates[0], DateTimeFormatter.ISO_DATE)
+                        .atStartOfDay()
+                        .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                long endTime = LocalDate.parse(dates[1], DateTimeFormatter.ISO_DATE)
+                        .atTime(LocalTime.MAX)
+                        .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                if (Objects.equals(dateType, "sent")) {
+                    whereClause += " AND date >= #{startTime} AND date <= #{endTime}";
+                    startTime = startTime / 1000;
+                    endTime = endTime / 1000;
+                } else {
+                    whereClause += " AND completion_date >= #{startTime} AND completion_date <= #{endTime}";
+                }
+                params.put("startTime", startTime);
+                params.put("endTime", endTime);
+            }
         }
-        if (StrUtil.isNotBlank(type)) {
-            if (Objects.equals(type, "media")) {
-                whereClause += " AND type IN ('photo', 'video')";
-            } else {
-                whereClause += " AND type = #{type}";
-                params.put("type", type);
+        if (StrUtil.isNotBlank(sizeRange) && StrUtil.isNotBlank(sizeUnit)) {
+            String[] sizes = sizeRange.split(",");
+            if (sizes.length == 2) {
+                long minSize = MessyUtils.convertToByte(Convert.toLong(sizes[0]), sizeUnit);
+                long maxSize = MessyUtils.convertToByte(Convert.toLong(sizes[1]), sizeUnit);
+                whereClause += " AND size >= #{minSize} AND size <= #{maxSize}";
+                params.put("minSize", minSize);
+                params.put("maxSize", maxSize);
             }
         }
         String countClause = whereClause;
@@ -118,11 +159,16 @@ public class FileRepositoryImpl implements FileRepository {
             whereClause += " AND message_id < #{fromMessageId}";
             params.put("fromMessageId", fromMessageId);
         }
+        String orderBy = "message_id DESC";
+        if (StrUtil.isNotBlank(sort) && StrUtil.isNotBlank(order)) {
+            orderBy = "%s %s".formatted(sort, order);
+        }
+        log.trace("Get files with where: %s params: %s".formatted(whereClause, params));
         return Future.all(
                 SqlTemplate
                         .forQuery(pool, """
-                                SELECT * FROM file_record WHERE %s ORDER BY message_id desc LIMIT #{limit}
-                                """.formatted(whereClause))
+                                SELECT * FROM file_record WHERE %s ORDER BY %s LIMIT #{limit}
+                                """.formatted(whereClause, orderBy))
                         .mapTo(FileRecord.ROW_MAPPER)
                         .execute(params)
                         .onFailure(err -> log.error("Failed to get file record: %s".formatted(err.getMessage())))

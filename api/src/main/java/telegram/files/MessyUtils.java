@@ -75,4 +75,14 @@ public class MessyUtils {
         });
         return completableFuture.join();
     }
+
+    public static long convertToByte(long value, String unit) {
+        return switch (unit) {
+            case "B" -> value;
+            case "KB" -> value * 1024;
+            case "MB" -> value * 1024 * 1024;
+            case "GB" -> value * 1024 * 1024 * 1024;
+            default -> throw new IllegalArgumentException("Unknown unit: " + unit);
+        };
+    }
 }

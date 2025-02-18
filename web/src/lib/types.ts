@@ -97,9 +97,16 @@ export type TDFile = {
 
 export type FileFilter = {
   search: string;
-  type: FileType;
+  type: FileType | "all";
   downloadStatus?: DownloadStatus;
   transferStatus?: TransferStatus;
+  offline: boolean;
+  dateType?: "sent" | "downloaded";
+  dateRange?: [string, string];
+  sizeRange?: [number, number];
+  sizeUnit?: "KB" | "MB" | "GB";
+  sort?: "date" | "completion_date" | "size";
+  order?: "asc" | "desc";
 };
 
 export type TelegramApiResult = {

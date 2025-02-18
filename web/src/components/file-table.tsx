@@ -4,12 +4,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Download, LoaderCircle, LoaderPinwheel } from "lucide-react";
 import { useFiles } from "@/hooks/use-files";
-import { FileFilters } from "@/components/file-filters";
 import {
   getRowHeightPX,
+  TableRowHeightSwitch,
   useRowHeightLocalStorage,
 } from "@/components/table-row-height-switch";
-import { type Column } from "@/components/table-column-filter";
+import TableColumnFilter, {
+  type Column,
+} from "@/components/table-column-filter";
 import { cn } from "@/lib/utils";
 import FileNotFount from "@/components/file-not-found";
 import useSWRMutation from "swr/mutation";
@@ -18,6 +20,8 @@ import FileRow from "@/components/file-row";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { type TelegramFile } from "@/lib/types";
 import FileViewer from "@/components/file-viewer";
+import FileFilters from "./file-filters";
+import { Badge } from "@/components/ui/badge";
 
 const COLUMNS: Column[] = [
   {
@@ -62,9 +66,17 @@ export function FileTable({ accountId, chatId }: FileTableProps) {
     "m",
   );
   const useFilesProps = useFiles(accountId, chatId);
-  const { filters, handleFilterChange, isLoading, files, handleLoadMore } =
-    useFilesProps;
-  const [currentViewFile, setCurrentViewFile] = useState<TelegramFile | undefined>();
+  const {
+    filters,
+    handleFilterChange,
+    clearFilters,
+    isLoading,
+    files,
+    handleLoadMore,
+  } = useFilesProps;
+  const [currentViewFile, setCurrentViewFile] = useState<
+    TelegramFile | undefined
+  >();
   const [viewerOpen, setViewerOpen] = useState(false);
   const {
     trigger: startDownloadMultiple,
@@ -185,16 +197,30 @@ export function FileTable({ accountId, chatId }: FileTableProps) {
 
   return (
     <>
-      <FileFilters
-        telegramId={accountId}
-        chatId={chatId}
-        filters={filters}
-        onFiltersChange={handleFilterChange}
-        columns={columns}
-        onColumnConfigChange={setColumns}
-        rowHeight={rowHeight}
-        setRowHeight={setRowHeight}
-      />
+      <div className="mb-6 flex flex-col flex-wrap justify-between gap-2 md:flex-row">
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="flex h-full bg-accent">
+            {filters.type.charAt(0).toUpperCase() + filters.type.slice(1)}
+          </Badge>
+          <FileFilters
+            telegramId={accountId}
+            chatId={chatId}
+            filters={filters}
+            onFiltersChange={handleFilterChange}
+            clearFilters={clearFilters}
+          />
+        </div>
+        <div className="hidden gap-4 md:flex">
+          <TableColumnFilter
+            columns={columns}
+            onColumnConfigChange={setColumns}
+          />
+          <TableRowHeightSwitch
+            rowHeight={rowHeight}
+            setRowHeightAction={setRowHeight}
+          />
+        </div>
+      </div>
       {currentViewFile && (
         <FileViewer
           open={viewerOpen}
