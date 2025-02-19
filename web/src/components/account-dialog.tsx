@@ -44,7 +44,7 @@ export function AccountDialog({
           <DialogTitle className="flex items-center gap-2">
             Add Telegram Account
             {(account ?? newAccountId) && (
-              <p className="rounded-md bg-gray-100 p-1 text-xs text-muted-foreground">
+              <p className="rounded-md bg-gray-100 p-1 text-xs text-muted-foreground dark:bg-gray-800 dark:text-gray-300">
                 {account ? account.id : newAccountId}
               </p>
             )}
