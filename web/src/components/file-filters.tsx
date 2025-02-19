@@ -361,7 +361,9 @@ export default function FileFilters({
     setLocalFilters(filters);
   }, [filters]);
 
-  const filterCount = Object.values(filters).filter((value) => {
+  const filterCount = Object.entries(filters).filter(([key, value]) => {
+    if (["offline", "sort", "order", "dateType", "sizeUnit"].includes(key))
+      return false;
     if (typeof value === "string") return value !== "";
     if (typeof value === "boolean") return value;
     if (Array.isArray(value)) return value.length > 0;
@@ -484,7 +486,7 @@ export default function FileFilters({
                 search by local database.
               </DrawerDescription>
 
-              <div className="space-y-4 overflow-y-auto px-0.5">
+              <div className="space-y-4 overflow-y-auto p-0.5">
                 <SearchFilter
                   search={localFilters.search}
                   onChange={handleSearchChange}
