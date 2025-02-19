@@ -124,8 +124,12 @@ public class AutoDownloadVerticle extends AbstractVerticle {
 
     private void addHistoryMessage(SettingAutoRecords.Item auto, long currentTimeMillis) {
         log.debug("Start scan history! TelegramId: %d ChatId: %d FileType: %s".formatted(auto.telegramId, auto.chatId, auto.nextFileType));
-        if (System.currentTimeMillis() - currentTimeMillis > MAX_HISTORY_SCAN_TIME || isExceedLimit(auto.telegramId)) {
-            log.debug("Scan history end! TelegramId: %d ChatId: %d".formatted(auto.telegramId, auto.chatId));
+        if (System.currentTimeMillis() - currentTimeMillis > MAX_HISTORY_SCAN_TIME) {
+            log.debug("Scan history timeout! TelegramId: %d ChatId: %d".formatted(auto.telegramId, auto.chatId));
+            return;
+        }
+        if (isExceedLimit(auto.telegramId)) {
+            log.debug("Scan history exceed per telegram account limit! TelegramId: %d ChatId: %d".formatted(auto.telegramId, auto.chatId));
             return;
         }
         Tuple2<String, List<String>> rule = handleRule(auto);
