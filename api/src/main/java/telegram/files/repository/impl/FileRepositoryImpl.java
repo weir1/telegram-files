@@ -155,13 +155,23 @@ public class FileRepositoryImpl implements FileRepository {
             }
         }
         String countClause = whereClause;
-        if (fromMessageId > 0) {
-            whereClause += " AND message_id < #{fromMessageId}";
-            params.put("fromMessageId", fromMessageId);
-        }
         String orderBy = "message_id DESC";
-        if (StrUtil.isNotBlank(sort) && StrUtil.isNotBlank(order)) {
+        boolean customSort = StrUtil.isNotBlank(sort) && StrUtil.isNotBlank(order);
+        if (customSort) {
             orderBy = "%s %s".formatted(sort, order);
+        }
+        if (fromMessageId > 0) {
+            params.put("fromMessageId", fromMessageId);
+            if (customSort) {
+                long fromSortField = Convert.toLong(filter.get("fromSortField"));
+                whereClause += " AND (%s %s %s OR (%s = %s AND message_id < #{fromMessageId}))".formatted(sort,
+                        Objects.equals(order, "asc") ? ">" : "<",
+                        fromSortField,
+                        sort,
+                        fromSortField);
+            } else {
+                whereClause += " AND message_id < #{fromMessageId}";
+            }
         }
         log.trace("Get files with where: %s params: %s".formatted(whereClause, params));
         return Future.all(

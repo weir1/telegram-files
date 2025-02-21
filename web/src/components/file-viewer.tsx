@@ -42,10 +42,6 @@ export default function FileViewer({
   });
 
   useEffect(() => {
-    console.log("FileViewer rendered", file);
-  }, [file]);
-
-  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (file === undefined || !open) return;
 

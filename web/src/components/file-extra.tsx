@@ -61,7 +61,7 @@ function FileCaption({ file, rowHeight, ellipsis }: FileExtraProps) {
             <p
               className={cn(
                 (rowHeight !== "l" || ellipsis) && "line-clamp-1",
-                "overflow-hidden text-wrap text-start text-sm",
+                "overflow-hidden text-wrap text-start text-sm px-1",
               )}
             >
               {file.caption}
@@ -95,7 +95,7 @@ function FilePath({ file, ellipsis }: FileExtraProps) {
           <FileCheck className="h-4 w-4 flex-shrink-0" />
           <p
             className={cn(
-              "group cursor-pointer overflow-hidden text-wrap rounded px-1 hover:bg-gray-100 dark:hover:bg-gray-800",
+              "group cursor-pointer overflow-hidden text-nowrap rounded px-1 hover:bg-gray-100 dark:hover:bg-gray-800",
               ellipsis && "line-clamp-1",
               isMobile && "px-0",
             )}
@@ -139,7 +139,7 @@ function FileTime({ file }: FileExtraProps) {
       {!isMobile && file.completionDate && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <p className="flex items-center gap-2">
+            <p className="items-center gap-2 hidden lg:flex">
               <ClockArrowDown className="h-4 w-4" />
               <span className="rounded px-1 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
                 {formatDistanceToNow(new Date(file.completionDate), {

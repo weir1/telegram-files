@@ -501,7 +501,7 @@ export default function FileFilters({
                 />
 
                 {!localFilters.offline && (
-                  <div className="flex items-center justify-between rounded-md border bg-zinc-100 px-2 py-3 dark:bg-zinc-800">
+                  <div className="flex items-center justify-between rounded-md border bg-gray-100/50 px-2 py-3 dark:bg-gray-600/50">
                     <Label htmlFor="notDownload">Filter Not Download</Label>
                     <Switch
                       id="notDownload"

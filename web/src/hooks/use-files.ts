@@ -70,6 +70,16 @@ export function useFiles(accountId: string, chatId: string) {
     }
 
     params.set("fromMessageId", previousPageData.nextFromMessageId.toString());
+    if (filters.offline && previousPageData.files.length > 0) {
+      const lastFile = previousPageData.files[previousPageData.files.length - 1];
+      if (filters.sort === "size") {
+        params.set("fromSortField", lastFile!.size.toString());
+      } else if (filters.sort === "completion_date") {
+        params.set("fromSortField", lastFile!.completionDate.toString());
+      } else if (filters.sort === "date") {
+        params.set("fromSortField", lastFile!.date.toString());
+      }
+    }
     return `/telegram/${accountId}/chat/${chatId}/files?${params.toString()}`;
   };
 
