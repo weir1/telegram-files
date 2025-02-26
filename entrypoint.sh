@@ -8,7 +8,6 @@ PGID=${PGID:-0}
 
 # Store PIDs in variables
 JAVA_PID=""
-PM2_PID=""
 NGINX_PID=""
 
 cleanup() {
@@ -17,9 +16,6 @@ cleanup() {
     # Check and kill each process individually
     if [ -n "$JAVA_PID" ]; then
         kill -TERM "$JAVA_PID" 2>/dev/null || true
-    fi
-    if [ -n "$PM2_PID" ]; then
-        kill -TERM "$PM2_PID" 2>/dev/null || true
     fi
     if [ -n "$NGINX_PID" ]; then
         kill -TERM "$NGINX_PID" 2>/dev/null || true
@@ -33,15 +29,14 @@ cleanup() {
 setup_permissions() {
     if [ "$(id -u)" = "0" ] && [ "$PUID" != "0" ]; then
         echo "Setting up directory permissions..."
-        mkdir -p /.pm2
-        chown -R "${PUID}:${PGID}" /app /etc/nginx /var/lib/nginx /var/log/nginx /run/nginx.pid /etc/nginx/nginx.conf /.pm2
+        chown -R "${PUID}:${PGID}" /app /etc/nginx /var/lib/nginx /var/log/nginx /run/nginx.pid /etc/nginx/nginx.conf
     fi
 }
 
 start_services() {
     cmd_prefix=""
     if [ "$(id -u)" = "0" ] && [ "$PUID" != "0" ]; then
-        cmd_prefix="gosu ${PUID}:${PGID}"
+        cmd_prefix="su-exec ${PUID}:${PGID}"
     fi
 
     echo "Starting Java service..."
@@ -51,14 +46,6 @@ start_services() {
         java -jar -Djava.library.path=/app/tdlib /app/api.jar &
     fi
     JAVA_PID=$!
-
-    echo "Starting PM2 service..."
-    if [ -n "$cmd_prefix" ]; then
-        $cmd_prefix pm2 start /app/web/pm2.json --no-daemon --silent &
-    else
-        pm2 start /app/web/pm2.json --no-daemon --silent &
-    fi
-    PM2_PID=$!
 
     echo "Starting Nginx service..."
     if [ -n "$cmd_prefix" ]; then

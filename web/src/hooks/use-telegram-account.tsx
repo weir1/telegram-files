@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { TelegramAccount } from "@/lib/types";
@@ -33,10 +33,10 @@ export const TelegramAccountProvider: React.FC<
     isLoading,
     isValidating,
   } = useSWR<TelegramAccount[]>(`/telegrams`);
-  const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const routerAccountId = params.accountId as string;
+  const searchParams = useSearchParams();
+  const routerAccountId = searchParams.get("id") ?? undefined;
   const [accountId, setAccountId] = useState<string | undefined>(
     routerAccountId,
   );
@@ -76,7 +76,7 @@ export const TelegramAccountProvider: React.FC<
         title: "Account Changed",
         description: `Switched to ${accounts?.find((a) => a.id === newAccountId)?.name}'s account`,
       });
-      router.push(`/account/${newAccountId}`);
+      router.push(`/accounts?id=${newAccountId}`);
     }
   };
 

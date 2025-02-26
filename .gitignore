@@ -6,8 +6,8 @@ out/
 */.gradle
 **/*build*/
 
-app/
-app-test/
+/app/
+/app-test/
 
 **/*.log
 api.log.lck

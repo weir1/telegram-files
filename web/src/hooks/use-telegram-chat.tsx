@@ -1,5 +1,5 @@
 "use client";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { createContext, useContext, useMemo, useState } from "react";
 import { type TelegramChat } from "@/lib/types";
@@ -33,10 +33,11 @@ export const TelegramChatProvider: React.FC<TelegramChatProviderProps> = ({
 }) => {
   const [query, setQuery] = useState("");
   const [archived, setArchived] = useState(false);
-  const params = useParams<{ accountId: string; chatId: string }>();
   const router = useRouter();
   const { toast } = useToast();
-  const { accountId, chatId } = params;
+  const searchParams = useSearchParams();
+  const accountId = searchParams.get("id") ?? "";
+  const chatId = searchParams.get("chatId") ?? "";
 
   const handleQueryChange = useDebouncedCallback((search: string) => {
     setQuery(search);
@@ -64,7 +65,7 @@ export const TelegramChatProvider: React.FC<TelegramChatProviderProps> = ({
       toast({ title: "Error", description: "Failed to switch chat" });
       return;
     }
-    router.push(`/account/${accountId}/${newChatId}`);
+    router.push(`/accounts?id=${accountId}&chatId=${newChatId}`);
   };
 
   return (
