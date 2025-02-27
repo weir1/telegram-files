@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Dialog,
+  Dialog, DialogClose,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -32,6 +32,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {Badge} from "@/components/ui/badge";
 
 export interface ProxysProps {
   enableSelect?: boolean;
@@ -177,7 +178,7 @@ export default function Proxys({
             key={proxy.name}
             className={cn("relative hover:shadow-lg", {
               "cursor-pointer": enableSelect,
-              "border border-primary":
+              "border-2 border-primary":
                 enableSelect && proxy.name === innerProxyName,
             })}
             onClick={() => {
@@ -191,30 +192,32 @@ export default function Proxys({
             {proxyName && proxy.name === proxyName && (
               <BorderBeam size={100} duration={12} delay={9} />
             )}
-            <CardHeader className="p-2 px-3">
-              <CardTitle className="text-xl font-semibold">
+            <CardHeader className="p-3">
+              <CardTitle className="font-semibold">
                 {proxy.name}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0 px-3">
               <div className="flex items-baseline space-x-2">
-                <p className="text-lg text-gray-700">
+                <Badge variant="outline">
                   {proxy.type.toUpperCase()}
-                </p>
+                </Badge>
                 <p className="text-sm text-gray-400">{`${proxy.server}:${proxy.port}`}</p>
               </div>
             </CardContent>
             <CardFooter className="flex justify-end space-x-2 p-1">
               <Button
-                size="xs"
+                size="icon"
                 variant="ghost"
+                className="h-6 w-6"
                 onClick={() => handleOpenDialog(proxy)}
               >
                 <Edit2 className="h-3 w-3" />
               </Button>
               <Button
-                size="xs"
+                size="icon"
                 variant="ghost"
+                className="h-6 w-6"
                 onClick={() => handleDeleteProxy(proxy)}
               >
                 <Trash2 className="h-3 w-3 text-red-600" />
@@ -224,7 +227,12 @@ export default function Proxys({
         ))}
       </div>
       {enableSelect && (
-        <div className="absolute bottom-0 flex w-full items-center justify-end space-x-4">
+        <div className="absolute bottom-0 flex w-full items-center justify-end gap-2 flex-col-reverse sm:flex-row">
+          <DialogClose asChild>
+            <Button className="w-full md:w-auto" variant="outline" type="button">
+              Cancel
+            </Button>
+          </DialogClose>
           <Button
             className="w-full md:w-auto"
             disabled={isToggleProxyMutating}

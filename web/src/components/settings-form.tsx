@@ -1,4 +1,4 @@
-import {Bell, Copy} from "lucide-react";
+import { Bell, Copy } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import React, { type FormEvent } from "react";
 import { useSettings } from "@/hooks/use-settings";
 import { useTelegramAccount } from "@/hooks/use-telegram-account";
-import {useCopyToClipboard} from "@/hooks/use-copy-to-clipboard";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { DialogClose, DialogFooter } from "@/components/ui/dialog";
 
 export default function SettingsForm() {
   const { settings, setSetting, updateSettings } = useSettings();
@@ -46,7 +47,7 @@ export default function SettingsForm() {
         <div className="w-full rounded-md border p-4 shadow">
           <p className="mb-1 text-xs text-muted-foreground">Your root path</p>
           <div className="flex items-center justify-between space-x-1">
-            <p className="bg-gray-50 rounded-md p-2 text-xs text-muted-foreground dark:bg-gray-700">
+            <p className="rounded-md bg-gray-50 p-2 text-xs text-muted-foreground dark:bg-gray-700">
               {account?.rootPath}
             </p>
             <Button
@@ -154,9 +155,16 @@ export default function SettingsForm() {
           </div>
         </div>
       </div>
-      <div className="mt-2 flex flex-1 justify-end">
-        <Button className="w-full md:w-auto" type="submit">Submit</Button>
-      </div>
+      <DialogFooter className="mt-2 flex-1 gap-2">
+        <DialogClose asChild>
+          <Button className="w-full md:w-auto" variant="outline" type="button">
+            Cancel
+          </Button>
+        </DialogClose>
+        <Button className="w-full md:w-auto" type="submit">
+          Submit
+        </Button>
+      </DialogFooter>
     </form>
   );
 }
