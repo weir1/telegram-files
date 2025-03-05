@@ -8,16 +8,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { type TelegramChat } from "@/lib/types";
 
 interface AutoDownloadButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  autoEnabled?: boolean;
+  auto?: TelegramChat["auto"];
 }
 
 const AutoDownloadButton = React.forwardRef<
   HTMLButtonElement,
   AutoDownloadButtonProps
->(({ autoEnabled = false, className, ...props }, ref) => {
+>(({ auto, className, ...props }, ref) => {
+  const autoEnabled = auto && (auto.downloadEnabled || auto.preloadEnabled);
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -40,15 +43,19 @@ const AutoDownloadButton = React.forwardRef<
             <div
               className={cn(
                 "absolute left-[10%] top-[40%] h-2 w-2 scale-[1] rounded-lg bg-primary transition-all duration-300 group-hover:left-[0%] group-hover:top-[0%] group-hover:h-full group-hover:w-full group-hover:scale-[1.8] group-hover:animate-none group-hover:bg-primary",
-                autoEnabled ? "animate-breathing bg-green-500" : "bg-red-500",
+                autoEnabled
+                  ? auto?.downloadEnabled && auto.preloadEnabled
+                    ? "animate-breathing bg-green-500"
+                    : "animate-breathing bg-blue-500"
+                  : "bg-red-500",
               )}
             ></div>
           </button>
         </TooltipTrigger>
         <TooltipContent>
           {autoEnabled
-            ? "Auto download is enabled, you can disable it by clicking the button"
-            : "Auto download is disabled, you can enable it by clicking the button"}
+            ? "Automation is enabled, you can disable it by clicking the button"
+            : "Automation is disabled, you can enable it by clicking the button"}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

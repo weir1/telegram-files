@@ -19,8 +19,12 @@ export type TelegramChat = {
   unreadCount?: number;
   lastMessage?: string;
   lastMessageTime?: string;
-  autoEnabled: boolean;
-  autoRule?: AutoDownloadRule;
+  auto?: {
+    preloadEnabled: boolean;
+    downloadEnabled: boolean;
+    rule?: AutoDownloadRule;
+    state: number;
+  };
 };
 
 export type FileType = "media" | "photo" | "video" | "audio" | "file";

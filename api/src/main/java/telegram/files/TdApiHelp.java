@@ -193,7 +193,9 @@ public class TdApiHelp {
             case TdApi.MessageDocument.CONSTRUCTOR -> {
                 return Optional.of((T) new DocumentHandler(message));
             }
-            default -> throw new NoStackTraceException("Unsupported message type: " + message.content.getConstructor());
+            default -> {
+                return Optional.empty();
+            }
         }
     }
 

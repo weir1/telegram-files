@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
 import io.vertx.core.Future;
+import io.vertx.core.json.Json;
 import telegram.files.repository.SettingAutoRecords;
 import telegram.files.repository.SettingKey;
 
@@ -18,7 +19,11 @@ public class AutoRecordsHolder {
 
     private final List<Consumer<List<SettingAutoRecords.Item>>> onRemoveListeners = new ArrayList<>();
 
-    public AutoRecordsHolder() {
+    private volatile boolean initialized = false;
+
+    public static final AutoRecordsHolder INSTANCE = new AutoRecordsHolder();
+
+    private AutoRecordsHolder() {
     }
 
     public SettingAutoRecords autoRecords() {
@@ -29,9 +34,13 @@ public class AutoRecordsHolder {
         onRemoveListeners.add(onRemove);
     }
 
-    public Future<Void> init() {
+    public synchronized Future<Void> init() {
+        if (initialized) {
+            return Future.succeededFuture();
+        }
         return DataVerticle.settingRepository.<SettingAutoRecords>getByKey(SettingKey.autoDownload)
                 .onSuccess(settingAutoRecords -> {
+                    initialized = true;
                     if (settingAutoRecords == null) {
                         return;
                     }
@@ -76,5 +85,18 @@ public class AutoRecordsHolder {
         if (CollUtil.isNotEmpty(removedItems)) {
             onRemoveListeners.forEach(listener -> listener.accept(removedItems));
         }
+    }
+
+    public Future<Void> saveAutoRecords() {
+        return DataVerticle.settingRepository.<SettingAutoRecords>getByKey(SettingKey.autoDownload)
+                .compose(settingAutoRecords -> {
+                    if (settingAutoRecords == null) {
+                        settingAutoRecords = new SettingAutoRecords();
+                    }
+                    autoRecords.items.forEach(settingAutoRecords::add);
+                    return DataVerticle.settingRepository.createOrUpdate(SettingKey.autoDownload.name(), Json.encode(settingAutoRecords));
+                })
+                .onFailure(e -> log.error("Save auto records failed!", e))
+                .mapEmpty();
     }
 }

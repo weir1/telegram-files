@@ -28,7 +28,7 @@ public class AutoRecordsHolderTest {
 
     @BeforeEach
     public void setUp() {
-        autoRecordsHolder = new AutoRecordsHolder();
+        autoRecordsHolder = AutoRecordsHolder.INSTANCE;
         telegramVerticlesMockedStatic = mockStatic(TelegramVerticles.class);
 
         // Prepare test data

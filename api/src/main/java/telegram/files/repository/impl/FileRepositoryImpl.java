@@ -57,11 +57,19 @@ public class FileRepositoryImpl implements FileRepository {
                 .execute(fileRecord)
                 .map(r -> fileRecord)
                 .compose(r -> this.updateCaptionByMediaAlbumId(fileRecord.mediaAlbumId(), fileRecord.caption()).map(r))
-                .onSuccess(r -> log.trace("Successfully created file record: %s".formatted(fileRecord.id()))
-                )
-                .onFailure(
-                        err -> log.error("Failed to create file record: %s".formatted(err.getMessage()))
-                );
+                .onSuccess(r -> log.trace("Successfully created file record: %s".formatted(fileRecord.id())))
+                .onFailure(err -> log.error("Failed to create file record: %s".formatted(err.getMessage())));
+    }
+
+    @Override
+    public Future<Boolean> createIfNotExist(FileRecord fileRecord) {
+        return this.getByUniqueId(fileRecord.uniqueId())
+                .compose(record -> {
+                    if (record != null) {
+                        return Future.succeededFuture(false);
+                    }
+                    return this.create(fileRecord).map(true);
+                });
     }
 
     @Override

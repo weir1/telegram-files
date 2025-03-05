@@ -38,9 +38,9 @@ public class TransferVerticle extends AbstractVerticle {
 
     private volatile Transfer beingTransferred;
 
-    public TransferVerticle(AutoRecordsHolder autoRecordsHolder) {
-        this.autoRecords = autoRecordsHolder.autoRecords();
-        autoRecordsHolder.registerOnRemoveListener(removedItems -> removedItems.forEach(item -> {
+    public TransferVerticle() {
+        this.autoRecords = AutoRecordsHolder.INSTANCE.autoRecords();
+        AutoRecordsHolder.INSTANCE.registerOnRemoveListener(removedItems -> removedItems.forEach(item -> {
             waitingTransferFiles.removeIf(waitingTransferFile -> waitingTransferFile.uniqueId().equals(item.uniqueKey()));
             transfers.remove(item.uniqueKey());
         }));
@@ -109,7 +109,7 @@ public class TransferVerticle extends AbstractVerticle {
         log.debug("Start scan history files for transfer");
         for (SettingAutoRecords.Item item : autoRecords.items) {
             Transfer transfer = getTransfer(item);
-            if (transfer == null || !transfer.transferHistory) {
+            if (transfer == null || !transfer.transferHistory || item.isNotComplete(SettingAutoRecords.HISTORY_PRELOAD_STATE)) {
                 continue;
             }
             Tuple3<List<FileRecord>, Long, Long> filesTuple = Future.await(DataVerticle.fileRepository.getFiles(item.chatId,
@@ -119,6 +119,8 @@ public class TransferVerticle extends AbstractVerticle {
             ));
             List<FileRecord> files = filesTuple.v1;
             if (CollUtil.isEmpty(files)) {
+                log.debug("No history files found for transfer: %s".formatted(item.uniqueKey()));
+                item.complete(SettingAutoRecords.HISTORY_TRANSFER_STATE);
                 continue;
             }
 

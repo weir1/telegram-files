@@ -1,5 +1,7 @@
 package telegram.files.repository;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import telegram.files.MessyUtils;
 import telegram.files.Transfer;
 
 import java.util.ArrayList;
@@ -12,6 +14,12 @@ public class SettingAutoRecords {
 
     public List<Item> items;
 
+    public static final int HISTORY_PRELOAD_STATE = 1;
+
+    public static final int HISTORY_DOWNLOAD_STATE = 2;
+
+    public static final int HISTORY_TRANSFER_STATE = 3;
+
     public static class Item {
         public long telegramId;
 
@@ -23,7 +31,17 @@ public class SettingAutoRecords {
 
         public Rule rule;
 
+        public boolean downloadEnabled;
+
+        public boolean preloadEnabled;
+
+        public long nextFromMessageIdForPreload;
+
+        public int state;
+
         public Item() {
+            // downloadEnabled default is true
+            this.downloadEnabled = true;
         }
 
         public Item(long telegramId, long chatId, Rule rule) {
@@ -34,6 +52,17 @@ public class SettingAutoRecords {
 
         public String uniqueKey() {
             return telegramId + ":" + chatId;
+        }
+
+        public void complete(int bitwise) {
+            MessyUtils.BitState bitState = new MessyUtils.BitState(state);
+            bitState.enableState(bitwise);
+            state = bitState.getState();
+        }
+
+        public boolean isNotComplete(int bitwise) {
+            MessyUtils.BitState bitState = new MessyUtils.BitState(state);
+            return !bitState.isStateEnabled(bitwise);
         }
     }
 
@@ -100,6 +129,20 @@ public class SettingAutoRecords {
 
     public void remove(long telegramId, long chatId) {
         items.removeIf(item -> item.telegramId == telegramId && item.chatId == chatId);
+    }
+
+    @JsonIgnore
+    public List<Item> getDownloadEnabledItems() {
+        return items.stream()
+                .filter(i -> i.downloadEnabled)
+                .toList();
+    }
+
+    @JsonIgnore
+    public List<Item> getPreloadEnabledItems() {
+        return items.stream()
+                .filter(i -> i.preloadEnabled)
+                .toList();
     }
 
     public Map<Long, Item> getItems(long telegramId) {

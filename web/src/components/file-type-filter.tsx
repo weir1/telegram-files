@@ -10,6 +10,7 @@ import useSWR from "swr";
 import { Ellipsis } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import * as React from "react";
+import { useEffect } from "react";
 
 interface FileTypeFilterProps {
   offline: boolean;
@@ -55,6 +56,13 @@ export default function FileTypeFilter({
     );
   };
 
+  useEffect(() => {
+    if (!offline && localType === "all") {
+      setLocalType("media");
+      onChange("media");
+    }
+  }, [localType, offline, onChange]);
+
   return (
     <div className="space-y-2">
       <Label>Type</Label>
@@ -63,7 +71,7 @@ export default function FileTypeFilter({
           <SelectValue placeholder="File type" />
         </SelectTrigger>
         <SelectContent>
-          {offline && <SelectItem value="all">All files</SelectItem>}
+          {offline && <SelectItem value="all">All Files</SelectItem>}
           <FileTypeSelectItem value="media" />
           <FileTypeSelectItem value="photo" />
           <FileTypeSelectItem value="video" />

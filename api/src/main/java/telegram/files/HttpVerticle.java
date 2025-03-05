@@ -44,8 +44,6 @@ public class HttpVerticle extends AbstractVerticle {
     // session id -> telegram verticle
     private final Map<String, TelegramVerticle> sessionTelegramVerticles = new ConcurrentHashMap<>();
 
-    private final AutoRecordsHolder autoRecordsHolder = new AutoRecordsHolder();
-
     private final FileRouteHandler fileRouteHandler = new FileRouteHandler();
 
     private static final String SESSION_COOKIE_NAME = "tf";
@@ -54,17 +52,22 @@ public class HttpVerticle extends AbstractVerticle {
     public void start(Promise<Void> startPromise) {
         initHttpServer()
                 .compose(r -> initTelegramVerticles())
-                .compose(r -> autoRecordsHolder.init())
+                .compose(r -> AutoRecordsHolder.INSTANCE.init())
                 .compose(r -> initAutoDownloadVerticle())
                 .compose(r -> initTransferVerticle())
+                .compose(r -> initPreloadMessageVerticle())
                 .compose(r -> initEventConsumer())
                 .onSuccess(startPromise::complete)
                 .onFailure(startPromise::fail);
     }
 
     @Override
-    public void stop() {
-        log.info("Http verticle stopped!");
+    public void stop(Promise<Void> stopPromise) {
+        AutoRecordsHolder.INSTANCE.saveAutoRecords()
+                .onComplete(ignore -> {
+                    log.info("Http verticle stopped!");
+                    stopPromise.complete();
+                });
     }
 
     public Future<Void> initHttpServer() {
@@ -153,7 +156,7 @@ public class HttpVerticle extends AbstractVerticle {
         router.post("/:telegramId/file/cancel-download").handler(this::handleFileCancelDownload);
         router.post("/:telegramId/file/toggle-pause-download").handler(this::handleFileTogglePauseDownload);
         router.post("/:telegramId/file/remove").handler(this::handleFileRemove);
-        router.post("/:telegramId/file/auto-download").handler(this::handleAutoDownload);
+        router.post("/:telegramId/file/update-auto-settings").handler(this::handleAutoSettingsUpdate);
 
         router.route()
                 .failureHandler(ctx -> {
@@ -182,15 +185,19 @@ public class HttpVerticle extends AbstractVerticle {
     }
 
     public Future<Void> initAutoDownloadVerticle() {
-        return vertx.deployVerticle(new AutoDownloadVerticle(autoRecordsHolder), Config.VIRTUAL_THREAD_DEPLOYMENT_OPTIONS)
+        return vertx.deployVerticle(new AutoDownloadVerticle(), Config.VIRTUAL_THREAD_DEPLOYMENT_OPTIONS)
                 .mapEmpty();
     }
 
     public Future<Void> initTransferVerticle() {
-        return vertx.deployVerticle(new TransferVerticle(autoRecordsHolder), Config.VIRTUAL_THREAD_DEPLOYMENT_OPTIONS)
+        return vertx.deployVerticle(new TransferVerticle(), Config.VIRTUAL_THREAD_DEPLOYMENT_OPTIONS)
                 .mapEmpty();
     }
 
+    public Future<Void> initPreloadMessageVerticle() {
+        return vertx.deployVerticle(new PreloadMessageVerticle(), Config.VIRTUAL_THREAD_DEPLOYMENT_OPTIONS)
+                .mapEmpty();
+    }
 
     private Future<Void> initEventConsumer() {
         vertx.eventBus().consumer(EventEnum.TELEGRAM_EVENT.address(), message -> {
@@ -211,8 +218,8 @@ public class HttpVerticle extends AbstractVerticle {
         });
 
         vertx.eventBus().consumer(EventEnum.AUTO_DOWNLOAD_UPDATE.address(), message -> {
-            log.debug("Auto download update: %s".formatted(message.body()));
-            autoRecordsHolder.onAutoRecordsUpdate(Json.decodeValue(message.body().toString(), SettingAutoRecords.class));
+            log.debug("Auto settings update: %s".formatted(message.body()));
+            AutoRecordsHolder.INSTANCE.onAutoRecordsUpdate(Json.decodeValue(message.body().toString(), SettingAutoRecords.class));
         });
         return Future.succeededFuture();
     }
@@ -607,7 +614,7 @@ public class HttpVerticle extends AbstractVerticle {
                 .onFailure(ctx::fail);
     }
 
-    private void handleAutoDownload(RoutingContext ctx) {
+    private void handleAutoSettingsUpdate(RoutingContext ctx) {
         TelegramVerticle telegramVerticle = TelegramVerticles.getOrElseThrow(ctx.pathParam("telegramId"));
 
         String chatId = ctx.request().getParam("chatId");
@@ -616,7 +623,7 @@ public class HttpVerticle extends AbstractVerticle {
             return;
         }
         JsonObject params = ctx.body().asJsonObject();
-        telegramVerticle.toggleAutoDownload(Convert.toLong(chatId), params)
+        telegramVerticle.updateAutoSettings(Convert.toLong(chatId), params)
                 .onSuccess(r -> ctx.end())
                 .onFailure(ctx::fail);
     }

@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import useSWRMutation from "swr/mutation";
 import { POST } from "@/lib/api";
 import { useDebounce } from "use-debounce";
@@ -55,6 +55,9 @@ export default function AutoDownloadDialog() {
   const { isLoading, chat, reload } = useTelegramChat();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [downloadEnabled, setDownloadEnabled] = useState(false);
+  const [preloadEnabled, setPreloadEnabled] = useState(false);
   const [rule, setRule] = useState<AutoDownloadRule>({
     query: "",
     fileTypes: [],
@@ -62,18 +65,28 @@ export default function AutoDownloadDialog() {
   const { trigger: triggerAuto, isMutating: isAutoMutating } = useSWRMutation(
     !accountId || !chat
       ? undefined
-      : `/${accountId}/file/auto-download?telegramId=${accountId}&chatId=${chat?.id}`,
-    (key, { arg }: { arg: { rule: AutoDownloadRule } }) => {
+      : `/${accountId}/file/update-auto-settings?telegramId=${accountId}&chatId=${chat?.id}`,
+    (
+      key,
+      {
+        arg,
+      }: {
+        arg: {
+          downloadEnabled: boolean;
+          preloadEnabled: boolean;
+          rule: AutoDownloadRule;
+        };
+      },
+    ) => {
       return POST(key, arg);
     },
     {
       onSuccess: () => {
         toast({
-          title: chat?.autoEnabled
-            ? "Auto download disabled for this chat!"
-            : "Auto download enabled for this chat!",
+          title: "Auto settings updated!",
         });
         void reload();
+        setEditMode(false);
         setTimeout(() => {
           setOpen(false);
         }, 1000);
@@ -84,6 +97,18 @@ export default function AutoDownloadDialog() {
   const [debounceIsAutoMutating] = useDebounce(isAutoMutating, 500, {
     leading: true,
   });
+
+  useEffect(() => {
+    if (chat?.auto) {
+      setDownloadEnabled(chat.auto.downloadEnabled);
+      setPreloadEnabled(chat.auto.preloadEnabled);
+      setRule(chat.auto.rule ?? { query: "", fileTypes: [] });
+    } else {
+      setDownloadEnabled(false);
+      setPreloadEnabled(false);
+      setRule({ query: "", fileTypes: [] });
+    }
+  }, [chat]);
 
   if (isLoading) {
     return (
@@ -100,202 +125,269 @@ export default function AutoDownloadDialog() {
           setOpen(!open);
         }}
       >
-        {chat && <AutoDownloadButton autoEnabled={chat.autoEnabled} />}
+        {chat && <AutoDownloadButton auto={chat.auto} />}
       </DialogTrigger>
       <DialogContent
         aria-describedby={undefined}
         onPointerDownOutside={() => setOpen(false)}
         onClick={(e) => e.stopPropagation()}
-        className="h-full w-full overflow-auto md:h-auto md:max-h-[85%] md:w-auto"
+        className="h-full w-full overflow-auto md:h-auto md:max-h-[85%] md:min-w-[400px]"
       >
         <DialogHeader>
           <DialogTitle>
-            {chat?.autoEnabled
-              ? "Disable Auto Download"
-              : "Enable auto download for this chat?"}
+            Update Auto Settings for {chat?.name ?? "Unknown Chat"}
           </DialogTitle>
         </DialogHeader>
         <DialogDescription></DialogDescription>
-        {chat?.autoEnabled ? (
+        {!editMode && chat?.auto ? (
           <div className="space-y-4">
-            {chat.autoRule && (
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <Label className="text-sm font-semibold text-gray-900 dark:text-gray-300">
-                    Current Rule
-                  </Label>
-                  <Badge
-                    variant="outline"
-                    className="ml-2 border-none bg-green-500 px-2 py-0.5 text-xs text-white dark:bg-green-800 dark:text-green-200"
-                  >
-                    Active
-                  </Badge>
-                </div>
-
-                <div className="space-y-3">
-                  {/* Filter Keyword Section */}
-                  <div className="rounded-lg bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
-                    <div className="flex flex-col space-y-1">
-                      <span className="text-xs font-medium text-gray-500">
-                        Filter Keyword
-                      </span>
-                      <span className="text-sm text-gray-500 dark:text-gray-300">
-                        {chat.autoRule.query || "No keyword specified"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
-                    <span className="text-xs font-medium text-gray-500">
-                      File Types
-                    </span>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {chat.autoRule.fileTypes.length > 0 ? (
-                        chat.autoRule.fileTypes.map((type) => (
-                          <Badge
-                            key={type}
-                            variant="secondary"
-                            className="flex items-center gap-1 border-gray-200 bg-white px-3 py-1 capitalize text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                          >
-                            {type}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-sm text-gray-500 dark:text-gray-300">
-                          No file types selected
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Transfer Rule Section */}
-                  {chat.autoRule.transferRule && (
+            <div className="space-y-4 rounded-md border border-gray-200 p-4 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold text-gray-900 dark:text-gray-300">
+                  Auto preload
+                </Label>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "border-none bg-green-500 px-2 py-0.5 text-xs text-white dark:bg-green-800 dark:text-green-200",
+                    chat.auto.preloadEnabled
+                      ? "bg-green-500 dark:bg-green-800 dark:text-green-200"
+                      : "bg-gray-500 dark:bg-gray-800 dark:text-gray-300",
+                  )}
+                >
+                  {chat.auto.preloadEnabled ? "Enabled" : "Disabled"}
+                </Badge>
+              </div>
+              {(chat.auto.state & (1 << 1)) != 0 && (
+                <p className="text-xs text-muted-foreground">
+                  All historical files are preloaded.
+                </p>
+              )}
+            </div>
+            <div className="space-y-4 rounded-md border border-gray-200 p-4 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold text-gray-900 dark:text-gray-300">
+                  Auto download
+                </Label>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "border-none px-2 py-0.5 text-xs text-white",
+                    chat.auto.downloadEnabled
+                      ? "bg-green-500 dark:bg-green-800 dark:text-green-200"
+                      : "bg-gray-500 dark:bg-gray-800 dark:text-gray-300",
+                  )}
+                >
+                  {chat.auto.downloadEnabled ? "Enabled" : "Disabled"}
+                </Badge>
+              </div>
+              {(chat.auto.state & (1 << 2)) != 0 && (
+                <p className="text-xs text-muted-foreground">
+                  All historical files are downloaded.
+                </p>
+              )}
+              {chat.auto.rule && (
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    {/* Filter Keyword Section */}
                     <div className="rounded-lg bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
-                      <div className="flex flex-col space-y-2">
+                      <div className="flex flex-col space-y-1">
                         <span className="text-xs font-medium text-gray-500">
-                          Transfer Rule
+                          Filter Keyword
                         </span>
-                        <div className="mt-2 flex flex-col space-y-2">
-                          <div className="flex flex-col space-y-1">
-                            <span className="text-xs text-gray-500 dark:text-gray-300">
-                              Destination Folder
-                            </span>
-                            <span className="rounded border border-gray-200 px-1.5 py-0.5 text-sm dark:border-gray-700 dark:bg-gray-800">
-                              {chat.autoRule.transferRule.destination}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-500 dark:text-gray-300">
-                              Transfer Policy
-                            </span>
-                            <Badge variant="outline" className="font-normal">
-                              {chat.autoRule.transferRule.transferPolicy}
+                        <span className="text-sm text-gray-500 dark:text-gray-300">
+                          {chat.auto.rule.query || "No keyword specified"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
+                      <span className="text-xs font-medium text-gray-500">
+                        File Types
+                      </span>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {chat.auto.rule.fileTypes.length > 0 ? (
+                          chat.auto.rule.fileTypes.map((type) => (
+                            <Badge
+                              key={type}
+                              variant="secondary"
+                              className="flex items-center gap-1 border-gray-200 bg-white px-3 py-1 capitalize text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                            >
+                              {type}
                             </Badge>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-500 dark:text-gray-300">
-                              Duplication Policy
-                            </span>
-                            <Badge variant="outline" className="font-normal">
-                              {chat.autoRule.transferRule.duplicationPolicy}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-500 dark:text-gray-300">
-                              Transfer History
-                            </span>
-                            <Badge>
-                              {chat.autoRule.transferRule.transferHistory
-                                ? "Enabled"
-                                : "Disabled"}
-                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-sm text-gray-500 dark:text-gray-300">
+                            No file types selected
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Transfer Rule Section */}
+                    {chat.auto.rule.transferRule && (
+                      <div className="rounded-lg bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
+                        <div className="flex flex-col space-y-2">
+                          <span className="text-xs font-medium text-gray-500">
+                            Transfer Rule
+                          </span>
+                          <div className="mt-2 flex flex-col space-y-2">
+                            <div className="flex flex-col space-y-1">
+                              <span className="text-xs text-gray-500 dark:text-gray-300">
+                                Destination Folder
+                              </span>
+                              <span className="rounded border border-gray-200 px-1.5 py-0.5 text-sm dark:border-gray-700 dark:bg-gray-800">
+                                {chat.auto.rule.transferRule.destination}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-500 dark:text-gray-300">
+                                Transfer Policy
+                              </span>
+                              <Badge variant="outline" className="font-normal">
+                                {chat.auto.rule.transferRule.transferPolicy}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-500 dark:text-gray-300">
+                                Duplication Policy
+                              </span>
+                              <Badge variant="outline" className="font-normal">
+                                {chat.auto.rule.transferRule.duplicationPolicy}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-500 dark:text-gray-300">
+                                Transfer History
+                              </span>
+                              <Badge>
+                                {chat.auto.rule.transferRule.transferHistory
+                                  ? "Enabled"
+                                  : "Disabled"}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
-            <div className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-              <div className="flex items-start">
-                <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-yellow-400"></span>
-                <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
-                  This will disable auto download for this chat. You can always
-                  enable it later.
-                </p>
-              </div>
-              <div className="flex items-start">
-                <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-yellow-400"></span>
-                <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
-                  Files that are being downloaded will be paused and you can
-                  enable automatic downloading again later.
-                </p>
-              </div>
+              )}
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
-              <div className="flex items-start">
-                <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-cyan-400"></span>
-                <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
-                  This will enable auto download for this chat. Files will be
-                  downloaded automatically.
-                </p>
+            <div className="space-y-4 rounded-md border border-gray-200 p-4 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="enable-preload">Enable Preload</Label>
+                <Switch
+                  id="enable-preload"
+                  checked={preloadEnabled}
+                  onCheckedChange={setPreloadEnabled}
+                />
               </div>
-              <div className="flex items-start">
-                <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-cyan-400"></span>
-                <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
-                  Files in historical messages will be downloaded first, and
-                  then files in new messages will be downloaded automatically.
-                </p>
-              </div>
-              <div className="flex items-start">
-                <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-cyan-400"></span>
-                <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
-                  Download Order:
-                  <span className="ml-1 rounded bg-blue-100 px-2 text-blue-700 dark:bg-blue-800 dark:text-blue-200">
-                    {"Photo -> Video -> Audio -> File"}
-                  </span>
-                </p>
-              </div>
+              {preloadEnabled && (
+                <div className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                  <div className="flex items-start">
+                    <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-cyan-400"></span>
+                    <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
+                      This will enable preload for this chat. All files will be
+                      loaded, but not downloaded, then you can search offline.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-            <AutoDownloadRule value={rule} onChange={setRule} />
+            <div className="space-y-4 rounded-md border border-gray-200 p-4 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="enable-auto-download">
+                  Enable Auto Download
+                </Label>
+                <Switch
+                  id="enable-auto-download"
+                  checked={downloadEnabled}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setRule({
+                        query: "",
+                        fileTypes: [],
+                      });
+                    }
+                    setDownloadEnabled(checked);
+                  }}
+                />
+              </div>
+              {downloadEnabled && (
+                <>
+                  <div className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                    <div className="flex items-start">
+                      <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-cyan-400"></span>
+                      <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
+                        This will enable auto download for this chat. Files will
+                        be downloaded automatically.
+                      </p>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-cyan-400"></span>
+                      <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
+                        Files in historical messages will be downloaded first,
+                        and then files in new messages will be downloaded
+                        automatically.
+                      </p>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="mr-3 mt-1.5 h-3 w-2 flex-shrink-0 rounded-full bg-cyan-400"></span>
+                      <p className="text-sm leading-6 text-gray-700 dark:text-gray-300">
+                        Download Order:
+                        <span className="ml-1 rounded bg-blue-100 px-2 text-blue-700 dark:bg-blue-800 dark:text-blue-200">
+                          {"Photo -> Video -> Audio -> File"}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  <AutoDownloadRule value={rule} onChange={setRule} />
+                </>
+              )}
+            </div>
           </div>
         )}
         <DialogFooter className="gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setOpen(false)}
-            disabled={debounceIsAutoMutating}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={() => {
-              const folderPathRegex = /^[\/\\]?(?:[^<>:"|?*\/\\]+[\/\\]?)*$/;
-              if (
-                rule.transferRule &&
-                !folderPathRegex.test(rule.transferRule.destination)
-              ) {
-                toast({
-                  title: "Invalid destination folder",
-                  description: "Please enter a valid destination folder path",
-                });
-                return;
-              }
-              void triggerAuto({ rule });
-            }}
-            variant={chat?.autoEnabled ? "destructive" : "default"}
-            disabled={debounceIsAutoMutating}
-          >
-            {debounceIsAutoMutating
-              ? "Submitting..."
-              : chat?.autoEnabled
-                ? "Disable"
-                : "Enable"}
-          </Button>
+          {!editMode && chat?.auto ? (
+            <Button variant="outline" onClick={() => setEditMode(true)}>
+              Edit
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={debounceIsAutoMutating}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  const folderPathRegex =
+                    /^[\/\\]?(?:[^<>:"|?*\/\\]+[\/\\]?)*$/;
+                  if (
+                    rule.transferRule &&
+                    !folderPathRegex.test(rule.transferRule.destination)
+                  ) {
+                    toast({
+                      title: "Invalid destination folder",
+                      description:
+                        "Please enter a valid destination folder path",
+                    });
+                    return;
+                  }
+                  void triggerAuto({ downloadEnabled, preloadEnabled, rule });
+                }}
+                disabled={debounceIsAutoMutating}
+              >
+                {debounceIsAutoMutating ? "Submitting..." : "Submit"}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -546,11 +638,13 @@ const PolicyLegends: Record<
   },
   OVERWRITE: {
     title: "Overwrite",
-    description: "If destination exists same name file, move and overwrite the file.",
+    description:
+      "If destination exists same name file, move and overwrite the file.",
   },
   SKIP: {
     title: "Skip",
-    description: "If destination exists same name file, skip the file, nothing to do.",
+    description:
+      "If destination exists same name file, skip the file, nothing to do.",
   },
   RENAME: {
     title: "Rename",

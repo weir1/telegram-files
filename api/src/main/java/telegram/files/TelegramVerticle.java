@@ -312,11 +312,15 @@ public class TelegramVerticle extends AbstractVerticle {
                     TdApiHelp.FileHandler<? extends TdApi.MessageContent> fileHandler = TdApiHelp.getFileHandler(message)
                             .orElseThrow(() -> new NoStackTraceException("not support message type"));
                     FileRecord fileRecord = fileHandler.convertFileRecord(telegramRecord.id());
-                    return DataVerticle.fileRepository.create(fileRecord)
-                            .compose(r ->
-                                    client.execute(new TdApi.AddFileToDownloads(fileId, chatId, messageId, 32))
-                            )
-                            .onSuccess(r ->
+                    return DataVerticle.fileRepository.createIfNotExist(fileRecord)
+                            .compose(r -> {
+                                if (!r) {
+                                    return DataVerticle.fileRepository.updateFileId(fileRecord.id(), fileRecord.uniqueId());
+                                }
+                                return Future.succeededFuture();
+                            })
+                            .compose(ignore -> client.execute(new TdApi.AddFileToDownloads(fileId, chatId, messageId, 32)))
+                            .onSuccess(ignore ->
                                     sendEvent(EventPayload.build(EventPayload.TYPE_FILE_STATUS, new JsonObject()
                                             .put("fileId", fileId)
                                             .put("uniqueId", fileRecord.uniqueId())
@@ -430,24 +434,33 @@ public class TelegramVerticle extends AbstractVerticle {
                 .mapEmpty();
     }
 
-    public Future<Void> toggleAutoDownload(Long chatId, JsonObject params) {
+    public Future<Void> updateAutoSettings(Long chatId, JsonObject params) {
         return DataVerticle.settingRepository.<SettingAutoRecords>getByKey(SettingKey.autoDownload)
                 .compose(settingAutoRecords -> {
                     if (settingAutoRecords == null) {
                         settingAutoRecords = new SettingAutoRecords();
                     }
-                    if (settingAutoRecords.exists(this.telegramRecord.id(), chatId)) {
-                        settingAutoRecords.remove(this.telegramRecord.id(), chatId);
-                    } else {
-                        SettingAutoRecords.Rule rule = null;
-                        if (params != null && params.containsKey("rule")) {
-                            rule = params.getJsonObject("rule").mapTo(SettingAutoRecords.Rule.class);
-                            if (StrUtil.isBlank(rule.query) && CollUtil.isEmpty(rule.fileTypes) && rule.transferRule == null) {
-                                rule = null;
-                            }
-                        }
-                        settingAutoRecords.add(this.telegramRecord.id(), chatId, rule);
+                    SettingAutoRecords.Rule rule = params.getJsonObject("rule").mapTo(SettingAutoRecords.Rule.class);
+                    if (StrUtil.isBlank(rule.query) && CollUtil.isEmpty(rule.fileTypes) && rule.transferRule == null) {
+                        rule = null;
                     }
+                    boolean downloadEnabled = params.getBoolean("downloadEnabled", false);
+                    boolean preloadEnabled = params.getBoolean("preloadEnabled", false);
+
+                    SettingAutoRecords.Item item = settingAutoRecords.getItem(this.telegramRecord.id(), chatId);
+                    if (downloadEnabled || preloadEnabled) {
+                        if (item == null) {
+                            item = new SettingAutoRecords.Item(this.telegramRecord.id(), chatId, rule);
+                        }
+                        item.downloadEnabled = downloadEnabled;
+                        item.preloadEnabled = preloadEnabled;
+                        item.rule = downloadEnabled ? rule : null;
+
+                        settingAutoRecords.add(item);
+                    } else if (item != null) {
+                        settingAutoRecords.remove(this.telegramRecord.id(), chatId);
+                    }
+
                     return DataVerticle.settingRepository.createOrUpdate(SettingKey.autoDownload.name(), Json.encode(settingAutoRecords));
                 })
                 .onSuccess(r -> vertx.eventBus().publish(EventEnum.AUTO_DOWNLOAD_UPDATE.name(), r.value()))
@@ -807,25 +820,22 @@ public class TelegramVerticle extends AbstractVerticle {
     //<-----------------------------convert---------------------------------->
 
     private Future<JsonArray> convertChat(List<TdApi.Chat> chats) {
-        return DataVerticle.settingRepository.<SettingAutoRecords>getByKey(SettingKey.autoDownload)
-                .map(settingAutoRecords -> settingAutoRecords == null ? new HashMap<Long, SettingAutoRecords.Item>()
-                        : settingAutoRecords.getItems(this.telegramRecord.id()))
-                .map(enableAutoChats -> new JsonArray(chats.stream()
-                        .map(chat -> {
-                            SettingAutoRecords.Item autoItem = enableAutoChats.get(chat.id);
-                            return new JsonObject()
-                                    .put("id", Convert.toStr(chat.id))
-                                    .put("name", chat.id == this.telegramRecord.id() ? "Saved Messages" : chat.title)
-                                    .put("type", TdApiHelp.getChatType(chat.type))
-                                    .put("avatar", Base64.encode((byte[]) BeanUtil.getProperty(chat, "photo.minithumbnail.data")))
-                                    .put("unreadCount", chat.unreadCount)
-                                    .put("lastMessage", "")
-                                    .put("lastMessageTime", "")
-                                    .put("autoEnabled", autoItem != null)
-                                    .put("autoRule", autoItem == null ? null : autoItem.rule);
-                        })
-                        .toList()
-                ));
+        Map<Long, SettingAutoRecords.Item> enableAutoChats = AutoRecordsHolder.INSTANCE.autoRecords().getItems(this.telegramRecord.id());
+        return Future.succeededFuture(new JsonArray(chats.stream()
+                .map(chat -> {
+                    SettingAutoRecords.Item auto = enableAutoChats.get(chat.id);
+                    return new JsonObject()
+                            .put("id", Convert.toStr(chat.id))
+                            .put("name", chat.id == this.telegramRecord.id() ? "Saved Messages" : chat.title)
+                            .put("type", TdApiHelp.getChatType(chat.type))
+                            .put("avatar", Base64.encode((byte[]) BeanUtil.getProperty(chat, "photo.minithumbnail.data")))
+                            .put("unreadCount", chat.unreadCount)
+                            .put("lastMessage", "")
+                            .put("lastMessageTime", "")
+                            .put("auto", auto);
+                })
+                .toList()
+        ));
     }
 
     private Future<JsonObject> convertFiles(Tuple2<TdApi.FoundChatMessages, Map<String, FileRecord>> tuple) {

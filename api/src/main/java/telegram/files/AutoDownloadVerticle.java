@@ -8,7 +8,6 @@ import cn.hutool.log.LogFactory;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import org.drinkless.tdlib.TdApi;
 import org.jooq.lambda.tuple.Tuple2;
@@ -47,9 +46,9 @@ public class AutoDownloadVerticle extends AbstractVerticle {
 
     private int limit = DEFAULT_LIMIT;
 
-    public AutoDownloadVerticle(AutoRecordsHolder autoRecordsHolder) {
-        this.autoRecords = autoRecordsHolder.autoRecords();
-        autoRecordsHolder.registerOnRemoveListener(removedItems -> removedItems.forEach(item ->
+    public AutoDownloadVerticle() {
+        this.autoRecords = AutoRecordsHolder.INSTANCE.autoRecords();
+        AutoRecordsHolder.INSTANCE.registerOnRemoveListener(removedItems -> removedItems.forEach(item ->
                 waitingDownloadMessages.getOrDefault(item.telegramId, new LinkedList<>())
                         .removeIf(m -> m.chatId == item.chatId)));
     }
@@ -60,7 +59,10 @@ public class AutoDownloadVerticle extends AbstractVerticle {
                 .compose(v -> this.initEventConsumer())
                 .onSuccess(v -> {
                     vertx.setPeriodic(0, HISTORY_SCAN_INTERVAL,
-                            id -> autoRecords.items.forEach(auto -> addHistoryMessage(auto, System.currentTimeMillis())));
+                            id -> autoRecords.getDownloadEnabledItems()
+                                    .stream()
+                                    .filter(auto -> auto.isNotComplete(SettingAutoRecords.HISTORY_DOWNLOAD_STATE))
+                                    .forEach(auto -> addHistoryMessage(auto, System.currentTimeMillis())));
                     vertx.setPeriodic(0, DOWNLOAD_INTERVAL,
                             id -> waitingDownloadMessages.keySet().forEach(this::download));
 
@@ -70,7 +72,7 @@ public class AutoDownloadVerticle extends AbstractVerticle {
                             |Download interval: %s ms
                             |Download limit: %s per telegram account!
                             |Auto chats: %s
-                            """.formatted(HISTORY_SCAN_INTERVAL, DOWNLOAD_INTERVAL, limit, autoRecords.items.size()));
+                            """.formatted(HISTORY_SCAN_INTERVAL, DOWNLOAD_INTERVAL, limit, autoRecords.getDownloadEnabledItems().size()));
 
                     startPromise.complete();
                 })
@@ -78,12 +80,8 @@ public class AutoDownloadVerticle extends AbstractVerticle {
     }
 
     @Override
-    public void stop(Promise<Void> stopPromise) {
-        saveAutoRecords()
-                .onComplete(r -> {
-                    log.info("Auto download verticle stopped!");
-                    stopPromise.complete();
-                });
+    public void stop() {
+        log.info("Auto download verticle stopped!");
     }
 
     private Future<Void> initAutoDownload() {
@@ -107,19 +105,6 @@ public class AutoDownloadVerticle extends AbstractVerticle {
             this.onNewMessage((JsonObject) message.body());
         });
         return Future.succeededFuture();
-    }
-
-    private Future<Void> saveAutoRecords() {
-        return DataVerticle.settingRepository.<SettingAutoRecords>getByKey(SettingKey.autoDownload)
-                .compose(settingAutoRecords -> {
-                    if (settingAutoRecords == null) {
-                        settingAutoRecords = new SettingAutoRecords();
-                    }
-                    autoRecords.items.forEach(settingAutoRecords::add);
-                    return DataVerticle.settingRepository.createOrUpdate(SettingKey.autoDownload.name(), Json.encode(settingAutoRecords));
-                })
-                .onFailure(e -> log.error("Save auto records failed!", e))
-                .mapEmpty();
     }
 
     private void addHistoryMessage(SettingAutoRecords.Item auto, long currentTimeMillis) {
@@ -158,12 +143,21 @@ public class AutoDownloadVerticle extends AbstractVerticle {
                 addHistoryMessage(auto, currentTimeMillis);
             } else {
                 log.debug("%s No more history files found! TelegramId: %d ChatId: %d".formatted(auto.uniqueKey(), auto.telegramId, auto.chatId));
+                auto.complete(SettingAutoRecords.HISTORY_DOWNLOAD_STATE);
             }
         } else {
             DataVerticle.fileRepository.getFilesByUniqueId(TdApiHelp.getFileUniqueIds(Arrays.asList(foundChatMessages.messages)))
                     .onSuccess(existFiles -> {
                         List<TdApi.Message> messages = Stream.of(foundChatMessages.messages)
-                                .filter(message -> !existFiles.containsKey(TdApiHelp.getFileUniqueId(message)))
+                                .filter(message -> {
+                                    String uniqueId = TdApiHelp.getFileUniqueId(message);
+                                    if (!existFiles.containsKey(uniqueId)) {
+                                        return true;
+                                    } else {
+                                        FileRecord fileRecord = existFiles.get(uniqueId);
+                                        return fileRecord.isDownloadStatus(FileRecord.DownloadStatus.idle);
+                                    }
+                                })
                                 .toList();
                         if (CollUtil.isEmpty(messages)) {
                             auto.nextFromMessageId = foundChatMessages.nextFromMessageId;
@@ -259,7 +253,7 @@ public class AutoDownloadVerticle extends AbstractVerticle {
         long telegramId = jsonObject.getLong("telegramId");
         long chatId = jsonObject.getLong("chatId");
         long messageId = jsonObject.getLong("messageId");
-        autoRecords.items.stream()
+        autoRecords.getDownloadEnabledItems().stream()
                 .filter(item -> item.telegramId == telegramId && item.chatId == chatId)
                 .findFirst()
                 .flatMap(item -> TelegramVerticles.get(telegramId))

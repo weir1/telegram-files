@@ -85,4 +85,51 @@ public class MessyUtils {
             default -> throw new IllegalArgumentException("Unknown unit: " + unit);
         };
     }
+
+    public static class BitState {
+        private int state;
+
+        public BitState(int state) {
+            this.state = state;
+        }
+
+        /**
+         * 开启某个状态
+         */
+        public void enableState(int n) {
+            state |= (1 << n);
+        }
+
+        /**
+         * 关闭某个状态
+         */
+        public void disableState(int n) {
+            state &= ~(1 << n);
+        }
+
+        /**
+         * 切换某个状态（开启->关闭，关闭->开启）
+         */
+        public void toggleState(int n) {
+            state ^= (1 << n);
+        }
+
+        /**
+         * 检查某个状态是否开启
+         */
+        public boolean isStateEnabled(int n) {
+            return (state & (1 << n)) != 0;
+        }
+
+        public int getState() {
+            return state;
+        }
+
+        /**
+         * 获取当前状态的二进制表示
+         */
+        public String getBinaryState() {
+            return String.format("%8s", Integer.toBinaryString(state)).replace(' ', '0');
+        }
+    }
 }
