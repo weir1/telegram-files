@@ -2,18 +2,21 @@ package telegram.files.repository;
 
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
+import telegram.files.Config;
 
 import java.util.Map;
 
 public record SettingRecord(String key, String value) {
 
+    public static final String KEY_FIELD = Config.isMysql() ? "`key`" : "key";
+
     public static final String SCHEME = """
             CREATE TABLE IF NOT EXISTS setting_record
             (
-                key   VARCHAR(255) PRIMARY KEY,
-                value TEXT
+                %s      VARCHAR(255) PRIMARY KEY,
+                value   TEXT
             )
-            """;
+            """.formatted(KEY_FIELD);
 
     public static class SettingRecordDefinition implements Definition {
         @Override

@@ -4,7 +4,7 @@ import cn.hutool.core.collection.IterUtil;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
 import io.vertx.core.Future;
-import io.vertx.jdbcclient.JDBCPool;
+import io.vertx.sqlclient.SqlClient;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import telegram.files.repository.StatisticRecord;
 import telegram.files.repository.StatisticRepository;
@@ -12,20 +12,18 @@ import telegram.files.repository.StatisticRepository;
 import java.util.List;
 import java.util.Map;
 
-public class StatisticRepositoryImpl implements StatisticRepository {
+public class StatisticRepositoryImpl extends AbstractSqlRepository implements StatisticRepository {
 
     private static final Log log = LogFactory.get();
 
-    private final JDBCPool pool;
-
-    public StatisticRepositoryImpl(JDBCPool pool) {
-        this.pool = pool;
+    public StatisticRepositoryImpl(SqlClient sqlClient) {
+        super(sqlClient);
     }
 
     @Override
     public Future<Void> create(StatisticRecord record) {
         return SqlTemplate
-                .forUpdate(pool, """
+                .forUpdate(sqlClient, """
                         INSERT INTO statistic_record(related_id, type, timestamp, data)
                         VALUES (#{related_id}, #{type}, #{timestamp}, #{data})
                         """)
@@ -44,7 +42,7 @@ public class StatisticRepositoryImpl implements StatisticRepository {
                                                             long startTime,
                                                             long endTime) {
         return SqlTemplate
-                .forQuery(pool, """
+                .forQuery(sqlClient, """
                         SELECT *
                         FROM statistic_record
                         WHERE type = #{type}

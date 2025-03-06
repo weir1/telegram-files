@@ -5,6 +5,7 @@ import cn.hutool.core.lang.Version;
 import cn.hutool.core.map.MapUtil;
 import io.vertx.sqlclient.templates.RowMapper;
 import io.vertx.sqlclient.templates.TupleMapper;
+import telegram.files.Config;
 
 import java.util.Objects;
 import java.util.TreeMap;
@@ -55,7 +56,7 @@ public record FileRecord(int id, //file id will change
                 type                VARCHAR(255),
                 mime_type           VARCHAR(255),
                 file_name           VARCHAR(255),
-                thumbnail           VARCHAR(255),
+                thumbnail           VARCHAR(2056),
                 caption             VARCHAR(255),
                 local_path          VARCHAR(255),
                 download_status     VARCHAR(255),
@@ -99,7 +100,7 @@ public record FileRecord(int id, //file id will change
                     row.getLong("message_id"),
                     Objects.requireNonNullElse(row.getLong("media_album_id"), 0L),
                     row.getInteger("date"),
-                    Convert.toBool(row.getInteger("has_sensitive_content")),
+                    Config.isPostgres() ? row.getBoolean("has_sensitive_content") : Convert.toBool(row.getInteger("has_sensitive_content")),
                     row.getLong("size"),
                     row.getLong("downloaded_size"),
                     row.getString("type"),

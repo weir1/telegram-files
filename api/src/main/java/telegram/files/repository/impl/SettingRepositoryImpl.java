@@ -6,8 +6,9 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
 import io.vertx.core.Future;
-import io.vertx.jdbcclient.JDBCPool;
+import io.vertx.sqlclient.SqlClient;
 import io.vertx.sqlclient.templates.SqlTemplate;
+import telegram.files.Config;
 import telegram.files.repository.SettingKey;
 import telegram.files.repository.SettingRecord;
 import telegram.files.repository.SettingRepository;
@@ -17,23 +18,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class SettingRepositoryImpl implements SettingRepository {
+public class SettingRepositoryImpl extends AbstractSqlRepository implements SettingRepository {
 
     private static final Log log = LogFactory.get();
 
-    private final JDBCPool pool;
-
-    public SettingRepositoryImpl(JDBCPool pool) {
-        this.pool = pool;
+    public SettingRepositoryImpl(SqlClient sqlClient) {
+        super(sqlClient);
     }
 
     @Override
     public Future<SettingRecord> createOrUpdate(String key, String value) {
         return SqlTemplate
-                .forUpdate(pool, """
-                        INSERT INTO setting_record(key, value) VALUES (#{key}, #{value})
-                        ON CONFLICT (key) DO UPDATE SET value = #{value}
-                        """)
+                .forUpdate(sqlClient, Config.isMysql() ?
+                        """
+                                INSERT INTO setting_record(`key`, value) VALUES (#{key}, #{value})
+                                ON DUPLICATE KEY UPDATE value = VALUES(value)""" :
+                        """
+                                INSERT INTO setting_record(key, value) VALUES (#{key}, #{value})
+                                ON CONFLICT (key) DO UPDATE SET value = #{value}""")
                 .mapFrom(SettingRecord.PARAM_MAPPER)
                 .execute(new SettingRecord(key, value))
                 .map(r -> new SettingRecord(key, value))
@@ -55,9 +57,9 @@ public class SettingRepositoryImpl implements SettingRepository {
                 .collect(Collectors.joining(","));
 
         return SqlTemplate
-                .forQuery(pool, """
-                        SELECT * FROM setting_record WHERE key IN (%s)
-                        """.formatted(keyStr))
+                .forQuery(sqlClient, """
+                        SELECT %s, value FROM setting_record WHERE %s IN (%s)
+                        """.formatted(SettingRecord.KEY_FIELD, SettingRecord.KEY_FIELD, keyStr))
                 .mapTo(SettingRecord.ROW_MAPPER)
                 .execute(Collections.emptyMap())
                 .map(IterUtil::toList)
@@ -71,9 +73,9 @@ public class SettingRepositoryImpl implements SettingRepository {
     @SuppressWarnings("unchecked")
     public <T> Future<T> getByKey(SettingKey key) {
         return SqlTemplate
-                .forQuery(pool, """
-                        SELECT value FROM setting_record WHERE key = #{key}
-                        """)
+                .forQuery(sqlClient, """
+                        SELECT value FROM setting_record WHERE %s = #{key}
+                        """.formatted(SettingRecord.KEY_FIELD))
                 .mapTo(row -> row.getString("value"))
                 .execute(Map.of("key", key.name()))
                 .map(rs -> {

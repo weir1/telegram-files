@@ -4,9 +4,11 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.Version;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import io.vertx.sqlclient.SqlClient;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import telegram.files.repository.FileRecord;
@@ -20,15 +22,69 @@ public class DataVerticleTest {
 
     @BeforeAll
     static void setUp() {
-        log.debug("APP_ROOT: " + Config.APP_ROOT);
-        log.debug("DATA_PATH:" + DataVerticle.getDataPath());
+        printDBInfo();
     }
 
     @AfterEach
-    void tearDown() {
-        String dataPath = DataVerticle.getDataPath();
-        if (FileUtil.file(dataPath).exists()) {
-            FileUtil.del(dataPath);
+    void tearDown(Vertx vertx, VertxTestContext testContext) {
+        clear(vertx).onComplete(testContext.succeedingThenComplete());
+    }
+
+    public static void printDBInfo() {
+        if (Config.isSqlite()) {
+            log.debug("DB_PATH: " + DataVerticle.getDataPath());
+        } else if (Config.isPostgres() || Config.isMysql()) {
+            log.debug("DB_HOST: " + Config.DB_HOST);
+            log.debug("DB_PORT: " + Config.DB_PORT);
+            log.debug("DB_NAME: " + Config.DB_NAME);
+            log.debug("DB_USER: " + Config.DB_USER);
+        } else {
+            log.error("Unknown database type");
+        }
+    }
+
+    public static Future<Void> clear(Vertx vertx) {
+        if (Config.isSqlite()) {
+            String dataPath = DataVerticle.getDataPath();
+            if (FileUtil.file(dataPath).exists()) {
+                FileUtil.del(dataPath);
+            }
+            return Future.succeededFuture();
+        } else if (Config.isPostgres()) {
+            SqlClient sqlClient = DataVerticle.createSqlClient(vertx, DataVerticle.createDefaultOptions());
+
+            return sqlClient
+                    .query("ALTER DATABASE \"%s\" ALLOW_CONNECTIONS false;".formatted(Config.DB_NAME)).execute()
+                    .compose(r -> sqlClient
+                            .query("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s';".formatted(Config.DB_NAME)).execute()
+                    )
+                    .compose(r -> sqlClient
+                            .query("DROP DATABASE \"%s\";".formatted(Config.DB_NAME)).execute()
+                    )
+                    .onFailure(t -> log.error("Failed to clear database", t))
+                    .onComplete(r -> {
+                        if (r.succeeded()) {
+                            log.debug("Database cleared");
+                        }
+                        sqlClient.close();
+                    })
+                    .mapEmpty();
+        } else if (Config.isMysql()) {
+            SqlClient sqlClient = DataVerticle.createSqlClient(vertx, DataVerticle.createDefaultOptions());
+
+            return sqlClient
+                    .query("DROP SCHEMA IF EXISTS `%s`".formatted(Config.DB_NAME))
+                    .execute()
+                    .onFailure(t -> log.error("Failed to clear database", t))
+                    .onComplete(r -> {
+                        if (r.succeeded()) {
+                            log.debug("Database cleared");
+                        }
+                        sqlClient.close();
+                    })
+                    .mapEmpty();
+        } else {
+            return Future.failedFuture("Unknown database type");
         }
     }
 

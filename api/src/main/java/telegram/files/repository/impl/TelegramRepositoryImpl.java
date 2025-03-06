@@ -5,7 +5,7 @@ import cn.hutool.core.map.MapUtil;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
 import io.vertx.core.Future;
-import io.vertx.jdbcclient.JDBCPool;
+import io.vertx.sqlclient.SqlClient;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import telegram.files.Config;
 import telegram.files.repository.TelegramRecord;
@@ -16,14 +16,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class TelegramRepositoryImpl implements TelegramRepository {
+public class TelegramRepositoryImpl extends AbstractSqlRepository implements TelegramRepository {
 
     private static final Log log = LogFactory.get();
 
-    private final JDBCPool pool;
-
-    public TelegramRepositoryImpl(JDBCPool pool) {
-        this.pool = pool;
+    public TelegramRepositoryImpl(SqlClient sqlClient) {
+        super(sqlClient);
     }
 
     @Override
@@ -34,7 +32,7 @@ public class TelegramRepositoryImpl implements TelegramRepository {
     @Override
     public Future<TelegramRecord> create(TelegramRecord telegramRecord) {
         return SqlTemplate
-                .forUpdate(pool, "INSERT INTO telegram_record(id, first_name, root_path, proxy) VALUES (#{id}, #{first_name}, #{root_path}, #{proxy})")
+                .forUpdate(sqlClient, "INSERT INTO telegram_record(id, first_name, root_path, proxy) VALUES (#{id}, #{first_name}, #{root_path}, #{proxy})")
                 .mapFrom(TelegramRecord.PARAM_MAPPER)
                 .execute(telegramRecord)
                 .map(r -> telegramRecord)
@@ -47,7 +45,7 @@ public class TelegramRepositoryImpl implements TelegramRepository {
     @Override
     public Future<TelegramRecord> update(TelegramRecord telegramRecord) {
         return SqlTemplate
-                .forUpdate(pool, "UPDATE telegram_record SET first_name = #{first_name}, root_path = #{root_path}, proxy = #{proxy} WHERE id = #{id}")
+                .forUpdate(sqlClient, "UPDATE telegram_record SET first_name = #{first_name}, root_path = #{root_path}, proxy = #{proxy} WHERE id = #{id}")
                 .mapFrom(TelegramRecord.PARAM_MAPPER)
                 .execute(telegramRecord)
                 .map(r -> telegramRecord)
@@ -60,7 +58,7 @@ public class TelegramRepositoryImpl implements TelegramRepository {
     @Override
     public Future<TelegramRecord> getById(long id) {
         return SqlTemplate
-                .forQuery(pool, "SELECT * FROM telegram_record WHERE id = #{id} limit 1")
+                .forQuery(sqlClient, "SELECT * FROM telegram_record WHERE id = #{id} limit 1")
                 .mapTo(TelegramRecord.ROW_MAPPER)
                 .execute(MapUtil.of("id", id))
                 .map(rs -> rs.size() == 0 ? null : rs.iterator().next());
@@ -69,7 +67,7 @@ public class TelegramRepositoryImpl implements TelegramRepository {
     @Override
     public Future<List<TelegramRecord>> getAll() {
         return SqlTemplate
-                .forQuery(pool, "SELECT * FROM telegram_record ORDER BY id")
+                .forQuery(sqlClient, "SELECT * FROM telegram_record ORDER BY id")
                 .mapTo(TelegramRecord.ROW_MAPPER)
                 .execute(Collections.emptyMap())
                 .map(CollUtil::newArrayList);

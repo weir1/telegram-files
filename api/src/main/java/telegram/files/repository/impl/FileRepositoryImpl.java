@@ -12,7 +12,7 @@ import cn.hutool.log.LogFactory;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.jdbcclient.JDBCPool;
+import io.vertx.sqlclient.SqlClient;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import org.jooq.lambda.tuple.Tuple;
@@ -29,20 +29,18 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class FileRepositoryImpl implements FileRepository {
+public class FileRepositoryImpl extends AbstractSqlRepository implements FileRepository {
 
     private static final Log log = LogFactory.get();
 
-    private final JDBCPool pool;
-
-    public FileRepositoryImpl(JDBCPool pool) {
-        this.pool = pool;
+    public FileRepositoryImpl(SqlClient sqlClient) {
+        super(sqlClient);
     }
 
     @Override
     public Future<FileRecord> create(FileRecord fileRecord) {
         return SqlTemplate
-                .forUpdate(pool, """
+                .forUpdate(sqlClient, """
                         INSERT INTO file_record(id, unique_id, telegram_id, chat_id, message_id, media_album_id, date, has_sensitive_content,
                                                 size, downloaded_size,
                                                 type, mime_type,
@@ -78,7 +76,7 @@ public class FileRepositoryImpl implements FileRepository {
             return Future.succeededFuture(new HashMap<>());
         }
         return SqlTemplate
-                .forQuery(pool, """
+                .forQuery(sqlClient, """
                         SELECT * FROM file_record WHERE chat_id = #{chatId} AND id IN (#{fileIds})
                         """)
                 .mapTo(FileRecord.ROW_MAPPER)
@@ -184,7 +182,7 @@ public class FileRepositoryImpl implements FileRepository {
         log.trace("Get files with where: %s params: %s".formatted(whereClause, params));
         return Future.all(
                 SqlTemplate
-                        .forQuery(pool, """
+                        .forQuery(sqlClient, """
                                 SELECT * FROM file_record WHERE %s ORDER BY %s LIMIT #{limit}
                                 """.formatted(whereClause, orderBy))
                         .mapTo(FileRecord.ROW_MAPPER)
@@ -193,7 +191,7 @@ public class FileRepositoryImpl implements FileRepository {
                         .map(IterUtil::toList)
                 ,
                 SqlTemplate
-                        .forQuery(pool, """
+                        .forQuery(sqlClient, """
                                 SELECT COUNT(*) FROM file_record WHERE %s
                                 """.formatted(countClause))
                         .mapTo(rs -> rs.getLong(0))
@@ -223,7 +221,7 @@ public class FileRepositoryImpl implements FileRepository {
             params.put("uniqueId" + i, uniqueIds.get(i));
         }
         return SqlTemplate
-                .forQuery(pool, """
+                .forQuery(sqlClient, """
                         SELECT * FROM file_record WHERE unique_id IN (%s)
                         """.formatted(uniqueIdPlaceholders))
                 .mapTo(FileRecord.ROW_MAPPER)
@@ -241,7 +239,7 @@ public class FileRepositoryImpl implements FileRepository {
     @Override
     public Future<FileRecord> getByPrimaryKey(int fileId, String uniqueId) {
         return SqlTemplate
-                .forQuery(pool, """
+                .forQuery(sqlClient, """
                         SELECT * FROM file_record WHERE id = #{fileId} AND unique_id = #{uniqueId}
                         """)
                 .mapTo(FileRecord.ROW_MAPPER)
@@ -254,7 +252,7 @@ public class FileRepositoryImpl implements FileRepository {
     @Override
     public Future<FileRecord> getByUniqueId(String uniqueId) {
         return SqlTemplate
-                .forQuery(pool, """
+                .forQuery(sqlClient, """
                         SELECT * FROM file_record WHERE unique_id = #{uniqueId} LIMIT 1
                         """)
                 .mapTo(FileRecord.ROW_MAPPER)
@@ -270,7 +268,7 @@ public class FileRepositoryImpl implements FileRepository {
             return Future.succeededFuture(null);
         }
         return SqlTemplate
-                .forQuery(pool, """
+                .forQuery(sqlClient, """
                         SELECT caption FROM file_record WHERE media_album_id = #{mediaAlbumId} LIMIT 1
                         """)
                 .mapTo(row -> row.getString("caption"))
@@ -282,7 +280,7 @@ public class FileRepositoryImpl implements FileRepository {
     @Override
     public Future<JsonObject> getDownloadStatistics(long telegramId) {
         return SqlTemplate
-                .forQuery(pool, """
+                .forQuery(sqlClient, """
                         SELECT COUNT(*)                                                                     AS total,
                                COUNT(CASE WHEN download_status = 'downloading' THEN 1 END)                  AS downloading,
                                COUNT(CASE WHEN download_status = 'paused' THEN 1 END)                       AS paused,
@@ -316,7 +314,7 @@ public class FileRepositoryImpl implements FileRepository {
     @Override
     public Future<JsonArray> getCompletedRangeStatistics(long telegramId, long startTime, long endTime, int timeRange) {
         return SqlTemplate
-                .forQuery(pool, """
+                .forQuery(sqlClient, """
                         SELECT strftime(
                                        CASE
                                            WHEN #{timeRange} = 1 THEN '%Y-%m-%d %H:%M'
@@ -373,7 +371,7 @@ public class FileRepositoryImpl implements FileRepository {
     @Override
     public Future<Integer> countByStatus(long telegramId, FileRecord.DownloadStatus downloadStatus) {
         return SqlTemplate
-                .forQuery(pool, """
+                .forQuery(sqlClient, """
                         SELECT COUNT(*) FROM file_record WHERE telegram_id = #{telegramId} AND download_status = #{downloadStatus}
                         """)
                 .mapTo(rs -> rs.getInteger(0))
@@ -408,7 +406,7 @@ public class FileRepositoryImpl implements FileRepository {
                     }
 
                     return SqlTemplate
-                            .forUpdate(pool, """
+                            .forUpdate(sqlClient, """
                                     UPDATE file_record SET id = #{fileId},
                                                            local_path = #{localPath},
                                                            download_status = #{downloadStatus},
@@ -459,7 +457,7 @@ public class FileRepositoryImpl implements FileRepository {
                     }
 
                     return SqlTemplate
-                            .forUpdate(pool, """
+                            .forUpdate(sqlClient, """
                                     UPDATE file_record
                                     SET transfer_status = #{transferStatus},
                                         local_path = #{localPath}
@@ -498,7 +496,7 @@ public class FileRepositoryImpl implements FileRepository {
                         return Future.succeededFuture();
                     }
                     return SqlTemplate
-                            .forUpdate(pool, """
+                            .forUpdate(sqlClient, """
                                     UPDATE file_record SET id = #{fileId} WHERE unique_id = #{uniqueId}
                                     """)
                             .execute(Map.of("fileId", fileId, "uniqueId", uniqueId))
@@ -527,7 +525,7 @@ public class FileRepositoryImpl implements FileRepository {
                 return Future.succeededFuture(0);
             }
             return SqlTemplate
-                    .forUpdate(pool, """
+                    .forUpdate(sqlClient, """
                             UPDATE file_record SET caption = #{caption} WHERE media_album_id = #{mediaAlbumId}
                             """)
                     .execute(Map.of("mediaAlbumId", mediaAlbumId, "caption", theCaption))
@@ -543,7 +541,7 @@ public class FileRepositoryImpl implements FileRepository {
             return Future.succeededFuture();
         }
         return SqlTemplate
-                .forUpdate(pool, """
+                .forUpdate(sqlClient, """
                         DELETE FROM file_record WHERE unique_id = #{uniqueId}
                         """)
                 .execute(Map.of("uniqueId", uniqueId))

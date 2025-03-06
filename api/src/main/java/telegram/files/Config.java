@@ -12,6 +12,7 @@ import io.vertx.core.ThreadingModel;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 import java.util.logging.*;
 
 public class Config {
@@ -20,6 +21,18 @@ public class Config {
     public static final String APP_ENV = StrUtil.blankToDefault(System.getenv("APP_ENV"), "prod");
 
     public static final String APP_ROOT = System.getenv("APP_ROOT");
+
+    public static final String DB_TYPE = StrUtil.blankToDefault(System.getenv("DB_TYPE"), "sqlite");
+
+    public static final String DB_HOST = System.getenv("DB_HOST");
+
+    public static final int DB_PORT = Convert.toInt(System.getenv("DB_PORT"));
+
+    public static final String DB_USER = System.getenv("DB_USER");
+
+    public static final String DB_PASSWORD = System.getenv("DB_PASSWORD");
+
+    public static final String DB_NAME = System.getenv("DB_NAME");
 
     public static final String LOG_PATH = APP_ROOT + File.separator + "logs";
 
@@ -107,6 +120,18 @@ public class Config {
         nettyLogger.setLevel(Level.WARNING);
 
         Logger.getLogger("telegram.files").setLevel(logLevel);
+    }
+
+    public static boolean isSqlite() {
+        return Objects.equals(DB_TYPE, "sqlite");
+    }
+
+    public static boolean isPostgres() {
+        return Objects.equals(DB_TYPE, "postgres");
+    }
+
+    public static boolean isMysql() {
+        return Objects.equals(DB_TYPE, "mysql");
     }
 
     public static class JDKLogFactory extends LogFactory {

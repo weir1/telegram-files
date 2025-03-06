@@ -1,6 +1,5 @@
 package telegram.files;
 
-import cn.hutool.core.io.FileUtil;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -23,6 +22,8 @@ public class FileDownloadStatusConcurrentTest {
 
     private static ExecutorService executor;
 
+    static Vertx vertx = Vertx.vertx();
+
     static FileRecord fileRecord = new FileRecord(
             1, "unique_id", 1, 1, 1, 1, 1, false, 1, 0, "type", "mime_type", "file_name", "thumbnail", "caption", null,
             FileRecord.DownloadStatus.idle.name(), FileRecord.TransferStatus.idle.name(), 0, null
@@ -32,7 +33,6 @@ public class FileDownloadStatusConcurrentTest {
     static void setUpAll() {
         executor = Executors.newFixedThreadPool(THREAD_COUNT);
 
-        Vertx vertx = Vertx.vertx();
         Future<String> future = vertx.deployVerticle(new DataVerticle());
         MessyUtils.await(future);
 
@@ -43,10 +43,7 @@ public class FileDownloadStatusConcurrentTest {
     @AfterAll
     static void tearDownAll() {
         executor.shutdown();
-        String dataPath = DataVerticle.getDataPath();
-        if (FileUtil.file(dataPath).exists()) {
-            FileUtil.del(dataPath);
-        }
+        DataVerticleTest.clear(vertx);
     }
 
     @RepeatedTest(THREAD_COUNT)
@@ -85,10 +82,10 @@ public class FileDownloadStatusConcurrentTest {
 
                 try {
                     DataVerticle.fileRepository.updateDownloadStatus(newFileId,
-                            fileRecord.uniqueId(),
-                            updateLocalPath,
-                            FileRecord.DownloadStatus.downloading,
-                            completionDate)
+                                    fileRecord.uniqueId(),
+                                    updateLocalPath,
+                                    FileRecord.DownloadStatus.downloading,
+                                    completionDate)
                             .onComplete(result -> completedCount.incrementAndGet());
                 } catch (Exception e) {
                     throw new RuntimeException(e);
