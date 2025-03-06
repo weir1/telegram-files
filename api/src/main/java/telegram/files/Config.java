@@ -26,7 +26,7 @@ public class Config {
 
     public static final String DB_HOST = System.getenv("DB_HOST");
 
-    public static final int DB_PORT = Convert.toInt(System.getenv("DB_PORT"));
+    public static final int DB_PORT = Convert.toInt(System.getenv("DB_PORT"), 0);
 
     public static final String DB_USER = System.getenv("DB_USER");
 

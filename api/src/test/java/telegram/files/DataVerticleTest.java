@@ -45,9 +45,9 @@ public class DataVerticleTest {
 
     public static Future<Void> clear(Vertx vertx) {
         if (Config.isSqlite()) {
-            String dataPath = DataVerticle.getDataPath();
-            if (FileUtil.file(dataPath).exists()) {
-                FileUtil.del(dataPath);
+            String appRoot = Config.APP_ROOT;
+            if (FileUtil.file(appRoot).exists()) {
+                FileUtil.clean(appRoot);
             }
             return Future.succeededFuture();
         } else if (Config.isPostgres()) {
