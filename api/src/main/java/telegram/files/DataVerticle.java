@@ -12,9 +12,7 @@ import io.vertx.core.impl.NoStackTraceException;
 import io.vertx.jdbcclient.JDBCConnectOptions;
 import io.vertx.jdbcclient.JDBCPool;
 import io.vertx.mysqlclient.MySQLBuilder;
-import io.vertx.mysqlclient.MySQLConnectOptions;
 import io.vertx.pgclient.PgBuilder;
-import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
 import io.vertx.sqlclient.SqlClient;
@@ -45,22 +43,24 @@ public class DataVerticle extends AbstractVerticle {
 
     private static SqlConnectOptions sqlConnectOptions;
 
+    public static final List<Definition> definitions;
+
     static {
-        if (Config.isPostgres()) {
-            sqlConnectOptions = new PgConnectOptions()
-                    .setPort(Config.DB_PORT)
-                    .setHost(Config.DB_HOST)
-                    .setDatabase(Config.DB_NAME)
-                    .setUser(Config.DB_USER)
-                    .setPassword(Config.DB_PASSWORD);
-        } else if (Config.isMysql()) {
-            sqlConnectOptions = new MySQLConnectOptions()
+        if (Config.isPostgres() || Config.isMysql()) {
+            sqlConnectOptions = new SqlConnectOptions()
                     .setPort(Config.DB_PORT)
                     .setHost(Config.DB_HOST)
                     .setDatabase(Config.DB_NAME)
                     .setUser(Config.DB_USER)
                     .setPassword(Config.DB_PASSWORD);
         }
+
+        definitions = List.of(
+                new SettingRecord.SettingRecordDefinition(),
+                new TelegramRecord.TelegramRecordDefinition(),
+                new FileRecord.FileRecordDefinition(),
+                new StatisticRecord.StatisticRecordDefinition()
+        );
     }
 
     public void start(Promise<Void> stopPromise) {
@@ -69,12 +69,6 @@ public class DataVerticle extends AbstractVerticle {
         telegramRepository = new TelegramRepositoryImpl(pool);
         fileRepository = new FileRepositoryImpl(pool);
         statisticRepository = new StatisticRepositoryImpl(pool);
-        List<Definition> definitions = List.of(
-                new SettingRecord.SettingRecordDefinition(),
-                new TelegramRecord.TelegramRecordDefinition(),
-                new FileRecord.FileRecordDefinition(),
-                new StatisticRecord.StatisticRecordDefinition()
-        );
         isCompletelyNewInitialization()
                 .compose(isNew -> Future.all(definitions.stream().map(d -> d.createTable(pool)).toList()).map(isNew))
                 .compose(isNew -> settingRepository.<Version>getByKey(SettingKey.version).map(version -> Tuple.tuple(isNew, version)))
@@ -152,50 +146,85 @@ public class DataVerticle extends AbstractVerticle {
     }
 
     private Future<Boolean> isCompletelyNewInitializationForPostgres() {
-        SqlClient sqlClient = createSqlClient(vertx, createDefaultOptions());
+        SqlClient sqlClient;
+        String query;
+        if (Config.DB_NEED_CREATE) {
+            query = """
+                    SELECT 1 FROM pg_database WHERE datname = '%s'
+                    """.formatted(Config.DB_NAME);
+            sqlClient = createSqlClient(vertx, createDefaultOptions());
+        } else {
+            query = """
+                    SELECT table_name
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public'
+                    ORDER BY table_name;
+                    """;
+            sqlClient = pool;
+        }
 
-        return sqlClient.query("""
-                        SELECT 1 FROM pg_database WHERE datname = '%s'
-                        """.formatted(Config.DB_NAME))
+        return sqlClient.query(query)
                 .execute()
                 .map(rs -> rs.size() == 0)
                 .compose(isNew -> {
                     if (isNew) {
-                        return sqlClient.query("""
+                        return Config.DB_NEED_CREATE ? sqlClient.query("""
                                         CREATE DATABASE "%s"
                                         """.formatted(Config.DB_NAME))
                                 .execute()
-                                .map(true);
+                                .map(true) : Future.succeededFuture(true);
                     } else {
                         return Future.succeededFuture(false);
                     }
                 })
-                .eventually(() -> sqlClient.close())
+                .eventually(() -> {
+                    if (Config.DB_NEED_CREATE)
+                        return sqlClient.close();
+                    return Future.succeededFuture();
+                })
                 .onFailure(err -> log.error("Failed to check database initialization: %s".formatted(err.getMessage())));
     }
 
     private Future<Boolean> isCompletelyNewInitializationForMySQL() {
-        SqlClient sqlClient = createSqlClient(vertx, createDefaultOptions());
+        SqlClient sqlClient;
+        String query;
+        if (Config.DB_NEED_CREATE) {
+            query = """
+                    SELECT SCHEMA_NAME
+                    FROM INFORMATION_SCHEMA.SCHEMATA
+                    WHERE SCHEMA_NAME = '%s'
+                    """.formatted(Config.DB_NAME);
+            sqlClient = createSqlClient(vertx, createDefaultOptions());
+        } else {
+            query = """
+                    SELECT table_name
+                    FROM information_schema.tables
+                    WHERE table_schema = '%s'
+                    ORDER BY table_name;
+                    """.formatted(Config.DB_NAME);
+            sqlClient = pool;
+        }
 
-        return sqlClient.query("""
-                        SELECT SCHEMA_NAME
-                        FROM INFORMATION_SCHEMA.SCHEMATA
-                        WHERE SCHEMA_NAME = '%s'
-                        """.formatted(Config.DB_NAME))
+        return sqlClient.query(query)
                 .execute()
                 .map(rs -> rs.size() == 0)
                 .compose(isNew -> {
                     if (isNew) {
-                        return sqlClient.query("""
+                        return Config.DB_NEED_CREATE ? sqlClient.query("""
                                         CREATE DATABASE `%s` collate utf8mb4_bin;
                                         """.formatted(Config.DB_NAME))
                                 .execute()
-                                .map(true);
+                                .map(true) :
+                                Future.succeededFuture(true);
                     } else {
                         return Future.succeededFuture(false);
                     }
                 })
-                .eventually(() -> sqlClient.close())
+                .eventually(() -> {
+                    if (Config.DB_NEED_CREATE)
+                        return sqlClient.close();
+                    return Future.succeededFuture();
+                })
                 .onFailure(err -> log.error("Failed to check database initialization: %s".formatted(err.getMessage())));
     }
 

@@ -17,6 +17,7 @@ import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.templates.SqlTemplate;
 import org.jooq.lambda.tuple.Tuple;
 import org.jooq.lambda.tuple.Tuple3;
+import telegram.files.Config;
 import telegram.files.MessyUtils;
 import telegram.files.repository.FileRecord;
 import telegram.files.repository.FileRepository;
@@ -313,9 +314,10 @@ public class FileRepositoryImpl extends AbstractSqlRepository implements FileRep
 
     @Override
     public Future<JsonArray> getCompletedRangeStatistics(long telegramId, long startTime, long endTime, int timeRange) {
-        return SqlTemplate
-                .forQuery(sqlClient, """
-                        SELECT strftime(
+        String query;
+        if (Config.isSqlite()) {
+            query = """
+                    SELECT strftime(
                                        CASE
                                            WHEN #{timeRange} = 1 THEN '%Y-%m-%d %H:%M'
                                            WHEN #{timeRange} = 2 THEN '%Y-%m-%d %H:00'
@@ -332,7 +334,48 @@ public class FileRepositoryImpl extends AbstractSqlRepository implements FileRep
                           AND completion_date <= #{endTime}
                         GROUP BY time
                         ORDER BY time;
-                        """)
+                    """;
+        } else if (Config.isPostgres()) {
+            query = """
+                    SELECT TO_CHAR(
+                               TO_TIMESTAMP(completion_date / 1000),
+                               CASE
+                                   WHEN #{timeRange} = 1 THEN 'YYYY-MM-DD HH24:MI'
+                                   WHEN #{timeRange} = 2 THEN 'YYYY-MM-DD HH24:00'
+                                   WHEN #{timeRange} IN (3, 4) THEN 'YYYY-MM-DD'
+                               END
+                           ) AS time,
+                           COUNT(*) AS total
+                    FROM file_record
+                    WHERE telegram_id = #{telegramId}
+                      AND completion_date IS NOT NULL
+                      AND completion_date >= #{startTime}
+                      AND completion_date <= #{endTime}
+                    GROUP BY time
+                    ORDER BY time;
+                    """;
+        } else {
+            query = """
+                    SELECT DATE_FORMAT(
+                               FROM_UNIXTIME(completion_date / 1000),
+                               CASE
+                                   WHEN #{timeRange} = 1 THEN '%Y-%m-%d %H:%i'
+                                   WHEN #{timeRange} = 2 THEN '%Y-%m-%d %H:00'
+                                   WHEN #{timeRange} IN (3, 4) THEN '%Y-%m-%d'
+                               END
+                           ) AS time,
+                           COUNT(*) AS total
+                    FROM file_record
+                    WHERE telegram_id = #{telegramId}
+                      AND completion_date IS NOT NULL
+                      AND completion_date >= #{startTime}
+                      AND completion_date <= #{endTime}
+                    GROUP BY time
+                    ORDER BY time;
+                    """;
+        }
+        return SqlTemplate
+                .forQuery(sqlClient, query)
                 .mapTo(row -> new JsonObject()
                         .put("time", row.getString("time"))
                         .put("total", row.getInteger("total"))

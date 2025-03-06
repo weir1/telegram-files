@@ -113,7 +113,7 @@ public class DataVerticleMigrationTest {
                             .compose(conn -> conn.query(getTablesQuery()).execute()
                                     .compose(result -> {
                                         testContext.verify(() -> {
-                                            Assertions.assertEquals(4, result.size());
+                                            Assertions.assertEquals(DataVerticle.definitions.size(), result.size());
                                         });
                                         return conn.close();
                                     }));

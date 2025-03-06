@@ -1,6 +1,7 @@
 package telegram.files.repository.impl;
 
 import cn.hutool.core.collection.IterUtil;
+import cn.hutool.core.convert.Convert;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
 import io.vertx.core.Future;
@@ -54,7 +55,7 @@ public class StatisticRepositoryImpl extends AbstractSqlRepository implements St
                 .mapTo(StatisticRecord.ROW_MAPPER)
                 .execute(Map.of(
                         "type", type.name(),
-                        "relatedId", relatedId,
+                        "relatedId", Convert.toStr(relatedId),
                         "startTime", startTime,
                         "endTime", endTime
                 ))

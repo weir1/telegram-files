@@ -34,6 +34,8 @@ public class Config {
 
     public static final String DB_NAME = System.getenv("DB_NAME");
 
+    public static final boolean DB_NEED_CREATE = Convert.toBool(System.getenv("DB_NEED_CREATE"), false);
+
     public static final String LOG_PATH = APP_ROOT + File.separator + "logs";
 
     public static final String TELEGRAM_ROOT = APP_ROOT + File.separator + "account";

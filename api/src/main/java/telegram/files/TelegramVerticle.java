@@ -810,6 +810,10 @@ public class TelegramVerticle extends AbstractVerticle {
 
     private void onMessageReceived(TdApi.Message message) {
         log.trace("[%s] Receive message: %s".formatted(getRootId(), message));
+        if (this.telegramRecord == null) {
+            log.trace("[%s] Telegram record is null, can't handle message".formatted(getRootId()));
+            return;
+        }
         vertx.eventBus().publish(EventEnum.MESSAGE_RECEIVED.address(), JsonObject.of()
                 .put("telegramId", telegramRecord.id())
                 .put("chatId", message.chatId)
