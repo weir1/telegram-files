@@ -36,15 +36,15 @@
 * Support multiple telegram accounts for downloading files.
 * Support suspending and resuming downloads, and auto transfer files to other destinations.
 * Preview of downloaded videos and pictures.
-* Responsive design supports mobile access.
+* Responsive design supports mobile access, PWAs, and offline access.
 
 ---
 
 ## 🧩 Screenshots
 
 <div align="center">
-    <img src="./misc/screenshot.png" align="center" width="40%">
-    <img src="./misc/screenshot-2.png" align="center" width="40%">
+    <img src="./misc/preview-files-pc.gif" width="70%">
+    <img src="./misc/preview-files-mobile.gif" width="17.6%">
 </div>
 
 <details closed>
@@ -53,9 +53,10 @@
     <img src="./misc/screenshot-3.png" align="center" style="width: 300px; height: 500px;">
     <img src="./misc/screenshot-4.png" align="center" style="width: 300px; height: 500px;">
 </div>
+
 <div align="center">
-    <img src="./misc/preview-files-pc.gif" width="70%">
-    <img src="./misc/preview-files-mobile.gif" width="18%">
+    <img src="./misc/screenshot.png" align="center" width="40%">
+    <img src="./misc/screenshot-2.png" align="center" width="40%">
 </div>
 </details>
 
@@ -82,7 +83,7 @@ docker run -d \
 
 **Using `docker-compose`**
 
-Copy [docker-compose.yaml](docker-compose.yaml) to your project directory and run the following command:
+Copy [docker-compose.yaml](docker-compose.yaml) and [.env.example](.env.example) to your project directory and run the following command:
 
 ```sh
 docker-compose up -d
