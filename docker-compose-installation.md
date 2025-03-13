@@ -43,6 +43,31 @@ docker-compose version
 docker compose version
 ```
 
+### Fixing PATH Issues
+
+If you see an error like this when trying to use `docker-compose`:
+
+```
+Command 'docker-compose' is available in '/usr/local/bin/docker-compose'
+The command could not be located because '/usr/local/bin' is not included in the PATH environment variable.
+docker-compose: command not found
+```
+
+You need to add `/usr/local/bin` to your PATH environment variable:
+
+```bash
+# Add /usr/local/bin to PATH in your bashrc file
+echo 'export PATH=$PATH:/usr/local/bin' >> ~/.bashrc
+
+# Apply the changes to your current session
+source ~/.bashrc
+
+# Verify that docker-compose now works
+docker-compose --version
+```
+
+This fix will persist across login sessions and ensure the `docker-compose` command is always available.
+
 ## Resolving Dependency Conflicts
 
 If you encounter the error:
