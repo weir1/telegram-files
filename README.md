@@ -11,7 +11,18 @@ We've deployed this solution on a Proxmox LXC container with the following confi
 - **IP Address**: 192.168.100.26
 - **Web Interface**: Port 6543
 
-For detailed deployment instructions, see [docs/deployment-guide.md](docs/deployment-guide.md).
+For detailed deployment instructions, see [telegram-files-deployment.md](telegram-files-deployment.md).
+
+## Setup Scripts
+
+We've created helper scripts to simplify deployment:
+
+1. [setup-docker-compose.sh](setup-docker-compose.sh) - Sets up Docker Compose with backward compatibility for the `docker-compose` command.
+2. [setup-telegram-files.sh](setup-telegram-files.sh) - Creates the telegram-files configuration.
+
+## Docker Compose Installation
+
+If you encounter issues with Docker Compose installation, see our [docker-compose-installation.md](docker-compose-installation.md) guide.
 
 ## Purpose
 
